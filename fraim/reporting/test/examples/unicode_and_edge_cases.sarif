@@ -1,0 +1,440 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "UNICODE_TEST",
+          "version": "1.0.0"
+        }
+      },
+      "results": [
+        {
+          "message": {
+            "text": "Unicode test: 你好世界 🌍 Chinese and emoji support testing"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://test/unicode/世界.py"
+                },
+                "region": {
+                  "startLine": 1,
+                  "endLine": 3,
+                  "snippet": {
+                    "text": "# 测试文件\nprint('你好世界! 🎉')\n# Test file with Chinese"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 1,
+                  "endLine": 6,
+                  "snippet": {
+                    "text": "# 测试文件\nprint('你好世界! 🎉')\n# Test file with Chinese\n# Unicode support test\ndef test():\n    pass"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Unicode Characters Test 测试",
+            "confidence": 8,
+            "exploitable": false,
+            "explanation": {
+              "text": "This tests Unicode character handling in the reporting system"
+            },
+            "test_purpose": "Unicode Support",
+            "chinese_content": "这是中文测试 - This is a Chinese test",
+            "emoji_tests": "🔥💻🛡️🔍⚠️📊🚀",
+            "special_unicode": "™®©℠₹€¥£₩"
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Unicode character test flow"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Unicode rendering test"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "file://test/unicode/世界.py"
+                          },
+                          "region": {
+                            "startLine": 2,
+                            "endLine": 2,
+                            "snippet": {
+                              "text": "print('你好世界! 🎉')"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 1,
+                            "endLine": 6,
+                            "snippet": {
+                              "text": "# 测试文件\nprint('你好世界! 🎉')\n# Test file with Chinese\n# Unicode support test\ndef test():\n    pass"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": ["unicode_test"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tool": {
+        "driver": {
+          "name": "EDGE_CASES",
+          "version": "1.0.0"
+        }
+      },
+      "results": [
+        {
+          "message": {
+            "text": "This is an extremely long description that tests how the reporting system handles very lengthy content. This is repeated content to test wrapping and display behavior. This is repeated content to test wrapping and display behavior. This is repeated content to test wrapping and display behavior. This is repeated content to test wrapping and display behavior. This is repeated content to test wrapping and display behavior. This is repeated content to test wrapping and display behavior. This is repeated content to test wrapping and display behavior. This is repeated content to test wrapping and display behavior. This is repeated content to test wrapping and display behavior. This is repeated content to test wrapping and display behavior. This content is intentionally verbose to test text wrapping, display limits, and overall UI performance with large amounts of text data."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://test/very/deep/nested/path/structure/that/goes/on/for/a/while/to/test/long/paths/and/how/they/are/handled/in/the/interface/final_file.py"
+                },
+                "region": {
+                  "startLine": 100,
+                  "endLine": 150,
+                  "snippet": {
+                    "text": "# This is a very long code snippet that tests how the code display handles lengthy content\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 95,
+                  "endLine": 155,
+                  "snippet": {
+                    "text": "# Context before long content\n# This is a very long code snippet that tests how the code display handles lengthy content\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\n# Context after long content"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Long Content Test",
+            "confidence": 9,
+            "exploitable": false,
+            "explanation": {
+              "text": "This tests how the system handles very long content and descriptions"
+            },
+            "test_purpose": "Long Content Handling",
+            "very_long_property": "This property contains an extremely long value that repeats to test how the interface handles long property values and whether they wrap properly or truncate appropriately. This property contains an extremely long value that repeats to test how the interface handles long property values and whether they wrap properly or truncate appropriately. This property contains an extremely long value that repeats to test how the interface handles long property values and whether they wrap properly or truncate appropriately.",
+            "nested_data": {
+              "level1": {
+                "level2": {
+                  "level3": {
+                    "deeply_nested": "This tests deeply nested JSON structure display",
+                    "array_data": [
+                      "item1", "item2", "item3", "item1", "item2", "item3", "item1", "item2", "item3"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Long content handling test flow"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Long content display test"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "file://test/very/deep/nested/path/structure/that/goes/on/for/a/while/to/test/long/paths/and/how/they/are/handled/in/the/interface/final_file.py"
+                          },
+                          "region": {
+                            "startLine": 100,
+                            "endLine": 150,
+                            "snippet": {
+                              "text": "# This is a very long code snippet that tests how the code display handles lengthy content\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 95,
+                            "endLine": 155,
+                            "snippet": {
+                              "text": "# Context before long content\n# This is a very long code snippet that tests how the code display handles lengthy content\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\nprint('test line')\n# Context after long content"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": ["long_content_test"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": ""
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ""
+                },
+                "region": {
+                  "startLine": 0,
+                  "endLine": 0,
+                  "snippet": {
+                    "text": ""
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 0,
+                  "endLine": 1,
+                  "snippet": {
+                    "text": "# Empty file test context"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Empty Values Test",
+            "confidence": 5,
+            "exploitable": false,
+            "explanation": {
+              "text": "This tests how the system handles empty and null values"
+            },
+            "test_purpose": "Empty/Null Handling",
+            "empty_string": "",
+            "empty_object": {},
+            "empty_array": []
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Empty value handling test flow"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Empty/null value test"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": ""
+                          },
+                          "region": {
+                            "startLine": 0,
+                            "endLine": 0,
+                            "snippet": {
+                              "text": ""
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 0,
+                            "endLine": 1,
+                            "snippet": {
+                              "text": "# Empty file test context"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": ["empty_test"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Testing path traversal sanitization"
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://../../etc/passwd"
+                },
+                "region": {
+                  "startLine": 1,
+                  "endLine": 1,
+                  "snippet": {
+                    "text": "# Path traversal test"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 1,
+                  "endLine": 5,
+                  "snippet": {
+                    "text": "# Path traversal test\n# This tests path sanitization\nroot:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Path Traversal Test",
+            "confidence": 8,
+            "exploitable": false,
+            "explanation": {
+              "text": "This tests path traversal sanitization functionality"
+            },
+            "test_purpose": "Path Sanitization",
+            "malicious_paths": [
+              "../../../etc/passwd",
+              "..\\..\\windows\\system32",
+              "file:///etc/hosts"
+            ]
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Path traversal test flow"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Path sanitization test"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "file://../../etc/passwd"
+                          },
+                          "region": {
+                            "startLine": 1,
+                            "endLine": 1,
+                            "snippet": {
+                              "text": "# Path traversal test"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 1,
+                            "endLine": 5,
+                            "snippet": {
+                              "text": "# Path traversal test\n# This tests path sanitization\nroot:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": ["path_traversal_test"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "All severity levels test"
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://test/all_severities.js"
+                },
+                "region": {
+                  "startLine": 42,
+                  "endLine": 42,
+                  "snippet": {
+                    "text": "// Testing all severity combinations"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 40,
+                  "endLine": 46,
+                  "snippet": {
+                    "text": "// Severity test setup\n// Testing all severity combinations\nconsole.log('severity test');\n// End of severity test"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "All Severities Test",
+            "confidence": 4,
+            "exploitable": false,
+            "explanation": {
+              "text": "This tests that all severity levels are properly handled and displayed"
+            },
+            "test_purpose": "Severity Level Display"
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Severity level test flow"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "All severity levels test"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "file://test/all_severities.js"
+                          },
+                          "region": {
+                            "startLine": 42,
+                            "endLine": 42,
+                            "snippet": {
+                              "text": "// Testing all severity combinations"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 40,
+                            "endLine": 46,
+                            "snippet": {
+                              "text": "// Severity test setup\n// Testing all severity combinations\nconsole.log('severity test');\n// End of severity test"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": ["severity_level_test"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+} 

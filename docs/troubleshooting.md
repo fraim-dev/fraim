@@ -1,0 +1,467 @@
+# Troubleshooting
+
+This guide covers common issues you might encounter when using Fraim and their solutions.
+
+## Installation Issues
+
+### Python Version Compatibility
+
+**Problem:** Fraim fails to install or run due to Python version issues.
+
+**Solution:**
+```bash
+# Check your Python version
+python --version
+
+# Ensure you have Python 3.10 or higher
+python3.12 --version
+
+# If using the wrong version, specify the correct Python
+python3.12 -m pip install uv
+```
+
+### uv Installation Problems
+
+**Problem:** `uv` command not found after installation.
+
+**Solution:**
+```bash
+# Add uv to your PATH (Linux/macOS)
+echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+
+# For zsh users
+echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+
+# Alternative: Install via pip
+pip install uv
+```
+
+### Permission Errors
+
+**Problem:** Permission denied when installing or running Fraim.
+
+**Solution:**
+```bash
+# Fix ownership of uv directories (Linux/macOS)
+sudo chown -R $USER:$USER ~/.local/share/uv
+
+# Use user installation mode
+uv sync --user
+
+# On Windows, run as Administrator or check UAC settings
+```
+
+## Configuration Issues
+
+### API Key Problems
+
+**Problem:** "API key not found" or authentication errors.
+
+**Solutions:**
+
+1. **Check Environment Variables:**
+   ```bash
+   echo $GEMINI_API_KEY
+   echo $OPENAI_API_KEY
+   echo $ANTHROPIC_API_KEY
+   ```
+
+2. **Verify .env File:**
+   ```bash
+   cat .env
+   # Should contain: GEMINI_API_KEY=your_key_here
+   ```
+
+3. **Test API Connectivity:**
+   ```bash
+   # Test with a small analysis
+   fraim --path . --limit 1 --debug
+   ```
+
+### Model Configuration Issues
+
+**Problem:** "Model not supported" or incorrect model names.
+
+**Solution:**
+```bash
+# Use correct model format
+fraim --model gemini/gemini-2.5-flash  # ✅ Correct
+fraim --model gemini-flash             # ❌ Incorrect
+
+# Available models:
+fraim --model gemini/gemini-2.5-flash
+fraim --model gpt-4
+fraim --model gpt-3.5-turbo
+fraim --model claude-3-sonnet-20240229
+```
+
+## Runtime Issues
+
+### Memory Problems
+
+**Problem:** Out of memory errors or system freezing during analysis.
+
+**Solutions:**
+
+1. **Reduce Parallel Processes:**
+   ```bash
+   fraim --path . --processes 2
+   ```
+
+2. **Decrease Chunk Size:**
+   ```bash
+   fraim --path . --chunk-size 200
+   ```
+
+3. **Limit File Analysis:**
+   ```bash
+   fraim --path . --limit 50
+   ```
+
+4. **Monitor System Resources:**
+   ```bash
+   # Check memory usage during analysis
+   top
+   htop  # If available
+   ```
+
+### Performance Issues
+
+**Problem:** Analysis is very slow or hangs.
+
+**Solutions:**
+
+1. **Optimize Process Count:**
+   ```bash
+   # For 4-core systems
+   fraim --path . --processes 4
+   
+   # For 8+ core systems
+   fraim --path . --processes 8
+   ```
+
+2. **Adjust Chunk Size:**
+   ```bash
+   # Larger chunks for faster processing
+   fraim --path . --chunk-size 800
+   ```
+
+3. **Use File Limits:**
+   ```bash
+   # Test with fewer files first
+   fraim --path . --limit 20 --debug
+   ```
+
+4. **Check Network Connectivity:**
+   ```bash
+   # Test API response time
+   ping api.openai.com
+   curl -I https://generativelanguage.googleapis.com
+   ```
+
+### API Rate Limiting
+
+**Problem:** "Too many requests" or rate limit errors.
+
+**Solutions:**
+
+1. **Reduce Parallelism:**
+   ```bash
+   fraim --path . --processes 1
+   ```
+
+2. **Increase Chunk Size:**
+   ```bash
+   fraim --path . --chunk-size 1000
+   ```
+
+3. **Use Different Model:**
+   ```bash
+   # Some models have higher rate limits
+   fraim --path . --model gpt-3.5-turbo
+   ```
+
+4. **Check API Quotas:**
+   - Review your API provider's usage dashboard
+   - Upgrade your API plan if needed
+
+## Analysis Issues
+
+### No Files Found
+
+**Problem:** Fraim reports "No files found" or analyzes fewer files than expected.
+
+**Solutions:**
+
+1. **Check File Patterns:**
+   ```bash
+   # Verify files exist
+   find . -name "*.py" | head -10
+   
+   # Test with specific patterns
+   fraim --path . --globs "*.py" --debug
+   ```
+
+2. **Debug File Discovery:**
+   ```bash
+   fraim --path . --debug | grep -i "found"
+   ```
+
+3. **Check Directory Permissions:**
+   ```bash
+   ls -la /path/to/your/project
+   ```
+
+### Poor Quality Results
+
+**Problem:** Too many false positives or missing real vulnerabilities.
+
+**Solutions:**
+
+1. **Adjust Confidence Threshold:**
+   ```bash
+   # Fewer false positives
+   fraim --path . --confidence 8
+   
+   # More comprehensive analysis
+   fraim --path . --confidence 5
+   ```
+
+2. **Optimize Chunk Size:**
+   ```bash
+   # Better context for analysis
+   fraim --path . --chunk-size 300
+   ```
+
+3. **Use Better Model:**
+   ```bash
+   # More capable models
+   fraim --path . --model gpt-4
+   fraim --path . --model claude-3-opus-20240229
+   ```
+
+### Incomplete Analysis
+
+**Problem:** Analysis stops early or doesn't process all files.
+
+**Solutions:**
+
+1. **Check Debug Output:**
+   ```bash
+   fraim --path . --debug | tail -50
+   ```
+
+2. **Verify Disk Space:**
+   ```bash
+   df -h
+   ```
+
+3. **Check File Size Limits:**
+   ```bash
+   # Skip very large files
+   find . -name "*.py" -size +1M
+   ```
+
+## Output Issues
+
+### Missing Reports
+
+**Problem:** SARIF or HTML reports are not generated.
+
+**Solutions:**
+
+1. **Check Output Directory:**
+   ```bash
+   ls -la scan_outputs/
+   ```
+
+2. **Verify Permissions:**
+   ```bash
+   # Check write permissions
+   touch scan_outputs/test.txt
+   rm scan_outputs/test.txt
+   ```
+
+3. **Use Custom Output Path:**
+   ```bash
+   fraim --path . --output /tmp/fraim-reports/
+   ```
+
+### Corrupted Reports
+
+**Problem:** Reports are empty or malformed.
+
+**Solutions:**
+
+1. **Check for Errors:**
+   ```bash
+   fraim --path . --debug | grep -i error
+   ```
+
+2. **Verify Analysis Completed:**
+   ```bash
+   # Look for completion messages
+   fraim --path . --debug | grep -i "completed"
+   ```
+
+3. **Test with Minimal Example:**
+   ```bash
+   mkdir test-fraim
+   echo "print('hello')" > test-fraim/test.py
+   fraim --path test-fraim --limit 1
+   ```
+
+## Integration Issues
+
+### CI/CD Pipeline Failures
+
+**Problem:** Fraim fails in automated environments.
+
+**Solutions:**
+
+1. **Check Environment Variables:**
+   ```yaml
+   # GitHub Actions example
+   env:
+     GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+   ```
+
+2. **Use Non-Interactive Mode:**
+   ```bash
+   # Avoid hanging in CI
+   fraim --path . --processes 2 --confidence 8
+   ```
+
+3. **Set Timeouts:**
+   ```bash
+   # Prevent infinite hangs
+   timeout 30m fraim --path . --workflows code
+   ```
+
+### Docker Issues
+
+**Problem:** Running Fraim in containers.
+
+**Solutions:**
+
+1. **Dockerfile Example:**
+   ```dockerfile
+   FROM python:3.12-slim
+   
+   RUN pip install uv
+   COPY . /app
+   WORKDIR /app
+   RUN uv sync
+   
+   # Set environment variables
+   ENV GEMINI_API_KEY=${GEMINI_API_KEY}
+   
+   CMD ["uv", "run", "fraim", "--path", ".", "--workflows", "code"]
+   ```
+
+2. **Memory Limits:**
+   ```bash
+   docker run --memory=4g fraim-image
+   ```
+
+## Debugging Techniques
+
+### Enable Debug Logging
+
+```bash
+# Full debug output
+fraim --path . --debug
+
+# Filter for specific issues
+fraim --path . --debug | grep -i "error\|warning\|failed"
+
+# Save debug output
+fraim --path . --debug > debug.log 2>&1
+```
+
+### Test Minimal Examples
+
+```bash
+# Create test directory
+mkdir fraim-test
+cd fraim-test
+
+# Add simple vulnerable code
+cat > vulnerable.py << 'EOF'
+import os
+password = "hardcoded123"
+user_input = input("Enter command: ")
+os.system(user_input)
+EOF
+
+# Test analysis
+fraim --path . --limit 1 --debug
+```
+
+### System Information
+
+```bash
+# Gather system info for bug reports
+echo "Python: $(python --version)"
+echo "uv: $(uv --version)"
+echo "OS: $(uname -a)"
+echo "Memory: $(free -h 2>/dev/null || vm_stat)"
+echo "Disk: $(df -h .)"
+```
+
+## Getting Help
+
+### Before Reporting Issues
+
+1. **Update Fraim:**
+   ```bash
+   cd fraim
+   git pull origin main
+   uv sync
+   ```
+
+2. **Clear Cache:**
+   ```bash
+   rm -rf ~/.cache/uv/
+   uv sync
+   ```
+
+3. **Test Minimal Example:**
+   - Create a small test case that reproduces the issue
+   - Include debug output
+
+### Reporting Bugs
+
+When reporting issues, include:
+
+1. **System Information:**
+   - Operating system and version
+   - Python version
+   - uv version
+   - Fraim version/commit
+
+2. **Command Used:**
+   ```bash
+   fraim --path . --workflows code --debug
+   ```
+
+3. **Debug Output:**
+   - Full debug log (use `--debug`)
+   - Error messages
+   - Stack traces
+
+4. **Expected vs Actual Behavior:**
+   - What you expected to happen
+   - What actually happened
+
+### Community Support
+
+- **GitHub Issues:** [Create an issue](https://github.com/fraim-dev/fraim/issues)
+- **Discussions:** Join community discussions for questions
+- **Documentation:** Check other documentation sections
+
+---
+
+Still having issues? Check the [Configuration Guide](configuration.md) for advanced setup options or [create an issue](https://github.com/fraim-dev/fraim/issues) with your debug output. 

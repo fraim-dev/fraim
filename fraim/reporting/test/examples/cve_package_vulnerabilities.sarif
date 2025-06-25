@@ -1,0 +1,320 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "CVE",
+          "version": "1.0.0"
+        }
+      },
+      "results": [
+        {
+          "message": {
+            "text": "Package vulnerability in express: CVE-2023-43646"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://package.json"
+                },
+                "region": {
+                  "startLine": 1,
+                  "endLine": 1,
+                  "snippet": {
+                    "text": "express"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 1,
+                  "endLine": 10,
+                  "snippet": {
+                    "text": "{\n  \"name\": \"test-app\",\n  \"dependencies\": {\n    \"express\": \"4.17.1\",\n    \"lodash\": \"4.17.15\"\n  }\n}"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Package Vulnerability",
+            "confidence": 9,
+            "package_name": "express",
+            "cve_id": "CVE-2023-43646",
+            "version": "4.17.1",
+            "severity": "high",
+            "exploitable": true,
+            "explanation": {
+              "text": "Express.js versions before 4.19.0 are vulnerable to XSS via response type sniffing."
+            },
+            "cvss_score": 8.2,
+            "published_date": "2023-11-25",
+            "fixed_version": "4.19.0",
+            "remediation": {
+              "text": "Update express to version 4.19.0 or later"
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Package vulnerability detection flow"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Vulnerable package dependency found"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "file://package.json"
+                          },
+                          "region": {
+                            "startLine": 1,
+                            "endLine": 1,
+                            "snippet": {
+                              "text": "express"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 1,
+                            "endLine": 10,
+                            "snippet": {
+                              "text": "{\n  \"name\": \"test-app\",\n  \"dependencies\": {\n    \"express\": \"4.17.1\",\n    \"lodash\": \"4.17.15\"\n  }\n}"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": ["package_vulnerability"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "CVE Triage Analysis for lodash: CVE-2021-23337"
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://package.json"
+                },
+                "region": {
+                  "startLine": 1,
+                  "endLine": 1,
+                  "snippet": {
+                    "text": "lodash"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 1,
+                  "endLine": 10,
+                  "snippet": {
+                    "text": "{\n  \"name\": \"test-app\",\n  \"dependencies\": {\n    \"express\": \"4.17.1\",\n    \"lodash\": \"4.17.15\"\n  }\n}"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "CVE Triage Analysis",
+            "confidence": 7,
+            "package_name": "lodash",
+            "vulnerability_id": "CVE-2021-23337",
+            "vulnerability_type": "package",
+            "exploitability_score": 6,
+            "patch_safety_score": 8,
+            "exploitable": true,
+            "explanation": {
+              "text": "Moderate exploitability due to prototype pollution vulnerability. Application uses lodash for data manipulation in user-facing features."
+            },
+            "remediation": {
+              "text": "Update to lodash 4.17.21 or later. Review code that processes user input with lodash functions."
+            },
+            "patch_analysis": {
+              "text": "Patch is safe to apply. Minor version update with no breaking changes to public API."
+            },
+            "attack_vectors": [
+              "Prototype pollution via merge/mergeWith functions",
+              "Object property injection through user input"
+            ],
+            "risk_factors": [
+              "Used in user-facing data processing",
+              "Handles untrusted input from API endpoints"
+            ],
+            "breaking_changes": [],
+            "analysis_evidence": {
+              "usage_instances": [
+                {
+                  "file": "src/utils/dataProcessor.js",
+                  "line": 15,
+                  "code_snippet": "const merged = _.merge({}, defaultConfig, userConfig);",
+                  "usage_type": "merge"
+                }
+              ]
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "CVE triage analysis flow"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Vulnerability analysis and triage"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "file://src/utils/dataProcessor.js"
+                          },
+                          "region": {
+                            "startLine": 15,
+                            "endLine": 15,
+                            "snippet": {
+                              "text": "const merged = _.merge({}, defaultConfig, userConfig);"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 12,
+                            "endLine": 18,
+                            "snippet": {
+                              "text": "function processUserData(userConfig) {\n  const defaultConfig = getDefaultConfig();\n  const merged = _.merge({}, defaultConfig, userConfig);\n  return validateConfig(merged);\n}"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": ["vulnerability_usage"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "CVE Triage Analysis for moment: CVE-2022-31129"
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://package.json"
+                },
+                "region": {
+                  "startLine": 1,
+                  "endLine": 1,
+                  "snippet": {
+                    "text": "moment"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 1,
+                  "endLine": 10,
+                  "snippet": {
+                    "text": "{\n  \"name\": \"test-app\",\n  \"dependencies\": {\n    \"express\": \"4.17.1\",\n    \"lodash\": \"4.17.15\",\n    \"moment\": \"2.29.1\"\n  }\n}"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "CVE Triage Analysis",
+            "confidence": 7,
+            "package_name": "moment",
+            "vulnerability_id": "CVE-2022-31129",
+            "vulnerability_type": "package",
+            "exploitability_score": 4,
+            "patch_safety_score": 3,
+            "exploitable": true,
+            "explanation": {
+              "text": "Medium exploitability. ReDoS vulnerability in date parsing affects performance but limited attack surface."
+            },
+            "remediation": {
+              "text": "Migrate from moment.js to day.js or date-fns. moment.js is in maintenance mode."
+            },
+            "patch_analysis": {
+              "text": "High risk to patch. moment.js is deprecated. Recommended to migrate to alternative library."
+            },
+            "attack_vectors": [
+              "Regular expression denial of service (ReDoS)",
+              "CPU exhaustion through malicious date strings"
+            ],
+            "risk_factors": [
+              "Used for parsing user-provided dates",
+              "Processing of time-based API parameters"
+            ],
+            "breaking_changes": [
+              "Migration requires changing import statements",
+              "Different API for date manipulation"
+            ],
+            "analysis_evidence": {
+              "usage_instances": [
+                {
+                  "file": "src/utils/dateUtils.js",
+                  "line": 23,
+                  "code_snippet": "const parsed = moment(userDate, 'YYYY-MM-DD');",
+                  "usage_type": "parsing"
+                }
+              ]
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "CVE triage analysis flow for moment.js"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "ReDoS vulnerability analysis"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "file://src/utils/dateUtils.js"
+                          },
+                          "region": {
+                            "startLine": 23,
+                            "endLine": 23,
+                            "snippet": {
+                              "text": "const parsed = moment(userDate, 'YYYY-MM-DD');"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 20,
+                            "endLine": 26,
+                            "snippet": {
+                              "text": "function parseUserDate(userDate) {\n  if (!userDate) return null;\n  const parsed = moment(userDate, 'YYYY-MM-DD');\n  return parsed.isValid() ? parsed : null;\n}"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": ["redos_vulnerability"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+} 

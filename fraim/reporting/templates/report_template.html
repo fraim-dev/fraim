@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ repo_name }} Security Analysis Report</title>
+
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-{{ script_nonce }}'; style-src 'nonce-{{ style_nonce }}'; font-src 'self' data:; img-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; child-src 'none'; frame-src 'none'; worker-src 'none'; form-action 'none'; base-uri 'none'; manifest-src 'none';">
+    <style nonce="{{ style_nonce }}">
+        {% include 'report_styles.css' %}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ repo_name }} Security Analysis Report</h1>
+        <div class="timestamp">🕒 Generated on {{ timestamp }}</div>
+    </div>
+    
+    <div class="container">
+        <div class="tabs-container">
+            <div class="tabs">
+                {% for tab in tab_data %}
+                <button class="tab-button {% if loop.first %}active{% endif %}" 
+                        data-tab="{{ tab.name }}" id="tab-{{ loop.index0 }}">
+                    {{ tab.name }} <span class="tab-count">{{ tab.count }}</span>
+                </button>
+                {% endfor %}
+            </div>
+            
+            <div class="summary-row">
+                <div class="severity-summary">
+                    {% for severity in ['error', 'warning', 'note', 'none', 'unknown'] %}
+                    <div class="severity-count" id="severity-count-{{ severity }}">
+                        <span class="severity-number {{ severity }}" id="count-{{ severity }}">0</span>
+                        <span>{{ severity.capitalize() }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="filters">
+                <div class="filter-groups">
+                    <div class="filter-group">
+                        <label for="severity-filter">Severity</label>
+                        <select id="severity-filter">
+                            <option value="">All Severities</option>
+                            {% for option in severity_options %}
+                            <option value="{{ option.value }}" data-tabs="{{ option.tabs }}">{{ option.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="type-filter">Vulnerability Type</label>
+                        <select id="type-filter">
+                            <option value="">All Types</option>
+                            {% for option in type_options %}
+                            <option value="{{ option.value }}" data-tabs="{{ option.tabs }}">{{ option.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="expand-controls">
+                    <button id="expand-all-btn" class="expand-btn">Expand All</button>
+                    <button id="collapse-all-btn" class="expand-btn">Collapse All</button>
+                </div>
+            </div>
+            
+            {% for tab in tab_data %}
+            <div class="tab-content {% if loop.first %}active{% endif %}" id="tab-content-{{ loop.index0 }}">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th class="expand-col"></th>
+                            <th>Type</th>
+                            <th>Severity</th>
+                            <th>Description</th>
+                            <th>File</th>
+                            <th>Confidence</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in tab.results %}
+                        <tr class="result-row clickable-row" 
+                            data-severity="{{ result.severity }}" 
+                            data-type="{{ result.type }}"
+                            data-result-index="{{ result.result_index }}">
+                            <td class="expand-cell">
+                                <span class="expand-icon">▶</span>
+                            </td>
+                            <td class="type-cell" title="{{ result.type }}">{{ result.type }}</td>
+                            <td class="severity-cell">
+                                <span class="severity-badge severity-{{ result.severity }}">
+                                    {{ result.severity.capitalize() }}
+                                </span>
+                            </td>
+                            <td class="description-cell" title="{{ result.description }}">{{ result.description }}</td>
+                            <td class="file-cell" title="{{ result.file }}">{{ result.file }}</td>
+                            <td class="confidence-cell" title="{{ result.confidence | capitalize }}">{{ result.confidence | capitalize }}</td>
+                        </tr>
+                        <tr class="table-detail-row hidden" id="detail-{{ result.result_index }}">
+                            <td colspan="6" class="detail-content">
+                                {% set detail_data = detail_contents[result.result_index] %}
+                                {% if detail_data %}
+                                    <div class="expanded-details">
+                                        {% set description = detail_data.description %}
+                                        {% set has_description = detail_data.has_description %}
+                                        {% set has_properties = detail_data.has_properties %}
+                                        {% set has_code = detail_data.has_code %}
+                                        {% set code_lines_with_metadata = detail_data.code_lines_with_metadata %}
+                                        {% set formatted_properties = detail_data.formatted_properties %}
+                                        {% include 'detail_content.html' %}
+                                    </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <script nonce="{{ script_nonce }}">
+        const tabData = {{ tab_data | tojson }};
+        
+        {% include 'report_script.js' %}
+    </script>
+</body>
+</html> 

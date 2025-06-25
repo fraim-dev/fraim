@@ -1,0 +1,84 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fraim"
+version = "0.1.0"
+description = "A CLI app that runs AI-powered security workflows"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+authors = [
+    {name = "Fraim Authors", email = "fraim@resourcely.io"}
+]
+keywords = ["cli", "directory", "automation", "uv", "security", "ai", "mcp", "langfuse", "tree-sitter", "packaging", "pandas", "pydantic", "python-dotenv", "ratelimit", "requests", "tqdm", "urllib3"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "litellm>=1.72.7",
+    "mcp-server-tree-sitter>=0.5.1",
+    "packaging>=21.0",
+    "pydantic>=2.11.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "mypy>=1.0.0",
+    {include-group = "lint"},
+    {include-group = "test"},
+]
+lint = [
+    "ruff>=0.11.13",
+]
+test = [
+    "pytest-cov>=4.0.0",
+    "pytest-xdist>=3.0.0",
+    "pytest-asyncio>=1.0.0",
+]
+
+[project.scripts]
+fraim = "fraim.cli:cli"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0.0",
+    "mypy>=1.0.0",
+]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+exclude = [".*/test_data/.*"]
+
+[tool.pytest.ini_options]
+testpaths = ["fraim"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+exclude = ["*/test_data/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "C90", "I", "N", "UP", "YTT", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "TD", "FIX", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF"]
+ignore = ["E501", "COM812", "ISC001"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["fraim"]
+combine-as-imports = true
+split-on-trailing-comma = true
+force-single-line = false

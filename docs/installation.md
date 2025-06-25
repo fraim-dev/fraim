@@ -1,0 +1,128 @@
+# Installation Guide
+
+This guide will walk you through installing Fraim and setting up your environment for AI-powered security analysis.
+
+## Prerequisites
+
+Before installing Fraim, ensure you have the following:
+
+- **Python 3.12 or higher**
+- **[uv](https://docs.astral.sh/uv/) package manager** (recommended for dependency management)
+- **Git** (for cloning repositories)
+- **API key** for your chosen AI provider ([Gemini](https://aistudio.google.com/app/apikey), [OpenAI](https://platform.openai.com/api-keys), [Anthropic](https://docs.anthropic.com/en/api/admin-api/apikeys/get-api-key), etc.)
+
+## Installation Methods
+
+### Method 1: Using uv (Recommended)
+
+The `uv` package manager provides fast, reliable dependency management and is the recommended way to install Fraim.
+
+#### 1. Install uv
+
+**macOS/Linux:**
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+**Windows (PowerShell):**
+```powershell
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+**Alternative (using pip):**
+```bash
+pip install uv
+```
+
+#### 2. Clone and Install Fraim
+
+```bash
+# Clone the repository
+git clone https://github.com/fraim-dev/fraim.git
+cd fraim
+
+# Install dependencies and create virtual environment
+uv sync
+
+# Verify installation
+uv run fraim --help
+```
+
+### Method 2: Using pip
+
+If you prefer to use pip or can't install uv, you can install Fraim using standard Python packaging tools.
+
+```bash
+# Clone the repository
+git clone https://github.com/fraim-dev/fraim.git
+cd fraim
+
+# Create virtual environment (recommended)
+python -m venv fraim-env
+source fraim-env/bin/activate  # On Windows: fraim-env\Scripts\activate
+
+# Install in development mode
+pip install -e .
+
+# Verify installation
+fraim --help
+```
+
+### Method 3: Development Installation
+
+For contributors or users who want to modify Fraim:
+
+```bash
+# Clone the repository
+git clone https://github.com/fraim-dev/fraim.git
+cd fraim
+
+# Install with development dependencies
+uv sync --dev
+
+# Install pre-commit hooks (optional)
+uv run pre-commit install
+
+# Run tests to verify installation
+uv run pytest
+```
+
+### Getting Help
+
+If you encounter issues:
+
+1. **Check Debug Output:**
+   ```bash
+   uv run fraim --path . --debug
+   ```
+
+2. **Verify Dependencies:**
+   ```bash
+   uv run pip list
+   ```
+
+3. **Check System Requirements:**
+   ```bash
+   python --version
+   uv --version
+   git --version
+   ```
+
+4. **Report Issues:**
+   - Check [GitHub Issues](https://github.com/fraim-dev/fraim/issues)
+   - Create a new issue with debug output and system information
+
+## Next Steps
+
+After successful installation:
+
+1. **Read the [CLI Usage Guide](cli-usage.md)** to learn how to use Fraim
+2. **Explore [Workflows](workflows/workflows.md)** to understand available analysis types
+3. **Try analyzing your first project:**
+   ```bash
+   uv run fraim --path /path/to/your/project --workflows code
+   ```
+
+---
+
+**Congratulations!** You're now ready to start using Fraim for AI-powered security analysis. Check out the [CLI Usage Guide](cli-usage.md) to begin your first scan. 

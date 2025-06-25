@@ -1,0 +1,442 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "SECURITY_TEST",
+          "version": "1.0.0"
+        }
+      },
+      "results": [
+        {
+          "message": {
+            "text": "<script>alert('XSS_TEST_DESCRIPTION')</script>"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://test/xss/malicious_file.js"
+                },
+                "region": {
+                  "startLine": 1,
+                  "endLine": 1,
+                  "snippet": {
+                    "text": "<script>alert('CODE_SNIPPET')</script>"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 1,
+                  "endLine": 3,
+                  "snippet": {
+                    "text": "<script>alert('CODE_SNIPPET')</script>\n// Test XSS context\nconsole.log('test');"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "<script>alert('TYPE_XSS')</script>",
+            "confidence": 8,
+            "exploitable": false,
+            "explanation": {
+              "text": "This tests that script tags in descriptions are properly escaped"
+            },
+            "test_purpose": "XSS Protection Test",
+            "malicious_property": "<img src=x onerror=alert('PROPERTY_XSS')>",
+            "another_xss": "javascript:alert('JS_PROTOCOL')"
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "XSS test flow"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Script tag injection test"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "file://test/xss/malicious_file.js"
+                          },
+                          "region": {
+                            "startLine": 1,
+                            "endLine": 1,
+                            "snippet": {
+                              "text": "<script>alert('CODE_SNIPPET')</script>"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 1,
+                            "endLine": 3,
+                            "snippet": {
+                              "text": "<script>alert('CODE_SNIPPET')</script>\n// Test XSS context\nconsole.log('test');"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": ["xss_test"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "<h1>HTML Injection Test</h1><p>This should be escaped</p>"
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://test/html_injection.html"
+                },
+                "region": {
+                  "startLine": 5,
+                  "endLine": 7,
+                  "snippet": {
+                    "text": "<div onclick=\"alert('onclick')\">Click me</div>"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 3,
+                  "endLine": 9,
+                  "snippet": {
+                    "text": "<body>\n<h1>Test Page</h1>\n<div onclick=\"alert('onclick')\">Click me</div>\n<p>More content</p>\n</body>"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "HTML Injection Test",
+            "confidence": 9,
+            "exploitable": false,
+            "explanation": {
+              "text": "This tests HTML injection attempts for proper escaping"
+            },
+            "test_purpose": "HTML Escaping Test",
+            "html_content": "<strong>Bold text</strong> and <em>italic text</em>",
+            "event_handlers": "onmouseover=\"alert('hover')\" onload=\"alert('load')\""
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "HTML injection test flow"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Event handler injection test"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "file://test/html_injection.html"
+                          },
+                          "region": {
+                            "startLine": 5,
+                            "endLine": 7,
+                            "snippet": {
+                              "text": "<div onclick=\"alert('onclick')\">Click me</div>"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 3,
+                            "endLine": 9,
+                            "snippet": {
+                              "text": "<body>\n<h1>Test Page</h1>\n<div onclick=\"alert('onclick')\">Click me</div>\n<p>More content</p>\n</body>"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": ["html_injection_test"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Quote test: \"double\" and 'single' quotes, & ampersands"
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://test/quotes&special.js"
+                },
+                "region": {
+                  "startLine": 10,
+                  "endLine": 10,
+                  "snippet": {
+                    "text": "const msg = \"He said 'Hello & goodbye'\";"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 8,
+                  "endLine": 12,
+                  "snippet": {
+                    "text": "// Quote handling test\nfunction testQuotes() {\n    const msg = \"He said 'Hello & goodbye'\";\n    return msg;\n}"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Quote & Ampersand Test",
+            "confidence": 6,
+            "exploitable": false,
+            "explanation": {
+              "text": "This tests special character and quote escaping in the reporting system"
+            },
+            "test_purpose": "Special Character Escaping",
+            "quotes_test": "Testing \"nested 'quotes' here\" and more",
+            "symbols": "!@#$%^&*()_+-={}[]|\\:;\"'<>?,./"
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Quote and special character test flow"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Special character handling test"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "file://test/quotes&special.js"
+                          },
+                          "region": {
+                            "startLine": 10,
+                            "endLine": 10,
+                            "snippet": {
+                              "text": "const msg = \"He said 'Hello & goodbye'\";"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 8,
+                            "endLine": 12,
+                            "snippet": {
+                              "text": "// Quote handling test\nfunction testQuotes() {\n    const msg = \"He said 'Hello & goodbye'\";\n    return msg;\n}"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": ["quote_test"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Testing unknown severity mapping"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://test/unknown_severity.py"
+                },
+                "region": {
+                  "startLine": 1,
+                  "endLine": 1,
+                  "snippet": {
+                    "text": "# Unknown severity test"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 1,
+                  "endLine": 5,
+                  "snippet": {
+                    "text": "# Unknown severity test\n# This tests severity mapping\ndef test_function():\n    pass"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Unknown Severity Test",
+            "confidence": 5,
+            "exploitable": false,
+            "explanation": {
+              "text": "This tests that unrecognized severity levels map to 'unknown'"
+            },
+            "test_purpose": "Unknown Severity Mapping"
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Severity mapping test flow"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Unknown severity level test"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "file://test/unknown_severity.py"
+                          },
+                          "region": {
+                            "startLine": 1,
+                            "endLine": 1,
+                            "snippet": {
+                              "text": "# Unknown severity test"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 1,
+                            "endLine": 5,
+                            "snippet": {
+                              "text": "# Unknown severity test\n# This tests severity mapping\ndef test_function():\n    pass"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": ["severity_test"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "<script>alert('XSS_MESSAGE_TEXT')</script><img src=x onerror=alert('XSS_MESSAGE_IMG')><svg onload=alert('XSS_MESSAGE_SVG')>"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "<script>alert('XSS_FILENAME')</script>"
+                },
+                "region": {
+                  "startLine": 42,
+                  "endLine": 44,
+                  "snippet": {
+                    "text": "<script>alert('XSS_REGION_SNIPPET')</script>"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 40,
+                  "endLine": 46,
+                  "snippet": {
+                    "text": "<script>alert('XSS_CONTEXT_REGION')</script>"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "<script>alert('XSS_TYPE')</script><img src=x onerror=alert('XSS_TYPE_IMG')>",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "<script>alert('XSS_EXPLANATION')</script>This comprehensive test ensures ALL fields are properly escaped<img src=x onerror=alert('XSS_EXPLANATION_IMG')>"
+            },
+            "test_purpose": "Comprehensive XSS Field Testing",
+            "xss_script_tag": "<script>alert('XSS_PROPERTY_SCRIPT')</script>",
+            "xss_img_tag": "<img src=x onerror=alert('XSS_PROPERTY_IMG')>",
+            "xss_svg_tag": "<svg onload=alert('XSS_PROPERTY_SVG')>",
+            "xss_iframe": "<iframe src=javascript:alert('XSS_IFRAME')></iframe>",
+            "xss_object": "<object data=javascript:alert('XSS_OBJECT')></object>",
+            "xss_embed": "<embed src=javascript:alert('XSS_EMBED')>",
+            "xss_event_handlers": "onload=alert('XSS_ONLOAD') onclick=alert('XSS_ONCLICK') onmouseover=alert('XSS_HOVER')",
+            "xss_javascript_protocol": "javascript:alert('XSS_JS_PROTOCOL')",
+            "xss_data_uri": "data:text/html,<script>alert('XSS_DATA_URI')</script>",
+            "xss_style_expression": "expression(alert('XSS_STYLE'))",
+            "xss_vbscript": "vbscript:msgbox('XSS_VBS')",
+            "xss_mixed_quotes": "<script>alert('XSS\"MIXED')</script>",
+            "xss_entity_encoded": "&lt;script&gt;alert('XSS_ENTITY')&lt;/script&gt;",
+            "xss_url_encoded": "%3Cscript%3Ealert('XSS_URL')%3C/script%3E",
+            "xss_hex_encoded": "&#x3C;script&#x3E;alert('XSS_HEX')&#x3C;/script&#x3E;",
+            "xss_unicode": "\\u003cscript\\u003ealert('XSS_UNICODE')\\u003c/script\\u003e",
+            "nested_object": {
+              "xss_nested": "<script>alert('XSS_NESTED_OBJECT')</script>",
+              "deep_nesting": {
+                "xss_deep": "<img src=x onerror=alert('XSS_DEEP_NESTED')>",
+                "array_with_xss": [
+                  "<script>alert('XSS_ARRAY_1')</script>",
+                  "<svg onload=alert('XSS_ARRAY_2')>",
+                  "javascript:alert('XSS_ARRAY_3')"
+                ]
+              }
+            },
+            "remediation": {
+              "text": "<script>alert('XSS_REMEDIATION')</script>"
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Comprehensive XSS test flow"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Multiple XSS vector test"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "<script>alert('XSS_FILENAME')</script>"
+                          },
+                          "region": {
+                            "startLine": 42,
+                            "endLine": 44,
+                            "snippet": {
+                              "text": "<script>alert('XSS_REGION_SNIPPET')</script>"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 40,
+                            "endLine": 46,
+                            "snippet": {
+                              "text": "<script>alert('XSS_CONTEXT_REGION')</script>"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": ["comprehensive_xss_test"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+} 

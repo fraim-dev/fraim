@@ -1,0 +1,357 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "SAST",
+          "version": "1.0.0"
+        }
+      },
+      "results": [
+        {
+          "message": {
+            "text": "SQL Injection vulnerability found in database query construction"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://src/database/auth.py"
+                },
+                "region": {
+                  "startLine": 42,
+                  "endLine": 44,
+                  "snippet": {
+                    "text": "query = \"SELECT * FROM users WHERE username='\" + username + \"' AND password='\" + password + \"'\""
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 38,
+                  "endLine": 48,
+                  "snippet": {
+                    "text": "def authenticate_user(username, password):\n    if not username or not password:\n        return None\n    query = \"SELECT * FROM users WHERE username='\" + username + \"' AND password='\" + password + \"'\"\n    result = execute_query(query)\n    if result:\n        return create_user_session(result[0])\n    return None"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "SQL Injection",
+            "confidence": 9,
+            "exploitable": true,
+            "explanation": {
+              "text": "User input is directly concatenated into SQL query without proper sanitization or parameterization."
+            },
+            "remediation": {
+              "text": "Use parameterized queries or prepared statements instead of string concatenation."
+            },
+            "affected_resources": ["users table", "authentication system", "user sessions"],
+            "flow_summary": "User input flows from HTTP request parameters directly into SQL query construction"
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Data flow from user input to SQL injection point"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Thread flow for SQL injection"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "file://src/routes/auth.py"
+                          },
+                          "region": {
+                            "startLine": 15,
+                            "endLine": 15,
+                            "snippet": {
+                              "text": "username = request.form['username']"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 13,
+                            "endLine": 17,
+                            "snippet": {
+                              "text": "def login():\n    username = request.form['username']\n    password = request.form['password']\n    return authenticate_user(username, password)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": ["taint"]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "file://src/database/auth.py"
+                          },
+                          "region": {
+                            "startLine": 42,
+                            "endLine": 42,
+                            "snippet": {
+                              "text": "query = \"SELECT * FROM users WHERE username='\" + username + \"'\""
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 40,
+                            "endLine": 44,
+                            "snippet": {
+                              "text": "def authenticate_user(username, password):\n    query = \"SELECT * FROM users WHERE username='\" + username + \"' AND password='\" + password + \"'\"\n    result = execute_query(query)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": ["danger"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Cross-Site Scripting (XSS) vulnerability in user profile display"
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://src/templates/profile.html"
+                },
+                "region": {
+                  "startLine": 25,
+                  "endLine": 25,
+                  "snippet": {
+                    "text": "<h2>Welcome, {{ user.name }}</h2>"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 20,
+                  "endLine": 30,
+                  "snippet": {
+                    "text": "<div class=\"profile-header\">\n    <h2>Welcome, {{ user.name }}</h2>\n    <p>{{ user.bio }}</p>\n</div>"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Cross-Site Scripting (XSS)",
+            "confidence": 7,
+            "exploitable": true,
+            "explanation": {
+              "text": "User-controlled data is rendered in HTML template without proper encoding or sanitization."
+            },
+            "remediation": {
+              "text": "Use proper HTML encoding/escaping for all user data. In templates, use {{ user.name | e }}."
+            },
+            "affected_resources": ["user profile pages", "session cookies", "user accounts"]
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Data flow from user input to HTML output"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "User data flows to HTML template without sanitization"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "file://src/templates/profile.html"
+                          },
+                          "region": {
+                            "startLine": 25,
+                            "endLine": 25,
+                            "snippet": {
+                              "text": "<h2>Welcome, {{ user.name }}</h2>"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 20,
+                            "endLine": 30,
+                            "snippet": {
+                              "text": "<div class=\"profile-header\">\n    <h2>Welcome, {{ user.name }}</h2>\n    <p>{{ user.bio }}</p>\n</div>"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": ["render"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Sensitive information exposed in error messages"
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://src/api/error_handler.py"
+                },
+                "region": {
+                  "startLine": 15,
+                  "endLine": 17,
+                  "snippet": {
+                    "text": "return jsonify({\"error\": str(e), \"stack\": traceback.format_exc()})"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 12,
+                  "endLine": 20,
+                  "snippet": {
+                    "text": "def handle_error(e):\n    try:\n        return jsonify({\"error\": str(e), \"stack\": traceback.format_exc()})\n    except Exception:\n        return jsonify({\"error\": \"Internal server error\"})"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Information Disclosure",
+            "confidence": 4,
+            "exploitable": false,
+            "explanation": {
+              "text": "Stack traces and error details are exposed to users in production."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Error information flow to user response"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Stack trace exposed in API response"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "file://src/api/error_handler.py"
+                          },
+                          "region": {
+                            "startLine": 15,
+                            "endLine": 17,
+                            "snippet": {
+                              "text": "return jsonify({\"error\": str(e), \"stack\": traceback.format_exc()})"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 12,
+                            "endLine": 20,
+                            "snippet": {
+                              "text": "def handle_error(e):\n    try:\n        return jsonify({\"error\": str(e), \"stack\": traceback.format_exc()})\n    except Exception:\n        return jsonify({\"error\": \"Internal server error\"})"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": ["exposure"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Potential code injection through eval usage"
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file://src/utils/calculator.py"
+                },
+                "region": {
+                  "startLine": 8,
+                  "endLine": 8,
+                  "snippet": {
+                    "text": "result = eval(expression)"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 5,
+                  "endLine": 12,
+                  "snippet": {
+                    "text": "def calculate(expression):\n    try:\n        result = eval(expression)\n        return result\n    except Exception as e:\n        return None"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Code Injection",
+            "confidence": 6,
+            "exploitable": false,
+            "explanation": {
+              "text": "Using eval() with user input could lead to code execution."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "User input to eval() function"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Expression parameter passed to eval()"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "file://src/utils/calculator.py"
+                          },
+                          "region": {
+                            "startLine": 8,
+                            "endLine": 8,
+                            "snippet": {
+                              "text": "result = eval(expression)"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 5,
+                            "endLine": 12,
+                            "snippet": {
+                              "text": "def calculate(expression):\n    try:\n        result = eval(expression)\n        return result\n    except Exception as e:\n        return None"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": ["eval"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+} 

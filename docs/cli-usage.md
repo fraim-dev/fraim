@@ -1,0 +1,362 @@
+# CLI Usage Guide
+
+This guide provides comprehensive documentation for using the Fraim command-line interface to run security analysis workflows.
+
+## Overview
+
+The Fraim CLI is your primary interface for running AI-powered security analysis on code repositories and local directories. It supports multiple input sources, workflows, and output formats.
+
+## Basic Syntax
+
+```bash
+fraim [INPUT_OPTIONS] [WORKFLOW_OPTIONS] [CONFIGURATION_OPTIONS]
+```
+
+## Quick Start Examples
+
+### Analyze a Git Repository
+```bash
+# Analyze a public repository with all available workflows
+fraim --repo https://github.com/username/repository-name --workflows all
+
+# Analyze with specific workflows
+fraim --repo https://github.com/username/repository-name --workflows code
+```
+
+### Analyze Local Directory
+```bash
+# Analyze specific directory
+fraim --path /path/to/your/project
+```
+
+## Command-Line Options
+
+### Input Sources
+
+#### `--repo <URL>`
+Specify a Git repository URL to clone and analyze. Fraim will automatically clone the repository to a temporary directory and analyze its contents.
+
+**Examples:**
+```bash
+fraim --repo https://github.com/microsoft/typescript
+fraim --repo git@github.com:company/private-repo.git
+```
+
+#### `--path <DIRECTORY>`
+Analyze a local directory or file path. This is useful for analyzing code that's already on your local system.
+
+**Examples:**
+```bash
+fraim --path .                    # Current directory
+fraim --path /Users/dev/myproject # Absolute path
+fraim --path ../sibling-project   # Relative path
+```
+
+**Note:** You must specify either `--repo` or `--path`, but not both.
+
+### Workflow Selection
+
+#### `--workflows <WORKFLOW_LIST>`
+Specify which security analysis workflows to run. You can run individual workflows or all available workflows.
+
+**Available workflows:**
+- `code` - Source code security analysis
+- `iac` - Infrastructure as Code analysis (in development)
+- `all` - Run all available workflows (default)
+
+**Examples:**
+```bash
+fraim --path . --workflows code        # Run only code analysis
+fraim --path . --workflows code iac    # Run multiple specific workflows
+fraim --path . --workflows all         # Run all workflows (default)
+```
+
+### File Filtering
+
+#### `--globs <PATTERN_LIST>`
+Specify custom file patterns to include in the analysis. If not provided, Fraim uses default patterns based on the selected workflows.
+
+**Examples:**
+```bash
+# Only analyze Python files
+fraim --path . --globs "*.py"
+
+# Analyze multiple file types
+fraim --path . --globs "*.py" "*.js" "*.ts"
+
+# Include files in specific directories
+fraim --path . --globs "src/**/*.py" "tests/**/*.py"
+```
+
+**Default patterns by workflow:**
+- **Code workflow**: `*.py`, `*.js`, `*.ts`, `*.java`, `*.cpp`, `*.c`, `*.go`, `*.rb`, `*.php`, `*.swift`, `*.rs`, `*.kt`, `*.scala`
+- **IAC workflow**: `*.tf`, `*.yml`, `*.yaml`, `*.json` (Terraform, Kubernetes, etc.)
+
+#### `--limit <NUMBER>`
+Limit the number of files to analyze. Useful for testing or when working with very large repositories.
+
+**Examples:**
+```bash
+fraim --path . --limit 50        # Analyze only first 50 matching files
+```
+
+### AI Model Configuration
+
+#### `--model <MODEL_NAME>`
+Specify the AI model to use for analysis. Fraim supports multiple model providers through [LiteLLM](https://docs.litellm.ai/docs/providers).
+
+**Default:** `gemini/gemini-2.5-flash`
+
+**Examples:**
+```bash
+# Use Google Gemini (default)
+fraim --path . --model gemini/gemini-2.5-flash
+
+# Use OpenAI GPT-4
+fraim --path . --model gpt-4
+
+# Use OpenAI GPT-3.5 Turbo
+fraim --path . --model gpt-3.5-turbo
+
+# Use Claude
+fraim --path . --model claude-3-sonnet-20240229
+```
+
+### Performance Configuration
+
+#### `--processes <NUMBER>`
+Set the number of parallel processes for analysis. Higher values can improve performance for large codebases but use more system resources.
+
+**Default:** `8`
+
+**Examples:**
+```bash
+fraim --path . --processes 4     # Conservative for smaller systems
+fraim --path . --processes 16    # Aggressive for powerful systems
+```
+
+**Guidelines:**
+- **Small projects (<100 files)**: 2-4 processes
+- **Medium projects (100-1000 files)**: 4-8 processes
+- **Large projects (>1000 files)**: 8-16+ processes
+
+#### `--chunk-size <NUMBER>`
+Set the number of lines per chunk when processing large files. Smaller chunks provide more granular analysis but may increase processing time.
+
+**Default:** `500`
+
+**Examples:**
+```bash
+fraim --path . --chunk-size 250   # Smaller chunks, more detailed analysis
+fraim --path . --chunk-size 1000  # Larger chunks, faster processing
+```
+
+**Guidelines:**
+- **Detailed analysis**: 100-300 lines
+- **Balanced**: 400-600 lines (default)
+- **Performance**: 800-1200 lines
+
+#### `--max-iterations <NUMBER>`
+Set the maximum number of tool calling iterations for vulnerability analysis. Higher values allow for more thorough analysis of complex issues.
+
+**Default:** `50`
+
+**Examples:**
+```bash
+fraim --path . --max-iterations 25   # Faster, less thorough
+fraim --path . --max-iterations 100  # Slower, more thorough
+```
+
+### Quality Control
+
+#### `--confidence <NUMBER>`
+Set the minimum confidence threshold (1-10) for filtering findings. Higher values reduce false positives but may miss some issues.
+
+**Default:** `7`
+
+**Examples:**
+```bash
+fraim --path . --confidence 5    # Include more potential issues
+fraim --path . --confidence 9    # Only high-confidence findings
+```
+
+**Guidelines:**
+- **1-3**: Include all potential findings (high false positive rate)
+- **4-6**: Include likely findings (moderate false positive rate)
+- **7-8**: Include probable findings (balanced - default range)
+- **9-10**: Include only very confident findings (low false positive rate)
+
+### Output Configuration
+
+#### `--output <PATH>`
+Specify a custom path for output files. If not provided, Fraim uses a default output directory.
+
+**Default:** `scan_outputs/` in the project directory
+
+**Examples:**
+```bash
+fraim --path . --output /tmp/fraim-results/
+fraim --path . --output ./security-reports/
+```
+
+**Output files:**
+- `fraim_report_[repo]_[timestamp].sarif` - SARIF JSON report
+- `fraim_report_[repo]_[timestamp].html` - HTML report
+
+### Observability
+
+#### `--observability <BACKEND_LIST>`
+Enable LLM observability backends for monitoring and analyzing AI model usage.
+
+**Available backends:**
+- `langfuse` - [Langfuse](https://langfuse.com/) observability platform
+
+**Examples:**
+```bash
+fraim --path . --observability langfuse
+```
+
+**Requirements:**
+- Langfuse: Set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and `LANGFUSE_HOST` environment variables
+
+### Debugging
+
+#### `--debug`
+Enable debug logging for troubleshooting and development. This provides detailed information about the analysis process.
+
+**Example:**
+```bash
+fraim --path . --debug
+```
+
+**Debug output includes:**
+- File discovery and filtering
+- Chunk processing progress
+- AI model interactions
+- Error details and stack traces
+
+## Environment Variables
+
+Fraim requires API keys for AI model providers. Set these in your environment or `.env` file:
+
+### Google Gemini
+```bash
+export GEMINI_API_KEY="your_api_key_here"
+```
+
+### OpenAI
+```bash
+export OPENAI_API_KEY="your_api_key_here"
+```
+
+### Langfuse Observability
+```bash
+export LANGFUSE_PUBLIC_KEY="your_public_key"
+export LANGFUSE_SECRET_KEY="your_secret_key"
+export LANGFUSE_HOST="your_langfuse_host"
+```
+
+## Advanced Usage Examples
+
+### Comprehensive Analysis
+```bash
+# Full analysis with custom settings
+fraim --repo https://github.com/company/app \
+      --workflows all \
+      --model gemini/gemini-2.5-flash \
+      --processes 12 \
+      --chunk-size 600 \
+      --confidence 6 \
+      --max-iterations 75 \
+      --observability langfuse \
+      --debug
+```
+
+### CI/CD Integration
+```bash
+# Optimized for CI/CD pipelines
+fraim --path . \
+      --workflows code \
+      --confidence 8 \
+      --processes 4 \
+      --output ./security-reports/ \
+      --limit 500
+```
+
+### Large Codebase Analysis
+```bash
+# Settings for analyzing large repositories
+fraim --repo https://github.com/large/project \
+      --workflows code \
+      --processes 16 \
+      --chunk-size 1000 \
+      --confidence 7 \
+      --max-iterations 30
+```
+
+### Specific File Analysis
+```bash
+# Focus on specific file types and directories
+fraim --path . \
+      --globs "src/**/*.py" "api/**/*.py" \
+      --workflows code \
+      --confidence 6 \
+      --debug
+```
+
+## Understanding Output
+
+Fraim generates two types of reports:
+
+### SARIF Report (.sarif)
+- Industry-standard format for security analysis results
+- Machine-readable JSON format
+- Compatible with security platforms and CI/CD tools
+- Contains detailed vulnerability information, locations, and metadata
+
+### HTML Report (.html)
+- Human-readable report with rich formatting
+- Interactive elements for browsing findings
+- Code snippets with highlighted vulnerabilities
+- Summary statistics and charts
+
+## Troubleshooting
+
+### Common Issues
+
+**"No input specified" error:**
+```bash
+# ❌ Missing input
+fraim --workflows code
+
+# ✅ Correct usage
+fraim --path . --workflows code
+```
+
+**"API key not found" error:**
+```bash
+# Set your API key
+export GEMINI_API_KEY="your_key_here"
+fraim --path .
+```
+
+**Out of memory errors:**
+```bash
+# Reduce parallel processing and chunk size
+fraim --path . --processes 2 --chunk-size 200
+```
+
+**No files found:**
+```bash
+# Check file patterns
+fraim --path . --globs "*.py" --debug
+```
+
+### Performance Tips
+
+1. **Start small**: Use `--limit` to test on a subset of files first
+2. **Tune parallelism**: Adjust `--processes` based on your system capabilities
+3. **Balance chunks**: Smaller `--chunk-size` for accuracy, larger for speed
+4. **Filter confidence**: Use higher `--confidence` to reduce processing time
+5. **Monitor resources**: Use system monitoring to optimize settings
+---

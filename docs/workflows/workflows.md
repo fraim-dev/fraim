@@ -1,0 +1,138 @@
+# Workflows Documentation
+
+This guide covers Fraim's security analysis workflows, how they work, and how to customize or create new workflows for your specific security needs.
+
+## Overview
+
+Workflows in Fraim are AI-powered analysis pipelines that examine different aspects of your codebase for security vulnerabilities and configuration issues. Each workflow is specialized for specific types of analysis and file formats.
+
+## Available Workflows
+
+### Code Security Analysis
+
+**Status:** ✅ Available  
+**Workflow ID:** `code`
+
+The code security analysis workflow examines source code files for common security vulnerabilities using AI-powered static analysis.
+
+#### Supported Languages
+
+- **Python** (`.py`) - Complete support
+- **JavaScript/TypeScript** (`.js`, `.ts`, `.jsx`, `.tsx`) - Complete support  
+- **Java** (`.java`) - Complete support
+- **C/C++** (`.c`, `.cpp`, `.h`, `.hpp`) - Complete support
+- **Go** (`.go`) - Complete support
+- **Ruby** (`.rb`) - Complete support
+- **PHP** (`.php`) - Complete support
+- **Swift** (`.swift`) - Complete support
+- **Rust** (`.rs`) - Complete support
+- **Kotlin** (`.kt`) - Complete support
+- **Scala** (`.scala`) - Complete support
+
+#### Vulnerability Categories
+
+The code workflow detects various security issues:
+
+**Injection Vulnerabilities:**
+- SQL Injection
+- NoSQL Injection
+- Command Injection
+- LDAP Injection
+- XPath Injection
+
+**Cross-Site Scripting (XSS):**
+- Reflected XSS
+- Stored XSS
+- DOM-based XSS
+
+**Authentication & Authorization:**
+- Weak authentication mechanisms
+- Authorization bypasses
+- Session management flaws
+- Insecure password storage
+
+**Data Exposure:**
+- Sensitive data in logs
+- Hardcoded secrets
+- Information disclosure
+- Unencrypted sensitive data
+
+**Input Validation:**
+- Insufficient input validation
+- Path traversal vulnerabilities
+- File upload vulnerabilities
+- Deserialization flaws
+
+**Configuration Issues:**
+- Insecure default configurations
+- Debug mode enabled in production
+- Weak cryptographic algorithms
+- Insufficient error handling
+
+#### Usage Examples
+
+```bash
+# Basic code analysis
+fraim --path . --workflows code
+
+# Python-focused analysis
+fraim --path . --workflows code --globs "*.py"
+
+# High-confidence findings only
+fraim --path . --workflows code --confidence 9
+```
+
+### Infrastructure as Code (IAC) Analysis
+
+**Status:** ✅ Available
+**Workflow ID:** `iac`
+
+The IAC workflow analyzes infrastructure configuration files for security misconfigurations and compliance violations.
+
+#### Supported Formats (Planned)
+
+- **Terraform** (`.tf`, `.tfvars`) - In development
+- **Kubernetes** (`.yaml`, `.yml`) - In development
+- **Docker** (`Dockerfile`, `docker-compose.yml`) - In development
+- **AWS CloudFormation** (`.json`, `.yaml`) - Planned
+- **Azure ARM Templates** (`.json`) - Planned
+- **Ansible** (`.yml`, `.yaml`) - Planned
+
+#### Detection Categories (Planned)
+
+**Cloud Security:**
+- Overly permissive IAM policies
+- Unencrypted storage
+- Public access to private resources
+- Missing security groups
+
+**Container Security:**
+- Running as root user
+- Exposed secrets in environment variables
+- Vulnerable base images
+- Missing security contexts
+
+**Network Security:**
+- Open security groups
+- Unencrypted traffic
+- Missing network policies
+- Insecure load balancer configurations
+
+## Workflow Architecture
+
+### How Workflows Work
+
+1. **File Discovery**: Workflows scan for files matching their configured patterns
+2. **Chunking**: Large files are split into manageable chunks for analysis
+3. **AI Analysis**: Each chunk is analyzed by the configured AI model
+4. **Result Processing**: Findings are validated and formatted
+5. **Report Generation**: Results are compiled into SARIF and HTML reports
+
+### Workflow Components
+
+Each workflow consists of:
+
+- **Configuration**: File patterns, analysis parameters, and settings
+- **Prompts**: AI prompts optimized for specific security analysis tasks
+- **Processors**: Code to handle file parsing and result processing
+- **Validators**: Logic to filter and validate findings

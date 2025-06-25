@@ -1,0 +1,51 @@
+<div class="expanded-detail-container">
+{% if has_code or has_properties or has_description %}
+<div class="expanded-sections">
+    {% if has_code %}
+    <div class="expanded-code">
+        <div class="section-header">
+            <strong>Code Context</strong>
+        </div>
+        <div class="code-block">
+            {% for code_line in code_lines_with_metadata %}
+            <div class="code-line {% if code_line.is_vulnerable %}vulnerable{% endif %}">
+                <span class="line-num">{{ code_line.number }}</span>
+                <span class="line-text">{{ code_line.text }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if has_properties or has_description %}
+    <div class="expanded-properties">
+        <div class="section-header">
+            <strong>Additional Details</strong>
+        </div>
+        <div class="properties-content">
+            {% if has_description %}
+                <div class="prop-item">
+                    <span class="prop-key">Description:</span>
+                    <span class="prop-value">{{ description }}</span>
+                </div>
+            {% endif %}
+            
+            {% for prop in formatted_properties %}
+                {% if prop.is_complex %}
+                <div class="prop-complex">
+                    <div class="prop-key">{{ prop.formatted_key }}</div>
+                    <pre class="prop-json">{{ prop.formatted_value }}</pre>
+                </div>
+                {% else %}
+                <div class="prop-item">
+                    <span class="prop-key">{{ prop.formatted_key }}</span>
+                    <span class="prop-value">{{ prop.formatted_value }}</span>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+</div> 
