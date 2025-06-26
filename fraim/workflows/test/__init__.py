@@ -64,8 +64,9 @@ class TestRunner:
                     test_specs.append(f"{workflow}:{test_case}")
         
         if not test_specs:
-            print("No tests found to run")
-            return 0
+            self._log_error("No tests found to run")
+            return 1
+
         return self.run_specific_tests(test_specs, record=record)
     
     def run_workflow_tests(self, workflows: List[WorkflowName], record: bool = False) -> ExitCode:
