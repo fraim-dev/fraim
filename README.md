@@ -222,6 +222,11 @@ user: |
   
   {{ code }}
 ```
+
+## Contributing
+
+See the [contributing guide](CONTRIBUTING.md) for more information.
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
