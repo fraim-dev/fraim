@@ -81,6 +81,24 @@ uv run fraim --path /code --debug
 uv run fraim --path /code --output /path/to/results/
 ```
 
+### Observability
+
+Fraim supports optional observability and tracing through [Langfuse](https://langfuse.com), which helps track workflow performance, debug issues, and analyze AI model usage.
+
+To enable observability:
+
+1. **Install with observability support**:
+```bash
+uv sync --group langfuse
+```
+
+2. **Enable observability during execution**:
+```bash
+uv run fraim --path /code --workflows code --observability langfuse
+```
+
+This will trace your workflow execution, LLM calls, and performance metrics in Langfuse for analysis and debugging.
+
 ### Configuration
 
 Fraim uses a flexible configuration system that allows you to:
