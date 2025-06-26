@@ -1,26 +1,40 @@
 #!/usr/bin/env python3
 
 import argparse
-import re
 import sys
 from typing import List, Optional, Protocol
 
-from fraim.workflows.test import TestRunner, ExitCode, WorkflowName, TestSpecification
+from fraim.workflows.test import ExitCode, TestRunner, TestSpecification, WorkflowName
 
 class ParsedArgs(Protocol):
     list: bool
     record: bool
-    tests: Optional[List[TestSpecification]]
+    tests: Optional[List[str]]
     workflows: Optional[List[WorkflowName]]
 
-def validate_test_specifications(test_specs: List[TestSpecification]) -> None:
-    test_spec_pattern = re.compile(r'^[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+$')
+def get_filtered_test_specs(args: ParsedArgs, runner: TestRunner) -> List[TestSpecification]:
+    available_test_specs = runner.get_available_test_specs()
     
-    for spec in test_specs:
-        if not test_spec_pattern.match(spec):
-            raise ValueError(
-                f"Invalid test specification format: '{spec}'. Expected: 'workflow:test_case'."
-            )
+    if not available_test_specs:
+        TestRunner.log_error("No tests found to run")
+        return []
+    
+    if args.workflows:
+        if not runner.verify_workflows_exist(args.workflows, available_test_specs):
+            return []
+        
+        workflow_set = set(args.workflows)
+        filtered_specs = [spec for spec in available_test_specs if spec.workflow in workflow_set]
+    elif args.tests:
+        filtered_specs = [TestSpecification(spec) for spec in args.tests]
+    else:
+        filtered_specs = available_test_specs
+    
+    if not filtered_specs:
+        TestRunner.log_error("No tests found to run")
+        return []
+    
+    return filtered_specs
 
 def validate_arguments(args: ParsedArgs) -> None:
     if args.list and args.record:
@@ -28,6 +42,11 @@ def validate_arguments(args: ParsedArgs) -> None:
 
     if args.tests:
         validate_test_specifications(args.tests)
+
+def validate_test_specifications(test_specs: List[str]) -> None:
+    for spec in test_specs:
+        if not TestSpecification.is_valid(spec):
+            raise ValueError(f"Invalid test specification format: '{spec}'. Expected: 'workflow:test_case'.")
 
 def main() -> ExitCode:
     parser = argparse.ArgumentParser(
@@ -62,21 +81,20 @@ def main() -> ExitCode:
     try:
         validate_arguments(args)
     except ValueError as e:
-        print(f"run_workflow_tests.py: error: {e}", file=sys.stderr)
-        return 1
+        TestRunner.log_error(str(e))
+        return ExitCode.ERROR
     
     runner = TestRunner()
     
     if args.list:
         runner.list_available_tests()
-        return 0
+        return ExitCode.SUCCESS
     
-    if args.workflows:
-        return runner.run_workflow_tests(args.workflows, record=args.record)
-    elif args.tests:
-        return runner.run_specific_tests(args.tests, record=args.record)
-    else:
-        return runner.run_all_tests(record=args.record)
+    test_specs = get_filtered_test_specs(args, runner)
+    if not test_specs:
+        return ExitCode.ERROR
+    
+    return runner.run_tests(test_specs, record=args.record)
 
 if __name__ == "__main__":
     sys.exit(main()) 
