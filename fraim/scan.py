@@ -96,16 +96,23 @@ def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[s
             chunks = generate_file_chunks(config, files=files, project_path=project_path, chunk_size=config.chunk_size)
             try:
                 chunk_count = 0
-                with mp.Pool(
-                    processes=config.processes, initializer=initialize_worker, initargs=(config, observability_backends)
-                ) as pool:
-                    # This must be partial because mp serializes the function.
-                    # TODO: actually test that multiprocessing has a measurable impact here.
-                    task = partial(run_workflows, config=config, workflows_to_run=workflows_to_run)
-
-                    for chunk_results in pool.imap_unordered(task, chunks):
+                if config.processes == 1:
+                    initialize_worker(config, observability_backends)
+                    for chunk in chunks:
+                        chunk_results = run_workflows(chunk, config=config, workflows_to_run=workflows_to_run)
                         chunk_count += 1
                         results.extend(chunk_results)
+                else:
+                    # This must be partial because mp serializes the function.
+                    # TODO: actually test that multiprocessing has a measurable impact here.
+                    with mp.Pool(
+                        processes=config.processes, initializer=initialize_worker, initargs=(config, observability_backends)
+                    ) as pool:
+                        task = partial(run_workflows, config=config, workflows_to_run=workflows_to_run)
+
+                        for chunk_results in pool.imap_unordered(task, chunks):
+                            chunk_count += 1
+                            results.extend(chunk_results)
                 config.logger.info(f"Completed processing {chunk_count} total chunks")
             except Exception as mp_error:
                 config.logger.error(f"Error during multiprocessing: {str(mp_error)}")
