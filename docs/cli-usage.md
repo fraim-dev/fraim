@@ -219,6 +219,9 @@ fraim --path . --observability langfuse
 **Requirements:**
 - Langfuse: Set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and `LANGFUSE_HOST` environment variables
 
+**Instructions:**
+📖 For detailed setup instructions, see the [Observability Guide](observability.md).
+
 ### Debugging
 
 #### `--debug`

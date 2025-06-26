@@ -8,6 +8,7 @@
 ## CLI
 
 * [CLI Usage Guide](cli-usage.md)
+* [Observability](observability.md)
 
 ## Workflows
 * [Workflows](workflows/workflows.md)
