@@ -44,6 +44,9 @@ test = [
     "pytest-xdist>=3.0.0",
     "pytest-asyncio>=1.0.0",
 ]
+langfuse = [
+    "langfuse>=2.0.0,<3.0.0",
+]
 
 [project.scripts]
 fraim = "fraim.cli:cli"
