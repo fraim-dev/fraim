@@ -21,6 +21,9 @@ Fraim empowers security teams to easily create, customize, and deploy AI workflo
 ![UI Preview](assets/ui-preview.gif)
 *Output of running the `code` workflow*
 
+## Help
+
+See the [docs](https://docs.fraim.dev) for more information.
 
 ## 🚀 Quick Start
 
