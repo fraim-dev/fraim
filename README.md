@@ -2,17 +2,27 @@
 
 A flexible framework for security teams to build and deploy AI-powered workflows that complement their existing security operations.
 
-## Overview
+## 🔭 Overview
 
 Fraim empowers security teams to easily create, customize, and deploy AI workflows tailored to their specific security needs. Rather than providing a one-size-fits-all solution, Fraim gives teams the building blocks to construct intelligent automation that integrates seamlessly with their existing security stack.
 
-### Why Fraim?
+## ❓ Why Fraim?
 
 - **Framework-First Approach**: Build custom AI workflows instead of using rigid, pre-built tools
 - **Security Team Focused**: Designed specifically for security operations and threat analysis
 - **Extensible Architecture**: Easily add new workflows, data sources, and AI models
 
-### Preview
+## 💬 Community & Support
+
+Join our growing community of security professionals using Fraim:
+
+- **Documentation**: Visit [docs.fraim.dev](https://docs.fraim.dev) for comprehensive guides and tutorials
+- **Schedule a Demo**: [Book time with our team](https://calendly.com/fraim-dev/fraim-intro) - We'd love to help! Schedule a call for anything related to Fraim (debugging, new integrations, customizing workflows, or even just to chat)
+- **Slack Community**: [Join our Slack](https://join.slack.com/t/fraimworkspace/shared_invite/zt-38cunxtki-B80QAlLj7k8JoPaaYWUKNA) - Get help, share ideas, and connect with other security minded people looking to use AI to help their team succeed
+- **Issues**: Report bugs and request features via GitHub Issues
+- **Contributing**: See the [contributing guide](CONTRIBUTING.md) for more information.
+
+## 🔎 Preview
 
 ![CLI Preview](assets/cli-preview.gif)
 *Example run of the CLI*
@@ -20,10 +30,6 @@ Fraim empowers security teams to easily create, customize, and deploy AI workflo
 
 ![UI Preview](assets/ui-preview.gif)
 *Output of running the `code` workflow*
-
-## Help
-
-See the [docs](https://docs.fraim.dev) for more information.
 
 ## 🚀 Quick Start
 
@@ -241,19 +247,9 @@ user: |
   {{ code }}
 ```
 
-## Contributing
-
-See the [contributing guide](CONTRIBUTING.md) for more information.
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🆘 Support
-
-- **Issues**: Report bugs and request features via GitHub Issues
-- **Discussions**: Join the community discussion for questions and ideas
-- **Documentation**: Find detailed guides in the `/docs` directory
 
 ---
 
