@@ -9,7 +9,7 @@ We take the security of fraim seriously. If you believe you have found a securit
 **Please do not report security vulnerabilities through public GitHub issues.**
 
 Instead, please report security vulnerabilities by emailing us at:
-- **Email**: [fraim@resourcely.io](mailto:fraim@resourcely.io)
+- **Email**: [support@fraim.dev](mailto:support@fraim.dev)
 
 ### What to Include
 
