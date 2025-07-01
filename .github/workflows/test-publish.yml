@@ -1,0 +1,39 @@
+name: Test Publish to TestPyPI
+
+on:
+  push:
+    tags:
+      - 'v*-test'  # Trigger on test tags like v1.0.0-test
+
+jobs:
+  test-publish:
+    name: Build and publish to TestPyPI
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      id-token: write  # Required for trusted publishing
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@bd01e18f51369d5a26f1651c3cb451d3417e3bba
+      with:
+        version: "0.7.14"
+
+    - name: Set up Python
+      run: make init
+
+    - name: Install build dependencies
+      run: uv sync
+
+    - name: Build package
+      run: uv build
+
+    - name: Publish to TestPyPI
+      uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc
+      with:
+        repository-url: https://test.pypi.org/legacy/
+        environment: testpypi

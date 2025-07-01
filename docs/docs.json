@@ -1,0 +1,58 @@
+{
+    "$schema": "https://mintlify.com/docs.json",
+    "theme": "mint",
+    "name": "Fraim",
+    "colors": {
+      "primary": "#16A34A",
+      "light": "#07C983",
+      "dark": "#15803D"
+    },
+    "favicon": "/favicon.svg",
+    "topbar": {
+      "github": "https://github.com/fraim-dev/fraim"
+    },
+    "navigation": {
+        "groups": [
+            {
+                "group": "Get Started",
+                "pages": [
+                    "get-started",
+                    "installation"
+                ]
+            },
+            {
+                "group": "CLI",
+                "pages": [
+                    "usage",
+                    "observability",
+                    "troubleshooting"
+                ]
+            },
+            {
+                "group": "Workflows",
+                "pages": [
+                    "workflows/workflows",
+                    "workflows/custom-workflows"
+                ]
+            }
+        ]
+    },
+    "navbar": {
+      "links": [
+        {
+          "label": "View on Github",
+          "href": "https://github.com/fraim-dev/fraim",
+          "icon": "github"
+        },
+        {
+          "label": "Support",
+          "href": "mailto:support@fraim.dev"
+        }
+      ]
+    },
+    "footer": {
+      "socials": {
+        "github": "https://github.com/fraim-dev/fraim"
+      }
+    }
+  }

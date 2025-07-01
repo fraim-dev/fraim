@@ -1,5 +1,3 @@
-# CLI Usage Guide
-
 This guide provides comprehensive documentation for using the Fraim command-line interface to run security analysis workflows.
 
 ## Overview
@@ -136,9 +134,9 @@ fraim --path . --processes 16    # Aggressive for powerful systems
 ```
 
 **Guidelines:**
-- **Small projects (<100 files)**: 2-4 processes
+- **Small projects (\<100 files)**: 2-4 processes
 - **Medium projects (100-1000 files)**: 4-8 processes
-- **Large projects (>1000 files)**: 8-16+ processes
+- **Large projects (\>1000 files)**: 8-16+ processes
 
 #### `--chunk-size <NUMBER>`
 Set the number of lines per chunk when processing large files. Smaller chunks provide more granular analysis but may increase processing time.
@@ -218,6 +216,9 @@ fraim --path . --observability langfuse
 
 **Requirements:**
 - Langfuse: Set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and `LANGFUSE_HOST` environment variables
+
+**Instructions:**
+📖 For detailed setup instructions, see the [Observability Guide](observability.md).
 
 ### Debugging
 

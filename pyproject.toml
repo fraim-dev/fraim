@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = {text = "MIT"}
 authors = [
-    {name = "Fraim Authors", email = "fraim@resourcely.io"}
+    {name = "Fraim Authors", email = "support@fraim.dev"}
 ]
 keywords = ["cli", "directory", "automation", "uv", "security", "ai", "mcp", "langfuse", "tree-sitter", "packaging", "pandas", "pydantic", "python-dotenv", "ratelimit", "requests", "tqdm", "urllib3"]
 classifiers = [
@@ -44,6 +44,9 @@ test = [
     "pytest-xdist>=3.0.0",
     "pytest-asyncio>=1.0.0",
     "vcrpy>=7.0.0",
+]
+langfuse = [
+    "langfuse>=2.0.0,<3.0.0",
 ]
 
 [project.scripts]

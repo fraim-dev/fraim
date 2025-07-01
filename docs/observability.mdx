@@ -1,0 +1,128 @@
+Fraim provides comprehensive observability capabilities through Langfuse integration, enabling you to monitor, trace, and analyze your AI-powered security workflows in real-time.
+
+## Overview
+
+Observability in Fraim helps you:
+- **Track workflow execution** - Monitor the performance and progress of your security workflows
+- **Debug LLM interactions** - Inspect prompts, responses, and token usage across different AI models
+- **Analyze performance** - Identify bottlenecks and optimize your workflows
+- **Monitor costs** - Track API usage and costs across different LLM providers
+
+## Installation
+
+### For Development (Git Clone Users)
+
+If you've cloned the Fraim repository and are using `uv` for development:
+
+```bash
+# Install Fraim with observability dependencies
+uv sync --group langfuse
+```
+
+### For Production (PyPI Users) [Coming Soon]
+
+If you're installing Fraim as a package:
+
+```bash
+# Install Fraim with optional observability support
+pip install fraim[langfuse]
+```
+
+## Configuration
+
+### Langfuse Setup
+
+Choose between hosted (Langfuse Cloud) or self-hosted (Docker) deployment:
+
+#### Option 1: Langfuse Cloud (Hosted)
+
+The easiest way to get started with observability:
+
+1. **Create a Langfuse account** at [langfuse.com](https://langfuse.com)
+
+2. **Create a new project** in the Langfuse dashboard
+
+3. **Get your API credentials** from the project settings:
+   - Public Key
+   - Secret Key
+
+4. **Configure environment variables**:
+
+```bash
+# Add to your .env file or environment
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_HOST=https://cloud.langfuse.com  # Optional, defaults to cloud
+```
+
+#### Option 2: Self-hosted Langfuse (Docker)
+
+For enhanced privacy and control, run Langfuse in your own infrastructure using [Docker](https://langfuse.com/self-hosting/docker-compose):
+
+1. **Clone the Langfuse repository**:
+
+```bash
+git clone https://github.com/langfuse/langfuse.git
+cd langfuse
+```
+
+2. **Start the services using their Docker Compose**:
+
+```bash
+docker-compose up -d
+```
+
+3. **Access Langfuse**:
+
+Open the Langfuse dashboard in your browser at `http://localhost:3000`.
+
+4. **Create your first project** 
+
+Register an account (this is local to your self-hosted instance), create a new project, and get API keys for that project.
+
+5. **Configure environment variables**:
+
+```bash
+# Add to your .env file or environment
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_HOST=http://localhost:3000  # Your self-hosted instance
+```
+
+## Usage
+
+Enable observability when running Fraim workflows by passing the `--observability langfuse` flag.
+
+For example, to enable observability for a code security analysis:
+
+```bash
+# Enable observability for a code security analysis
+uv run fraim --path /code --workflows code --observability langfuse
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### Observability Not Working
+```bash
+# Check if langfuse is installed
+uv run python -c "import langfuse; print('Langfuse available')"
+
+# Verify environment variables
+echo $LANGFUSE_PUBLIC_KEY
+echo $LANGFUSE_SECRET_KEY
+```
+
+#### Missing Traces
+- Ensure `--observability langfuse` flag is provided
+- Check network connectivity to Langfuse host
+- Verify API credentials are correct
+
+
+
+## Support
+
+For observability-related issues:
+- Check the [Langfuse documentation](https://langfuse.com/docs)
+- Report issues with integration on the [Fraim GitHub repository](https://github.com/fraim-dev/fraim/issues)
