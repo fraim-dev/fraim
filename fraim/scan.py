@@ -133,8 +133,8 @@ def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[s
     sarif_filename = f"fraim_report_{safe_repo_name}_{current_time}.sarif"
     html_filename = f"fraim_report_{safe_repo_name}_{current_time}.html"
 
-    sarif_output_file = os.path.join(config.scan_dir, sarif_filename)
-    html_output_file = os.path.join(config.scan_dir, html_filename)
+    sarif_output_file = os.path.join(config.output_dir, sarif_filename)
+    html_output_file = os.path.join(config.output_dir, html_filename)
 
     total_results = len(results)
 
