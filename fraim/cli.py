@@ -20,7 +20,7 @@ def parse_args_to_scan_args(args: argparse.Namespace) -> ScanArgs:
 def parse_args_to_config(args: argparse.Namespace) -> Config:
     """Convert FetchRepoArgs to Config object."""
     return Config(
-        scan_dir=os.path.dirname(args.output) if args.output else str(Path(__file__).parent.parent / "scan_outputs"),
+        scan_dir=args.output if args.output else str(Path(__file__).parent.parent / "scan_outputs"),
         debug_mode=args.debug,
         model=args.model,
         processes=args.processes,
