@@ -18,7 +18,7 @@ class Config:
         self,
         mcp_port: int = 8765,
         model: str = "gemini/gemini-2.5-flash",
-        scan_dir: str = "",
+        output_dir: str = "",
         temperature: float = 0,
         max_iterations: int = 50,
         host: str = "localhost",
@@ -35,7 +35,7 @@ class Config:
 
         Args:
             model: Name of the model to use (e.g., "gemini/gemini-2.5-flash", "openai/gpt-4")
-            scan_dir: Directory to store scan outputs
+            output_dir: Directory to store scan outputs
             debug_mode: Whether to enable debug logging
             processes: Number of processes to use
             chunk_size: Number of lines per chunk
@@ -55,7 +55,7 @@ class Config:
             env_var = self._get_env_var_for_provider(provider)
             raise ValueError(f"API key must be provided via {env_var} environment variable for {provider} models")
 
-        self.scan_dir = scan_dir
+        self.output_dir = output_dir
         self.debug_mode = debug_mode
         self.processes = processes or mp.cpu_count() // 2
         self.chunk_size = chunk_size
@@ -66,13 +66,13 @@ class Config:
         self.project_path = project_path
 
         # Set up scan directory
-        os.makedirs(self.scan_dir, exist_ok=True)
+        os.makedirs(self.output_dir, exist_ok=True)
 
         # Set up logging files
-        self.tool_calls_log = os.path.join(self.scan_dir, "tool_calls.log")
-        self.interactions_log = os.path.join(self.scan_dir, "interactions.log")
-        self.triage_log = os.path.join(self.scan_dir, "triage.log")
-        self.false_positives_log = os.path.join(self.scan_dir, "false_positives.log")
+        self.tool_calls_log = os.path.join(self.output_dir, "tool_calls.log")
+        self.interactions_log = os.path.join(self.output_dir, "interactions.log")
+        self.triage_log = os.path.join(self.output_dir, "triage.log")
+        self.false_positives_log = os.path.join(self.output_dir, "false_positives.log")
 
         # Create log files with headers
         with open(self.tool_calls_log, "w") as f:
@@ -114,10 +114,10 @@ class Config:
         console_handler.setFormatter(console_formatter)
         root_logger.addHandler(console_handler)
 
-        # Add file handlers if scan_dir is set
-        if self.scan_dir:
+        # Add file handlers if output_dir is set
+        if self.output_dir:
             # Main log file
-            main_log = os.path.join(self.scan_dir, "fraim_scan.log")
+            main_log = os.path.join(self.output_dir, "fraim_scan.log")
             file_handler = logging.FileHandler(main_log)
             file_handler.setLevel(log_level)
             file_handler.setFormatter(file_formatter)

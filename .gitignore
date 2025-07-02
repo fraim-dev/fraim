@@ -187,4 +187,4 @@ cython_debug/
 fraim/reporting/test/outputs/*.html
 
 # Fraim Scan Outputs (generated scan files)
-**/scan_outputs/
+**/fraim_output/
