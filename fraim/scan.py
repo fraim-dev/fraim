@@ -141,7 +141,7 @@ def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[s
     # Write SARIF JSON file
     try:
         with open(sarif_output_file, "w") as f:
-            f.write(report.model_dump_json(indent=2))
+            f.write(report.model_dump_json(by_alias=True, indent=2, exclude_none=True))
         config.logger.info(f"Wrote SARIF report ({total_results} results) to {sarif_output_file}")
     except Exception as e:
         config.logger.error(f"Failed to write SARIF report to {sarif_output_file}: {str(e)}")
