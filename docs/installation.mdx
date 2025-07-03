@@ -8,59 +8,67 @@ Before installing Fraim, ensure you have the following:
 - **[uv](https://docs.astral.sh/uv/) package manager** (recommended for dependency management)
 - **Git** (for cloning repositories)
 - **API key** for your chosen AI provider ([Gemini](https://aistudio.google.com/app/apikey), [OpenAI](https://platform.openai.com/api-keys), [Anthropic](https://docs.anthropic.com/en/api/admin-api/apikeys/get-api-key), etc.)
+```bash
+# Examples of exporting your API key to the env where you will run fraim
+export GEMINI_API_KEY=your_api_key_here
+export OPENAI_API_KEY=your_api_key_here
+export ANTHROPIC_API_KEY=your_api_key_here
+```
 
 ## Installation Methods
 
-### Method 1: Using uv (Recommended)
+### Method 1: Using pipx (Recommended)
 
-The `uv` package manager provides fast, reliable dependency management and is the recommended way to install Fraim.
+`pipx` is the easiest way to install and run Python applications and is the recommended way to install Fraim.
 
-#### 1. Install uv
+#### 1. Install pipx
 
-**macOS/Linux:**
+NOTE: see pipx [docs](https://pipx.pypa.io/stable/installation/) for additional installation methods
+
+**macOS:**
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
+brew install pipx
+pipx ensurepath
+```
+
+**Linux:**
+
+Ubuntu 23.04 or above
+```bash
+sudo apt update
+sudo apt install pipx
+pipx ensurepath
+```
+
+Fedora:
+```bash
+sudo dnf install pipx
+pipx ensurepath
 ```
 
 **Windows (PowerShell):**
 ```powershell
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+scoop install pipx
+pipx ensurepath
 ```
 
-**Alternative (using pip):**
-```bash
-pip install uv
-```
-
-#### 2. Clone and Install Fraim
+#### 2. Install Fraim
 
 ```bash
-# Clone the repository
-git clone https://github.com/fraim-dev/fraim.git
-cd fraim
-
-# Install dependencies and create virtual environment
-uv sync
+# Install Fraim
+pipx install fraim
 
 # Verify installation
-uv run fraim --help
+fraim --help
 ```
 
 ### Method 2: Using pip
 
-If you prefer to use pip or can't install uv, you can install Fraim using standard Python packaging tools.
+If you prefer to use pip or can't install pipx, you can install Fraim using standard Python packaging tools.
 
 ```bash
-# Clone the repository
-git clone https://github.com/fraim-dev/fraim.git
-cd fraim
-
-# Create virtual environment (recommended)
-python -m venv fraim-env
-source fraim-env/bin/activate  # On Windows: fraim-env\Scripts\activate
-
-# Install in development mode
-pip install -e .
+# Install Fraim
+pip install fraim
 
 # Verify installation
 fraim --help
@@ -71,6 +79,9 @@ fraim --help
 For contributors or users who want to modify Fraim:
 
 ```bash
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
 # Clone the repository
 git clone https://github.com/fraim-dev/fraim.git
 cd fraim
@@ -91,7 +102,7 @@ If you encounter issues:
 
 1. **Check Debug Output:**
    ```bash
-   uv run fraim --path . --debug
+   fraim --path . --debug
    ```
 
 2. **Verify Dependencies:**
@@ -102,6 +113,7 @@ If you encounter issues:
 3. **Check System Requirements:**
    ```bash
    python --version
+   pipx --version
    uv --version
    git --version
    ```
@@ -118,7 +130,7 @@ After successful installation:
 2. **Explore [Workflows](workflows/workflows.md)** to understand available analysis types
 3. **Try analyzing your first project:**
    ```bash
-   uv run fraim --path /path/to/your/project --workflows code
+   fraim --path /path/to/your/project --workflows code
    ```
 
 ---
