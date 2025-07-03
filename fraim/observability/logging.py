@@ -19,12 +19,12 @@ def make_logger(name = None, level= logging.INFO, path: str = None, show_logs = 
 
     # Logs to a file relative to a given path, if any
     if path:
-        logger.addHandler(_make_file_handler(level, path))
+        logger.addHandler(file_handler(level, path))
 
     return logger
 
 
-def _make_file_handler(level, path):
+def file_handler(level, path):
     handler = logging.FileHandler(path)
     handler.setLevel(level)
     handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
