@@ -35,41 +35,45 @@ Join our growing community of security professionals using Fraim:
 
 ### Prerequisites
 
-- **Python 3.10+**
-- **[uv](https://docs.astral.sh/uv/) package manager**
+- **Python 3.12+**
+- **[pipx](https://pipx.pypa.io/stable/installation/) installation tool**
 - **API Key** for your chosen AI provider (Google Gemini, OpenAI, etc.)
 
 ### Installation
 
-1. **Install uv** (if not already installed):
+NOTE: These instructions are for Linux based systems, see [docs](https://docs.fraim.dev/installation) for Windows installation instructions
+
+1. **Install Fraim**:
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
+pipx install fraim
 ```
 
-2. **Clone and setup Fraim**:
-```bash
-git clone https://github.com/fraim-dev/fraim.git
-cd fraim
-uv sync
-```
+2. **Configure your AI provider**:
+   
+    #### Google Gemini
 
-3. **Configure your AI provider**:
-```bash
-# For Google Gemini
-echo "GEMINI_API_KEY=your_api_key_here" > .env
+    1. Get an API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+    2. Export it in your environment: 
+        ```
+        export GEMINI_API_KEY=your_api_key_here
+        ```
 
-# For OpenAI
-echo "OPENAI_API_KEY=your_api_key_here" > .env
-```
+    #### OpenAI
+
+    3. Get an API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+    4. Export it in your environment:
+        ```
+        export OPENAI_API_KEY=your_api_key_here
+        ```
 
 ### Basic Usage
 
 ```bash
 # Run code security analysis on a Git repository
-uv run fraim --repo https://github.com/username/repo-name --workflows code
+fraim --repo https://github.com/username/repo-name --workflows code
 
 # Analyze local directory
-uv run fraim --path /path/to/code --workflows code
+fraim --path /path/to/code --workflows code
 ```
 
 ## 📖 Documentation
@@ -78,16 +82,16 @@ uv run fraim --path /path/to/code --workflows code
 
 ```bash
 # Specify particular workflows
-uv run fraim --path /code --modules code,iac
+fraim --path /code --modules code,iac
 
 # Adjust performance settings
-uv run fraim --path /code --processes 4 --chunk-size 1000
+fraim --path /code --processes 4 --chunk-size 1000
 
 # Enable debug logging
-uv run fraim --path /code --debug
+fraim --path /code --debug
 
 # Custom output location
-uv run fraim --path /code --output /path/to/results/
+fraim --path /code --output /path/to/results/
 ```
 
 ### Observability
@@ -98,12 +102,12 @@ To enable observability:
 
 1. **Install with observability support**:
 ```bash
-uv sync --group langfuse
+pipx install 'fraim[langfuse]'
 ```
 
 2. **Enable observability during execution**:
 ```bash
-uv run fraim --path /code --workflows code --observability langfuse
+fraim --path /code --workflows code --observability langfuse
 ```
 
 This will trace your workflow execution, LLM calls, and performance metrics in Langfuse for analysis and debugging.
@@ -138,7 +142,7 @@ Automated source code vulnerability scanning using AI-powered analysis. Detects 
 
 Example
 ```
-uv run fraim --repo https://github.com/username/repo-name --workflows code
+fraim --repo https://github.com/username/repo-name --workflows code
 ```
 
 ### Infrastructure as Code (IAC) Analysis
@@ -149,7 +153,7 @@ Analyzes infrastructure configuration files for security misconfigurations and c
 
 Example
 ```
-uv run fraim --repo https://github.com/username/repo-name --workflows iac
+fraim --repo https://github.com/username/repo-name --workflows iac
 ```
 
 ## 🛠️ Building Custom Workflows
