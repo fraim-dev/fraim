@@ -13,6 +13,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from fraim.outputs.sarif import ArtifactContent, PhysicalLocation, Region, Result, SarifReport
 
+# TODO: Relate to the config logger
 logger = logging.getLogger(__name__)
 
 UNKNOWN = "unknown"
