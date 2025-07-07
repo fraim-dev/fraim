@@ -140,7 +140,7 @@ def cli() -> int:
     )
     parser.add_argument("--limit", type=int, help="Limit the number of files to scan")
 
-    parser.add_argument('--show-logs', type=bool, default=False, help='Prints logs to standard error')
+    parser.add_argument('--show-logs', type=bool, default=True, help='Prints logs to standard error output')
 
     parsed_args = parser.parse_args()
 
