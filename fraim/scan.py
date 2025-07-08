@@ -26,36 +26,18 @@ from fraim.workflows import WorkflowRegistry
 class ScanArgs:
     """Typed dataclass for all fetch arguments with defaults."""
 
+    workflows: List[str]
     repo: Optional[str] = None
     path: Optional[str] = None
-    workflows: Optional[List[str]] = None
     globs: Optional[List[str]] = None
     limit: Optional[int] = None
-
-    def __post_init__(self) -> None:
-        """Set default values for mutable fields."""
-        if self.workflows is None:
-            self.workflows = ["all"]
-
-
-def resolve_workflows(args: ScanArgs) -> List[str]:
-    # Handle 'all' workflows and convert to the expected format
-    if args.workflows and "all" in args.workflows:
-        # Get all available workflows from registry
-        return WorkflowRegistry.get_available_workflows()
-    elif args.workflows:
-        # Filter out 'all' if mixed with other workflows and convert to strings
-        return [w for w in args.workflows if w != "all"]
-
-    raise ValueError("No workflows specified")
-
 
 # Use module-specific globs if available, otherwise fall back to provided globs
 def resolve_file_patterns(args: ScanArgs) -> List[str]:
     if args.globs:
         return args.globs
     else:
-        return WorkflowRegistry.get_file_patterns_for_workflows(resolve_workflows(args))
+        return WorkflowRegistry.get_file_patterns_for_workflows(args.workflows)
 
 
 def get_files(args: ScanArgs, config: Config) -> Tuple[str, Files]:
@@ -77,11 +59,10 @@ def get_files(args: ScanArgs, config: Config) -> Tuple[str, Files]:
         raise ValueError("No input specified")
 
 
-def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[str]] = None) -> List[sarif.Result]:
+def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[str]] = None) -> None:
     results: List[sarif.Result] = []
 
-    # Determine workflows to run
-    workflows_to_run = resolve_workflows(args)
+    workflows_to_run = args.workflows
 
     #######################################
     # Run LLM Workflows
@@ -150,8 +131,8 @@ def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[s
         Reporting.generate_html_report(sarif_report=report, repo_name=repo_name, output_path=html_output_file)
         config.logger.info(f"Wrote HTML report ({total_results} results) to {html_output_file}")
     except Exception as e:
-        config.logger.error(f"Failed to write HTML report to {html_output_file}: {str(e)}")
-    return results
+        config.logger.error(
+            f"Failed to write HTML report to {html_output_file}: {str(e)}")
 
 
 def generate_file_chunks(

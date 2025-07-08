@@ -82,16 +82,16 @@ fraim --path /path/to/code --workflows code
 
 ```bash
 # Specify particular workflows
-fraim --path /code --modules code,iac
+fraim --path /code --workflows code iac
 
 # Adjust performance settings
-fraim --path /code --processes 4 --chunk-size 1000
+fraim --path /code --workflows code --processes 4 --chunk-size 1000
 
 # Enable debug logging
-fraim --path /code --debug
+fraim --path /code --workflows code --debug
 
 # Custom output location
-fraim --path /code --output /path/to/results/
+fraim --path /code --workflows code --output /path/to/results/
 ```
 
 ### Observability

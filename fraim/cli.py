@@ -61,18 +61,17 @@ def build_workflows_arg(parser: argparse.ArgumentParser) -> None:
     available_workflows = WorkflowRegistry.get_available_workflows()
     workflow_descriptions = WorkflowRegistry.get_workflow_descriptions()
 
-    # Build choices list (workflows + 'all')
-    workflow_choices = sorted(available_workflows) + ["all"]
+    workflow_choices = sorted(available_workflows)
 
     # Build help text dynamically
     help_parts = []
-    for workflow in sorted(available_workflows):
+    for workflow in workflow_choices:
         description = workflow_descriptions.get(workflow, "No description available")
         help_parts.append(f"{workflow}: {description}")
-    help_parts.append("all: run all available workflows")
-    workflows_help = f"Workflows to run. Available: {', '.join(help_parts)}"
+    workflows_help = f" - {'\n - '.join(help_parts)}"
 
-    parser.add_argument("--workflows", nargs="+", choices=workflow_choices, default=["all"], help=workflows_help)
+    parser.add_argument("--workflows", nargs="+",
+                        choices=workflow_choices, help=workflows_help, required=True)
 
 
 def build_observability_arg(parser: argparse.ArgumentParser) -> None:
@@ -87,14 +86,17 @@ def build_observability_arg(parser: argparse.ArgumentParser) -> None:
         description = backend_descriptions.get(backend, "No description available")
         observability_help_parts.append(f"{backend}: {description}")
 
-    observability_help = f"Enable LLM observability backends. Available: {', '.join(observability_help_parts)}"
+    observability_help = f"Enable LLM observability backends.\n - {'\n - '.join(observability_help_parts)}"
 
     parser.add_argument("--observability", nargs="+", choices=available_backends, default=[], help=observability_help)
 
 
 def cli() -> int:
     """Main entry point for the script."""
-    parser = argparse.ArgumentParser(description="Scan a repository for security vulnerabilities.")
+    parser = argparse.ArgumentParser(
+        description="Scan a repository for security vulnerabilities.",
+        formatter_class=argparse.RawTextHelpFormatter
+    )
 
     #############################
     # Scan Args
