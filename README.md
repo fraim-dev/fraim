@@ -78,16 +78,16 @@ uv run fraim --path /path/to/code --workflows code
 
 ```bash
 # Specify particular workflows
-uv run fraim --path /code --modules code,iac
+uv run fraim --path /code --workflows code iac
 
 # Adjust performance settings
-uv run fraim --path /code --processes 4 --chunk-size 1000
+uv run fraim --path /code --workflows code --processes 4 --chunk-size 1000
 
 # Enable debug logging
-uv run fraim --path /code --debug
+uv run fraim --path /code --workflows code --debug
 
 # Custom output location
-uv run fraim --path /code --output /path/to/results/
+uv run fraim --path /code --workflows code --output /path/to/results/
 ```
 
 ### Observability
