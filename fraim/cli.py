@@ -13,6 +13,7 @@ from fraim.config.config import Config
 from fraim.observability import ObservabilityManager, ObservabilityRegistry
 from fraim.scan import ScanArgs, scan
 from fraim.workflows import WorkflowRegistry
+from fraim.validate_cli import validate_cli_args
 
 
 def parse_args_to_scan_args(args: argparse.Namespace) -> ScanArgs:
@@ -27,7 +28,7 @@ def parse_args_to_scan_args(args: argparse.Namespace) -> ScanArgs:
     
 def parse_args_to_config(args: argparse.Namespace) -> Config:
     """Convert FetchRepoArgs to Config object."""
-    output_dir = args.output if args.output else str(Path(__file__).parent.parent / "fraim_output"),
+    output_dir = args.output if args.output else str(Path(__file__).parent.parent / "fraim_output")
 
     # Default logger
     logger = make_logger(
@@ -91,7 +92,6 @@ def build_observability_arg(parser: argparse.ArgumentParser) -> None:
 
     parser.add_argument("--observability", nargs="+", choices=available_backends, default=[], help=observability_help)
 
-
 def cli() -> int:
     """Main entry point for the script."""
     parser = argparse.ArgumentParser(description="Scan a repository for security vulnerabilities.")
@@ -146,6 +146,14 @@ def cli() -> int:
 
     if parsed_args.limit is not None and parsed_args.limit <= 0:
         parser.error("--limit must be a positive integer")
+
+    # Validate arguments
+    try:
+        validate_cli_args(parsed_args)
+    except Exception as e:
+        print(f"CLI Validation Error: {e}")
+        exit(1)
+        
 
     # Parse config to get logger
     config = parse_args_to_config(parsed_args)
