@@ -25,51 +25,55 @@ Join our growing community of security professionals using Fraim:
 ## 🔎 Preview
 
 ![CLI Preview](assets/cli-preview.gif)
-*Example run of the CLI*
-
+_Example run of the CLI_
 
 ![UI Preview](assets/ui-preview.gif)
-*Output of running the `code` workflow*
+_Output of running the `code` workflow_
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- **Python 3.10+**
-- **[uv](https://docs.astral.sh/uv/) package manager**
+- **Python 3.12+**
+- **[pipx](https://pipx.pypa.io/stable/installation/) installation tool**
 - **API Key** for your chosen AI provider (Google Gemini, OpenAI, etc.)
 
 ### Installation
 
-1. **Install uv** (if not already installed):
+NOTE: These instructions are for Linux based systems, see [docs](https://docs.fraim.dev/installation) for Windows installation instructions
+
+1. **Install Fraim**:
+
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
+pipx install fraim
 ```
 
-2. **Clone and setup Fraim**:
-```bash
-git clone https://github.com/fraim-dev/fraim.git
-cd fraim
-uv sync
-```
+2. **Configure your AI provider**:
 
-3. **Configure your AI provider**:
-```bash
-# For Google Gemini
-echo "GEMINI_API_KEY=your_api_key_here" > .env
+   #### Google Gemini
 
-# For OpenAI
-echo "OPENAI_API_KEY=your_api_key_here" > .env
-```
+   1. Get an API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+   2. Export it in your environment:
+      ```
+      export GEMINI_API_KEY=your_api_key_here
+      ```
+
+   #### OpenAI
+
+   3. Get an API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+   4. Export it in your environment:
+      ```
+      export OPENAI_API_KEY=your_api_key_here
+      ```
 
 ### Basic Usage
 
 ```bash
 # Run code security analysis on a Git repository
-uv run fraim --repo https://github.com/username/repo-name --workflows code
+fraim --repo https://github.com/username/repo-name --workflows code
 
 # Analyze local directory
-uv run fraim --path /path/to/code --workflows code
+fraim --path /path/to/code --workflows code
 ```
 
 ## 📖 Documentation
@@ -78,16 +82,16 @@ uv run fraim --path /path/to/code --workflows code
 
 ```bash
 # Specify particular workflows
-uv run fraim --path /code --workflows code iac
+fraim --path /code --workflows code iac
 
 # Adjust performance settings
-uv run fraim --path /code --workflows code --processes 4 --chunk-size 1000
+fraim --path /code --workflows code --processes 4 --chunk-size 1000
 
 # Enable debug logging
-uv run fraim --path /code --workflows code --debug
+fraim --path /code --workflows code --debug
 
 # Custom output location
-uv run fraim --path /code --workflows code --output /path/to/results/
+fraim --path /code --workflows code --output /path/to/results/
 ```
 
 ### Observability
@@ -97,13 +101,15 @@ Fraim supports optional observability and tracing through [Langfuse](https://lan
 To enable observability:
 
 1. **Install with observability support**:
+
 ```bash
-uv sync --group langfuse
+pipx install 'fraim[langfuse]'
 ```
 
 2. **Enable observability during execution**:
+
 ```bash
-uv run fraim --path /code --workflows code --observability langfuse
+fraim --path /code --workflows code --observability langfuse
 ```
 
 This will trace your workflow execution, LLM calls, and performance metrics in Langfuse for analysis and debugging.
@@ -111,6 +117,7 @@ This will trace your workflow execution, LLM calls, and performance metrics in L
 ### Configuration
 
 Fraim uses a flexible configuration system that allows you to:
+
 - Customize AI model parameters
 - Configure workflow-specific settings
 - Set up custom data sources
@@ -131,25 +138,29 @@ See the `fraim/config/` directory for configuration options.
 Fraim includes several pre-built workflows that demonstrate the framework's capabilities:
 
 ### Code Security Analysis
-*Status: Available*
-*Workflow Name: scan*
+
+_Status: Available_
+_Workflow Name: scan_
 
 Automated source code vulnerability scanning using AI-powered analysis. Detects common security issues across multiple programming languages including SQL injection, XSS, CSRF, and more.
 
 Example
+
 ```
-uv run fraim --repo https://github.com/username/repo-name --workflows code
+fraim --repo https://github.com/username/repo-name --workflows code
 ```
 
 ### Infrastructure as Code (IAC) Analysis
-*Status: Available*
-*Workflow Name: iac*
+
+_Status: Available_
+_Workflow Name: iac_
 
 Analyzes infrastructure configuration files for security misconfigurations and compliance violations.
 
 Example
+
 ```
-uv run fraim --repo https://github.com/username/repo-name --workflows iac
+fraim --repo https://github.com/username/repo-name --workflows iac
 ```
 
 ## 🛠️ Building Custom Workflows
@@ -198,17 +209,17 @@ class MyCustomWorkflow(Workflow[MyWorkflowInput, MyWorkflowOutput]):
 
     async def workflow(self, input: MyWorkflowInput) -> MyWorkflowOutput:
         """Main workflow execution"""
-        
+
         # 1. Analyze the configuration file
         analysis_results = await self.analysis_step.run({"code": input.code})
-        
+
         # 2. Filter results by confidence threshold
         filtered_results = self.filter_results_by_confidence(
             analysis_results.results, input.config.confidence
         )
-        
+
         return filtered_results
-    
+
     def filter_results_by_confidence(self, results: List[sarif.Result], confidence_threshold: int) -> List[sarif.Result]:
         """Filter results by confidence."""
         return [result for result in results if result.properties.confidence > confidence_threshold]
@@ -221,9 +232,9 @@ Create `my_prompts.yaml` in the same directory:
 ```yaml
 system: |
   You are a configuration security analyzer.
-  
+
   Your job is to analyze configuration files for security misconfigurations and vulnerabilities.
-  
+
   <vulnerability_types>
     Valid vulnerability types (use EXACTLY as shown):
     
@@ -243,7 +254,7 @@ system: |
 
 user: |
   Analyze the following configuration file for security issues:
-  
+
   {{ code }}
 ```
 
@@ -253,4 +264,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-*Fraim is built by security teams, for security teams. Help us make AI-powered security accessible to everyone.*
+_Fraim is built by security teams, for security teams. Help us make AI-powered security accessible to everyone._

@@ -16,13 +16,13 @@ class Config:
 
     def __init__(
         self,
+        logger: logging.Logger,
         mcp_port: int = 8765,
         model: str = "gemini/gemini-2.5-flash",
         output_dir: str = "",
         temperature: float = 0,
         max_iterations: int = 50,
         host: str = "localhost",
-        debug_mode: bool = False,
         processes: Optional[int] = None,
         prompt: Optional[str] = None,
         limit: Optional[int] = None,
@@ -34,14 +34,14 @@ class Config:
         Initialize configuration.
 
         Args:
+            logger: The logger instance to use under this config
             model: Name of the model to use (e.g., "gemini/gemini-2.5-flash", "openai/gpt-4")
             output_dir: Directory to store scan outputs
-            debug_mode: Whether to enable debug logging
             processes: Number of processes to use
             chunk_size: Number of lines per chunk
             logger: Logger instance
             max_iterations: Maximum number of tool calling iterations
-            # project_path: Path to the project being scanned (set during scan)
+            project_path: Path to the project being scanned (set during scan)
             temperature: Temperature for model generation
             # limit: Limit the number of files to scan
             confidence: Minimum confidence threshold (1-10) for filtering findings
@@ -54,90 +54,21 @@ class Config:
             provider = self._get_provider_from_model(model)
             env_var = self._get_env_var_for_provider(provider)
             raise ValueError(f"API key must be provided via {env_var} environment variable for {provider} models")
+            # TODO: error log and exit non-zero
+
+        # Set up scan directory
+        os.makedirs(output_dir, exist_ok=True)
 
         self.output_dir = output_dir
-        self.debug_mode = debug_mode
         self.processes = processes or mp.cpu_count() // 2
         self.chunk_size = chunk_size
         self.max_iterations = max_iterations
         self.temperature = temperature
-        # self.limit = limit
         self.confidence = confidence
         self.project_path = project_path
+        self.logger = logger
+        # self.limit = limit
 
-        # Set up scan directory
-        os.makedirs(self.output_dir, exist_ok=True)
-
-        # Set up logging files
-        self.tool_calls_log = os.path.join(self.output_dir, "tool_calls.log")
-        self.interactions_log = os.path.join(self.output_dir, "interactions.log")
-        self.triage_log = os.path.join(self.output_dir, "triage.log")
-        self.false_positives_log = os.path.join(self.output_dir, "false_positives.log")
-
-        # Create log files with headers
-        with open(self.tool_calls_log, "w") as f:
-            f.write("timestamp,tool_name,parameters,result\n")
-
-        with open(self.interactions_log, "w") as f:
-            f.write("timestamp,conversation_id,message\n")
-
-        with open(self.triage_log, "w") as f:
-            f.write("timestamp,vulnerability_type,file_path,line_start,line_end,action\n")
-
-        with open(self.false_positives_log, "w") as f:
-            f.write("timestamp,vulnerability_type,file_path,line_start,line_end,reason,full_response\n")
-
-        # Set up logging configuration
-        self._setup_logging()
-        self.logger = logging.getLogger()
-
-    def _setup_logging(self) -> None:
-        """Set up logging configuration."""
-        # Create formatters
-        console_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-        file_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-
-        # Set log level based on debug mode
-        log_level = logging.DEBUG if self.debug_mode else logging.INFO
-
-        # Set up root logger
-        root_logger = logging.getLogger()
-        root_logger.setLevel(log_level)
-
-        # Remove any existing handlers
-        for handler in root_logger.handlers[:]:
-            root_logger.removeHandler(handler)
-
-        # Add console handler
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(log_level)
-        console_handler.setFormatter(console_formatter)
-        root_logger.addHandler(console_handler)
-
-        # Add file handlers if output_dir is set
-        if self.output_dir:
-            # Main log file
-            main_log = os.path.join(self.output_dir, "fraim_scan.log")
-            file_handler = logging.FileHandler(main_log)
-            file_handler.setLevel(log_level)
-            file_handler.setFormatter(file_formatter)
-            root_logger.addHandler(file_handler)
-
-            # Triage log file
-            triage_handler = logging.FileHandler(self.triage_log)
-            triage_handler.setLevel(log_level)
-            triage_handler.setFormatter(file_formatter)
-            root_logger.addHandler(triage_handler)
-
-        # Silence noisy third-party loggers (LiteLLM is handled in the LiteLLM wrapper)
-        third_party_loggers = [
-            "httpx",
-            "urllib3",
-            "urllib3.connectionpool",
-        ]
-
-        for logger_name in third_party_loggers:
-            logging.getLogger(logger_name).setLevel(logging.WARNING)
 
     def _get_provider_from_model(self, model: str) -> str:
         """Extract the provider from the model name."""
