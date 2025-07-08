@@ -32,12 +32,6 @@ class ScanArgs:
     globs: Optional[List[str]] = None
     limit: Optional[int] = None
 
-    def __post_init__(self) -> None:
-        """Set default values for mutable fields."""
-        if self.workflows is None:
-            self.workflows = ["all"]
-
-
 # Use module-specific globs if available, otherwise fall back to provided globs
 def resolve_file_patterns(args: ScanArgs) -> List[str]:
     if args.globs:
