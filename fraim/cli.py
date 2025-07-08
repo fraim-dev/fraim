@@ -2,10 +2,13 @@
 # Copyright (c) 2025 Resourcely Inc.
 
 import argparse
+import logging
 import multiprocessing as mp
 import os
 from pathlib import Path
 
+from fraim.observability.logging import make_logger
+from fraim.scan import scan, ScanArgs
 from fraim.config.config import Config
 from fraim.observability import ObservabilityManager, ObservabilityRegistry
 from fraim.scan import ScanArgs, scan
@@ -14,14 +17,28 @@ from fraim.workflows import WorkflowRegistry
 
 def parse_args_to_scan_args(args: argparse.Namespace) -> ScanArgs:
     """Convert argparse Namespace to typed FetchRepoArgs dataclass."""
-    return ScanArgs(repo=args.repo, path=args.path, workflows=args.workflows, globs=args.globs, limit=args.limit)
-
-
+    return ScanArgs(
+        repo=args.repo,
+        path=args.path,
+        workflows=args.workflows,
+        globs=args.globs,
+        limit=args.limit
+    )
+    
 def parse_args_to_config(args: argparse.Namespace) -> Config:
     """Convert FetchRepoArgs to Config object."""
+    output_dir = args.output if args.output else str(Path(__file__).parent.parent / "fraim_output"),
+
+    # Default logger
+    logger = make_logger(
+        name="fraim",
+        level = logging.DEBUG if args.debug else logging.INFO,
+        path = os.path.join(output_dir, "fraim_scan.log"),
+        show_logs=args.show_logs,
+    )
     return Config(
-        output_dir=args.output if args.output else str(Path(__file__).parent.parent / "fraim_output"),
-        debug_mode=args.debug,
+        logger=logger,
+        output_dir=output_dir,
         model=args.model,
         processes=args.processes,
         chunk_size=args.chunk_size,
@@ -122,6 +139,8 @@ def cli() -> int:
         "--temperature", type=float, default=0, help="Temperature setting for the model (0.0-1.0, default: 0)"
     )
     parser.add_argument("--limit", type=int, help="Limit the number of files to scan")
+
+    parser.add_argument('--show-logs', type=bool, default=True, help='Prints logs to standard error output')
 
     parsed_args = parser.parse_args()
 

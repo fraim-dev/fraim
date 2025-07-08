@@ -67,6 +67,8 @@ class IaCWorkflow(Workflow[IaCInput, IaCOutput]):
     """Analyzes IaC files for security vulnerabilities, compliance issues, and best practice deviations."""
 
     def __init__(self, config: Config, *args: Any, **kwargs: Any) -> None:
+        self.config = config
+
         # Construct an LLM instance
         llm = LiteLLM.from_config(config)
 
@@ -81,16 +83,16 @@ class IaCWorkflow(Workflow[IaCInput, IaCOutput]):
         # TODO: See comments on `is_iac_file below.
         # If this chunk is not from an IaC file, don't scan it.
         if not _is_iac_file(Path(input.code.file_path)):
-            logging.getLogger().info("File chunk is not from an IaC file - skipping")
+            self.config.logger.info("File chunk is not from an IaC file - skipping")
             return []
 
         # 1. Scan the code for vulnerabilities.
-        logging.getLogger().info(f"Scanning code for vulnerabilities: {Path(input.code.file_path)}")
+        self.config.logger.info(f"Scanning code for vulnerabilities: {Path(input.code.file_path)}")
         iac_input = IaCInput(code=input.code, config=input.config)
         vulns = await self.scanner_step.run(iac_input)
 
         # 2. Filter the vulnerability by confidence.
-        logging.getLogger().info("Filtering vulnerabilities by confidence")
+        self.config.logger.info("Filtering vulnerabilities by confidence")
         high_confidence_vulns = filter_results_by_confidence(vulns.results, input.config.confidence)
 
         return high_confidence_vulns

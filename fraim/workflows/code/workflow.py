@@ -8,7 +8,6 @@ Analyzes source code for security vulnerabilities using AI-powered scanning.
 """
 
 import asyncio
-import logging
 import os
 from dataclasses import dataclass
 from typing import Any, List
@@ -77,6 +76,8 @@ class SASTWorkflow(Workflow[SASTInput, SASTOutput]):
     """Analyzes source code for security vulnerabilities"""
 
     def __init__(self, config: Config, *args: Any, **kwargs: Any) -> None:
+        self.config = config
+
         # Construct an LLM instance
         llm = LiteLLM.from_config(config)
 
@@ -97,16 +98,16 @@ class SASTWorkflow(Workflow[SASTInput, SASTOutput]):
 
     async def workflow(self, input: SASTInput) -> SASTOutput:
         # 1. Scan the code for potential vulnerabilities.
-        logging.getLogger().info("Scanning the code for potential vulnerabilities")
+        self.config.logger.info("Scanning the code for potential vulnerabilities")
         sast_input = SASTInput(code=input.code, config=input.config)
         potential_vulns = await self.scanner_step.run(sast_input)
 
         # 2. Filter vulnerabilities by confidence.
-        logging.getLogger().info("Filtering vulnerabilities by confidence")
+        self.config.logger.info("Filtering vulnerabilities by confidence")
         high_confidence_vulns = filter_results_by_confidence(potential_vulns.results, input.config.confidence)
 
         # 3. Triage the high-confidence vulns in parallel.
-        logging.getLogger().info("Triaging high-confidence vulns in parallel")
+        self.config.logger.info("Triaging high-confidence vulns in parallel")
         triaged_vulns = await asyncio.gather(
             *[
                 self.triager_step.run(TriagerInput(vulnerability=str(vuln), code=input.code, config=input.config))
@@ -115,7 +116,7 @@ class SASTWorkflow(Workflow[SASTInput, SASTOutput]):
         )
 
         # 4. Filter the triaged vulnerabilities by confidence
-        logging.getLogger().info("Filtering the triaged vulnerabilities by confidence")
+        self.config.logger.info("Filtering the triaged vulnerabilities by confidence")
         high_confidence_triaged_vulns = filter_results_by_confidence(triaged_vulns, input.config.confidence)
 
         # 5. Report the vulnerabilities that still have a high confidence after triaging
