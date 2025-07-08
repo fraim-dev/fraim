@@ -26,9 +26,9 @@ from fraim.workflows import WorkflowRegistry
 class ScanArgs:
     """Typed dataclass for all fetch arguments with defaults."""
 
+    workflows: List[str]
     repo: Optional[str] = None
     path: Optional[str] = None
-    workflows: Optional[List[str]] = None
     globs: Optional[List[str]] = None
     limit: Optional[int] = None
 
@@ -65,13 +65,10 @@ def get_files(args: ScanArgs, config: Config) -> Tuple[str, Files]:
         raise ValueError("No input specified")
 
 
-def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[str]] = None):
+def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[str]] = None) -> None:
     results: List[sarif.Result] = []
 
     workflows_to_run = args.workflows
-
-    if not workflows_to_run:
-        raise ValueError("No workflows specified")
 
     #######################################
     # Run LLM Workflows
