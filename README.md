@@ -25,10 +25,11 @@ Join our growing community of security professionals using Fraim:
 ## 🔎 Preview
 
 ![CLI Preview](assets/cli-preview.gif)
-_Example run of the CLI_
+*Example run of the CLI*
+
 
 ![UI Preview](assets/ui-preview.gif)
-_Output of running the `code` workflow_
+*Output of running the `code` workflow*
 
 ## 🚀 Quick Start
 
@@ -43,28 +44,27 @@ _Output of running the `code` workflow_
 NOTE: These instructions are for Linux based systems, see [docs](https://docs.fraim.dev/installation) for Windows installation instructions
 
 1. **Install Fraim**:
-
 ```bash
 pipx install fraim
 ```
 
 2. **Configure your AI provider**:
+   
+    #### Google Gemini
 
-   #### Google Gemini
+    1. Get an API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+    2. Export it in your environment: 
+        ```
+        export GEMINI_API_KEY=your_api_key_here
+        ```
 
-   1. Get an API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
-   2. Export it in your environment:
-      ```
-      export GEMINI_API_KEY=your_api_key_here
-      ```
+    #### OpenAI
 
-   #### OpenAI
-
-   3. Get an API key from [OpenAI Platform](https://platform.openai.com/api-keys)
-   4. Export it in your environment:
-      ```
-      export OPENAI_API_KEY=your_api_key_here
-      ```
+    3. Get an API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+    4. Export it in your environment:
+        ```
+        export OPENAI_API_KEY=your_api_key_here
+        ```
 
 ### Basic Usage
 
@@ -101,13 +101,11 @@ Fraim supports optional observability and tracing through [Langfuse](https://lan
 To enable observability:
 
 1. **Install with observability support**:
-
 ```bash
 pipx install 'fraim[langfuse]'
 ```
 
 2. **Enable observability during execution**:
-
 ```bash
 fraim --path /code --workflows code --observability langfuse
 ```
@@ -117,7 +115,6 @@ This will trace your workflow execution, LLM calls, and performance metrics in L
 ### Configuration
 
 Fraim uses a flexible configuration system that allows you to:
-
 - Customize AI model parameters
 - Configure workflow-specific settings
 - Set up custom data sources
@@ -138,27 +135,23 @@ See the `fraim/config/` directory for configuration options.
 Fraim includes several pre-built workflows that demonstrate the framework's capabilities:
 
 ### Code Security Analysis
-
-_Status: Available_
-_Workflow Name: scan_
+*Status: Available*
+*Workflow Name: scan*
 
 Automated source code vulnerability scanning using AI-powered analysis. Detects common security issues across multiple programming languages including SQL injection, XSS, CSRF, and more.
 
 Example
-
 ```
 fraim --repo https://github.com/username/repo-name --workflows code
 ```
 
 ### Infrastructure as Code (IAC) Analysis
-
-_Status: Available_
-_Workflow Name: iac_
+*Status: Available*
+*Workflow Name: iac*
 
 Analyzes infrastructure configuration files for security misconfigurations and compliance violations.
 
 Example
-
 ```
 fraim --repo https://github.com/username/repo-name --workflows iac
 ```
@@ -209,17 +202,17 @@ class MyCustomWorkflow(Workflow[MyWorkflowInput, MyWorkflowOutput]):
 
     async def workflow(self, input: MyWorkflowInput) -> MyWorkflowOutput:
         """Main workflow execution"""
-
+        
         # 1. Analyze the configuration file
         analysis_results = await self.analysis_step.run({"code": input.code})
-
+        
         # 2. Filter results by confidence threshold
         filtered_results = self.filter_results_by_confidence(
             analysis_results.results, input.config.confidence
         )
-
+        
         return filtered_results
-
+    
     def filter_results_by_confidence(self, results: List[sarif.Result], confidence_threshold: int) -> List[sarif.Result]:
         """Filter results by confidence."""
         return [result for result in results if result.properties.confidence > confidence_threshold]
@@ -232,9 +225,9 @@ Create `my_prompts.yaml` in the same directory:
 ```yaml
 system: |
   You are a configuration security analyzer.
-
+  
   Your job is to analyze configuration files for security misconfigurations and vulnerabilities.
-
+  
   <vulnerability_types>
     Valid vulnerability types (use EXACTLY as shown):
     
@@ -254,7 +247,7 @@ system: |
 
 user: |
   Analyze the following configuration file for security issues:
-
+  
   {{ code }}
 ```
 
@@ -264,4 +257,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-_Fraim is built by security teams, for security teams. Help us make AI-powered security accessible to everyone._
+*Fraim is built by security teams, for security teams. Help us make AI-powered security accessible to everyone.*
