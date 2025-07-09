@@ -13,7 +13,7 @@ from fraim.workflows.registry import get_workflow_class
 class ScanArgs:
     """Typed dataclass for all fetch arguments with defaults."""
 
-    workflows: List[str]
+    workflow: str
     repo: Optional[str] = None
     path: Optional[str] = None
     globs: Optional[List[str]] = None
@@ -21,8 +21,7 @@ class ScanArgs:
 
 
 def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[str]] = None) -> None:
-    # TODO: Update this arg to be a single workflow for the time being
-    workflow_to_run = args.workflows[0]
+    workflow_to_run = args.workflow
 
     #######################################
     # Run LLM Workflows

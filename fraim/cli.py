@@ -21,7 +21,7 @@ def parse_args_to_scan_args(args: argparse.Namespace) -> ScanArgs:
     return ScanArgs(
         repo=args.repo,
         path=args.path,
-        workflows=args.workflows,
+        workflow=args.workflow,
         globs=args.globs,
         limit=args.limit
     )
@@ -56,8 +56,8 @@ def setup_observability(args: argparse.Namespace, config: Config) -> Observabili
     return manager
 
 
-def build_workflows_arg(parser: argparse.ArgumentParser) -> None:
-    """Add workflows argument to the parser."""
+def build_workflow_arg(parser: argparse.ArgumentParser) -> None:
+    """Add workflow argument to the parser."""
     # Get available workflows from registry
     available_workflows = WorkflowRegistry.get_available_workflows()
     workflow_descriptions = WorkflowRegistry.get_workflow_descriptions()
@@ -69,10 +69,10 @@ def build_workflows_arg(parser: argparse.ArgumentParser) -> None:
     for workflow in workflow_choices:
         description = workflow_descriptions.get(workflow, "No description available")
         help_parts.append(f"{workflow}: {description}")
-    workflows_help = f" - {'\n - '.join(help_parts)}"
+    workflow_help = f" - {'\n - '.join(help_parts)}"
 
-    parser.add_argument("--workflows", nargs="+",
-                        choices=workflow_choices, help=workflows_help, required=True)
+    parser.add_argument(
+        "workflow", choices=workflow_choices, help=workflow_help)
 
 
 def build_observability_arg(parser: argparse.ArgumentParser) -> None:
@@ -109,7 +109,7 @@ def cli() -> int:
         default=None,
         help="Globs to use for file scanning. If not provided, will use default globs.",
     )
-    build_workflows_arg(parser)
+    build_workflow_arg(parser)
     build_observability_arg(parser)
 
     #############################
