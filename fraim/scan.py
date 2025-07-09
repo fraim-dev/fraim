@@ -32,6 +32,7 @@ class ScanArgs:
     globs: Optional[List[str]] = None
     limit: Optional[int] = None
 
+
 # Use module-specific globs if available, otherwise fall back to provided globs
 def resolve_file_patterns(args: ScanArgs) -> List[str]:
     if args.globs:
@@ -131,8 +132,7 @@ def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[s
         Reporting.generate_html_report(sarif_report=report, repo_name=repo_name, output_path=html_output_file)
         config.logger.info(f"Wrote HTML report ({total_results} results) to {html_output_file}")
     except Exception as e:
-        config.logger.error(
-            f"Failed to write HTML report to {html_output_file}: {str(e)}")
+        config.logger.error(f"Failed to write HTML report to {html_output_file}: {str(e)}")
 
 
 def generate_file_chunks(
