@@ -4,7 +4,7 @@ import sys
 # TODO: Consider JSON formatting, this makes it very easy to integrate dashboards, etc.
 #       We could then have a reader that renders these log events differently.
 
-def make_logger(name = None, level= logging.INFO, path: str = None, show_logs = False) -> logging.Logger:
+def make_logger(name: str | None = None, level: int = logging.INFO, path: str | None = None, show_logs: bool = False) -> logging.Logger:
     logger = logging.getLogger(name) # Get or create logger instance by name
 
     logger.setLevel(level) # Set the log level, always overwriting
@@ -24,14 +24,14 @@ def make_logger(name = None, level= logging.INFO, path: str = None, show_logs = 
     return logger
 
 
-def file_handler(level, path):
+def file_handler(level: int, path: str) -> logging.FileHandler:
     handler = logging.FileHandler(path)
     handler.setLevel(level)
     handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
     return handler
 
 
-def stderr_handler(level):
+def stderr_handler(level: int) -> logging.StreamHandler:
     handler = logging.StreamHandler(stream=sys.stderr)
     handler.setLevel(level)
     handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
