@@ -69,7 +69,6 @@ class Config:
         self.logger = logger
         # self.limit = limit
 
-
     def _get_provider_from_model(self, model: str) -> str:
         """Extract the provider from the model name."""
         if "/" in model:
