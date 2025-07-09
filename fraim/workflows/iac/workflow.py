@@ -80,12 +80,6 @@ class IaCWorkflow(Workflow[IaCInput, IaCOutput]):
         )
 
     async def workflow(self, input: IaCInput) -> IaCOutput:
-        # TODO: See comments on `is_iac_file below.
-        # If this chunk is not from an IaC file, don't scan it.
-        if not _is_iac_file(Path(input.code.file_path)):
-            self.config.logger.info("File chunk is not from an IaC file - skipping")
-            return []
-
         # 1. Scan the code for vulnerabilities.
         self.config.logger.info(f"Scanning code for vulnerabilities: {Path(input.code.file_path)}")
         iac_input = IaCInput(code=input.code, config=input.config)
@@ -101,65 +95,3 @@ class IaCWorkflow(Workflow[IaCInput, IaCOutput]):
 def filter_results_by_confidence(results: List[sarif.Result], confidence_threshold: int) -> List[sarif.Result]:
     """Filter results by confidence."""
     return [result for result in results if result.properties.confidence > confidence_threshold]
-
-
-# TODO: replace this an LLM step that determines if the file is an IaC file.
-# This will require that file iteration and chunking be integrated into the workflow.
-def _is_iac_file(filepath: Path) -> bool:
-    """Check if the file is an Infrastructure as Code file."""
-    iac_extensions = {
-        # Terraform
-        ".tf",
-        ".tfvars",
-        ".tfstate",
-        # CloudFormation
-        ".yaml",
-        ".yml",
-        ".json",
-        # Kubernetes
-        ".k8s.yaml",
-        ".k8s.yml",
-        # Docker
-        "Dockerfile",
-        ".dockerfile",
-        # Ansible
-        ".ansible.yaml",
-        ".ansible.yml",
-        # Helm
-        ".helm.yaml",
-        ".helm.yml",
-    }
-
-    iac_filenames = {
-        "Dockerfile",
-        "docker-compose.yml",
-        "docker-compose.yaml",
-        "k8s.yaml",
-        "k8s.yml",
-        "deployment.yaml",
-        "deployment.yml",
-        "service.yaml",
-        "service.yml",
-        "ingress.yaml",
-        "ingress.yml",
-        "configmap.yaml",
-        "configmap.yml",
-        "secret.yaml",
-        "secret.yml",
-    }
-
-    # Check if it's a known IaC file
-    if filepath.name in iac_filenames:
-        return True
-
-    # Check for IaC file extensions
-    if filepath.suffix in iac_extensions:
-        return True
-
-    # Check for CloudFormation templates (JSON/YAML with specific patterns)
-    if filepath.suffix in (".yaml", ".yml", ".json"):
-        # Additional logic could be added here to detect CloudFormation
-        # by checking content patterns
-        return True
-
-    return False

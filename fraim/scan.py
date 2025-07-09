@@ -1,25 +1,12 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 
-import multiprocessing as mp
-import os
-import tempfile
+import asyncio
 from dataclasses import dataclass
-from datetime import datetime
-from functools import partial
-from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from fraim.config.config import Config
-from fraim.core.contextuals.code import CodeChunk
-from fraim.inputs.files import Files
-from fraim.inputs.git import Git
-from fraim.inputs.local import Local
-from fraim.observability import ObservabilityManager
-from fraim.outputs import sarif
-from fraim.reporting.reporting import Reporting
-from fraim.util.chunkers.file_chunker import generate_file_chunks, get_files
-from fraim.workflows import WorkflowRegistry
+from fraim.workflows.registry import get_workflow_class
 
 
 @dataclass
@@ -34,119 +21,21 @@ class ScanArgs:
 
 
 def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[str]] = None) -> None:
-    results: List[sarif.Result] = []
-    workflows_to_run = args.workflows
+    # TODO: Update this arg to be a single workflow for the time being
+    workflow_to_run = args.workflows[0]
 
     #######################################
     # Run LLM Workflows
     #######################################
-    config.logger.info(f"Running workflows: {workflows_to_run}")
+    config.logger.info(f"Running workflow: {workflow_to_run}")
+
     try:
-        project_path, files_context = get_files(args, config)
-        # Hack to pass in the project path to the config
-        config.project_path = project_path
+        workflow_class = get_workflow_class(workflow_to_run)
 
-        # Process chunks in parallel as they become available (streaming)
-        with files_context as files:
-            chunks = generate_file_chunks(
-                config, files=files, project_path=project_path, chunk_size=config.chunk_size)
-            try:
-                chunk_count = 0
-                with mp.Pool(
-                    processes=config.processes, initializer=initialize_worker, initargs=(
-                        config, observability_backends)
-                ) as pool:
-                    # This must be partial because mp serializes the function.
-                    # TODO: actually test that multiprocessing has a measurable impact here.
-                    task = partial(run_workflows, config=config,
-                                   workflows_to_run=workflows_to_run)
-
-                    for chunk_results in pool.imap_unordered(task, chunks):
-                        chunk_count += 1
-                        results.extend(chunk_results)
-                config.logger.info(
-                    f"Completed processing {chunk_count} total chunks")
-            except Exception as mp_error:
-                config.logger.error(
-                    f"Error during multiprocessing: {str(mp_error)}")
-
-    except Exception as e:
-        config.logger.error(f"Error during scan: {str(e)}")
-        raise e
-
-    #######################################
-    # Output Results
-    #######################################
-    # Generate the SARIF report
-    report = sarif.create_sarif_report(results)
-
-    repo_name = "Security Scan Report"
-    if args.repo:
-        repo_name = args.repo.split("/")[-1].replace(".git", "")
-    elif args.path:
-        repo_name = os.path.basename(os.path.abspath(args.path))
-
-    # Create filename with sanitized repo name
-    current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-    # Sanitize repo name for filename (replace spaces and special chars with underscores)
-    safe_repo_name = "".join(
-        c if c.isalnum() else "_" for c in repo_name).strip("_")
-    sarif_filename = f"fraim_report_{safe_repo_name}_{current_time}.sarif"
-    html_filename = f"fraim_report_{safe_repo_name}_{current_time}.html"
-
-    sarif_output_file = os.path.join(config.output_dir, sarif_filename)
-    html_output_file = os.path.join(config.output_dir, html_filename)
-
-    total_results = len(results)
-
-    # Write SARIF JSON file
-    try:
-        with open(sarif_output_file, "w") as f:
-            f.write(report.model_dump_json(
-                by_alias=True, indent=2, exclude_none=True))
-        config.logger.info(
-            f"Wrote SARIF report ({total_results} results) to {sarif_output_file}")
+        # Instantiate the workflow with any required dependencies from kwargs
+        workflow_instance = workflow_class(
+            config, observability_backends=observability_backends)
+        asyncio.run(workflow_instance.workflow(input=args))
     except Exception as e:
         config.logger.error(
-            f"Failed to write SARIF report to {sarif_output_file}: {str(e)}")
-    # Write HTML report file (independent of SARIF write)
-    try:
-        Reporting.generate_html_report(
-            sarif_report=report, repo_name=repo_name, output_path=html_output_file)
-        config.logger.info(
-            f"Wrote HTML report ({total_results} results) to {html_output_file}")
-    except Exception as e:
-        config.logger.error(
-            f"Failed to write HTML report to {html_output_file}: {str(e)}")
-
-
-def initialize_worker(config: Config, observability_backends: Optional[List[str]]) -> None:
-    """Initialize worker process with observability setup."""
-    if observability_backends:
-        try:
-            manager = ObservabilityManager(
-                observability_backends, logger=config.logger)
-            manager.setup()
-        except Exception as e:
-            config.logger.warning(
-                f"Failed to setup observability in worker process: {str(e)}")
-
-
-def run_workflows(code_chunk: CodeChunk, config: Config, workflows_to_run: List[str]) -> List[sarif.Result]:
-    """Run all specified workflows on the given data."""
-    all_results = []
-    for workflow in workflows_to_run:
-        try:
-            if WorkflowRegistry.is_workflow_available(workflow):
-                results = WorkflowRegistry.execute_workflow(
-                    workflow, code=code_chunk, config=config)
-                all_results.extend(results)
-            else:
-                config.logger.warning(
-                    f"Workflow '{workflow}' not available in registry")
-        except Exception as e:
-            config.logger.error(
-                f"Error running {workflow} workflow on {code_chunk.description}: {str(e)}")
-            continue
-
-    return all_results
+            f"Error running {workflow_to_run}: {str(e)}")

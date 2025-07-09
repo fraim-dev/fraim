@@ -64,18 +64,6 @@ def get_workflow_descriptions() -> Dict[str, str]:
     }
 
 
-def get_file_patterns_for_workflows(workflows: List[str]) -> List[str]:
-    """Get combined file patterns for the specified workflows."""
-    all_patterns = set()
-
-    for workflow in workflows:
-        if workflow in _workflows:
-            patterns = _workflows[workflow].metadata.get("file_patterns", [])
-            all_patterns.update(patterns)
-
-    return list(all_patterns)
-
-
 def is_workflow_available(workflow_name: str) -> bool:
     """Check if a workflow is available."""
     return workflow_name in _workflows
@@ -103,7 +91,7 @@ def execute_workflow(workflow_name: str, code: Contextual[str], config: Config) 
     input = types.SimpleNamespace(code=code, config=config)
     return asyncio.run(workflow_instance.workflow(input))
 
-
+# Remove file_patters from this decorator now that loading files is handled in the workflow
 def workflow(
     workflow_name: str, file_patterns: Optional[List[str]] = None, **metadata: Any
 ) -> Callable[[Type[Workflow]], Type[Workflow]]:

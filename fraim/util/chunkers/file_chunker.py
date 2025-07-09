@@ -1,16 +1,26 @@
-from typing import Generator, List, Tuple
+
+from typing import Generator, List, Optional, Tuple
 import tempfile
 import os
 from pathlib import Path
+from dataclasses import dataclass, field
 
 from fraim.config.config import Config
 from fraim.core.contextuals.code import CodeChunk
+from fraim.inputs.files import Files
 from fraim.inputs.git import Git
 from fraim.inputs.local import Local
 from fraim.inputs.files import Files
 from fraim.inputs.file_chunks import chunk_input
-from fraim.scan import ScanArgs
-from fraim.workflows import WorkflowRegistry
+
+
+@dataclass
+class GetFileArgs:
+    limit: Optional[int] = None
+    repo: Optional[str] = None
+    path: Optional[str] = None
+    globs: Optional[List[str]] = None
+    patterns: List[str] = field(default_factory=list)
 
 
 def generate_file_chunks(
@@ -22,19 +32,10 @@ def generate_file_chunks(
         for chunk in chunked:
             yield chunk
 
-# Use module-specific globs if available, otherwise fall back to provided globs
 
-# Use module-specific globs if available, otherwise fall back to provided globs
-def resolve_file_patterns(args: ScanArgs) -> List[str]:
-    if args.globs:
-        return args.globs
-    else:
-        return WorkflowRegistry.get_file_patterns_for_workflows(args.workflows)
-
-
-def get_files(args: ScanArgs, config: Config) -> Tuple[str, Files]:
+def get_files(args: GetFileArgs, config: Config) -> Tuple[str, Files]:
     """Get the local root path of the project and the files to scan."""
-    file_patterns = resolve_file_patterns(args)
+    file_patterns = args.globs or args.patterns
     config.logger.info(f"Using file patterns: {file_patterns}")
     if args.limit is not None:
         # TODO: enforce this
@@ -51,4 +52,3 @@ def get_files(args: ScanArgs, config: Config) -> Tuple[str, Files]:
         return repo_path, Local(config, Path(repo_path), globs=file_patterns, limit=args.limit)
     else:
         raise ValueError("No input specified")
-

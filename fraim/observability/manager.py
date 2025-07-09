@@ -6,9 +6,11 @@ Manager for LLM observability backends.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import litellm
+
+from fraim.config.config import Config
 
 from .registry import ObservabilityRegistry
 
@@ -81,3 +83,15 @@ class ObservabilityManager:
     def is_enabled(self) -> bool:
         """Check if any observability backend is successfully configured."""
         return len(self.configured_backends) > 0
+
+
+def initialize_worker(config: Config, observability_backends: Optional[List[str]]) -> None:
+    """Initialize worker process with observability setup."""
+    if observability_backends:
+        try:
+            manager = ObservabilityManager(
+                observability_backends, logger=config.logger)
+            manager.setup()
+        except Exception as e:
+            config.logger.warning(
+                f"Failed to setup observability in worker process: {str(e)}")
