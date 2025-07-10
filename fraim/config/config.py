@@ -6,7 +6,6 @@ Configuration management for Gemini Scan.
 """
 
 import logging
-import multiprocessing as mp
 import os
 from typing import Optional
 
@@ -23,10 +22,7 @@ class Config:
         temperature: float = 0,
         max_iterations: int = 50,
         host: str = "localhost",
-        processes: Optional[int] = None,
         prompt: Optional[str] = None,
-        limit: Optional[int] = None,
-        chunk_size: int = 500,
         confidence: int = 7,
         project_path: str = "",
     ):
@@ -37,13 +33,10 @@ class Config:
             logger: The logger instance to use under this config
             model: Name of the model to use (e.g., "gemini/gemini-2.5-flash", "openai/gpt-4")
             output_dir: Directory to store scan outputs
-            processes: Number of processes to use
-            chunk_size: Number of lines per chunk
             logger: Logger instance
             max_iterations: Maximum number of tool calling iterations
             project_path: Path to the project being scanned (set during scan)
             temperature: Temperature for model generation
-            # limit: Limit the number of files to scan
             confidence: Minimum confidence threshold (1-10) for filtering findings
         """
         self.model = model
@@ -60,14 +53,11 @@ class Config:
         os.makedirs(output_dir, exist_ok=True)
 
         self.output_dir = output_dir
-        self.processes = processes or mp.cpu_count() // 2
-        self.chunk_size = chunk_size
         self.max_iterations = max_iterations
         self.temperature = temperature
         self.confidence = confidence
         self.project_path = project_path
         self.logger = logger
-        # self.limit = limit
 
 
     def _get_provider_from_model(self, model: str) -> str:

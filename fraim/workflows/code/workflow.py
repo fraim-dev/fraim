@@ -10,7 +10,7 @@ Analyzes source code for security vulnerabilities using AI-powered scanning.
 import asyncio
 import os
 from dataclasses import dataclass
-from typing import Any, List
+from typing import Any, List, Annotated, Optional
 
 from fraim.config import Config
 from fraim.core.contextuals import CodeChunk
@@ -58,7 +58,6 @@ class SASTInput:
     code: CodeChunk
     config: Config
 
-
 @dataclass
 class TriagerInput:
     """Input for the triage step of the SAST workflow."""
@@ -99,8 +98,7 @@ class SASTWorkflow(Workflow[SASTInput, SASTOutput]):
     async def workflow(self, input: SASTInput) -> SASTOutput:
         # 1. Scan the code for potential vulnerabilities.
         self.config.logger.info("Scanning the code for potential vulnerabilities")
-        sast_input = SASTInput(code=input.code, config=input.config)
-        potential_vulns = await self.scanner_step.run(sast_input)
+        potential_vulns = await self.scanner_step.run(input)
 
         # 2. Filter vulnerabilities by confidence.
         self.config.logger.info("Filtering vulnerabilities by confidence")

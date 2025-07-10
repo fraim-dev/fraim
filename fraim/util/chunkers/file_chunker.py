@@ -3,7 +3,6 @@ from typing import Generator, List, Optional, Tuple
 import tempfile
 import os
 from pathlib import Path
-from dataclasses import dataclass, field
 
 from fraim.config.config import Config
 from fraim.core.contextuals.code import CodeChunk
@@ -12,16 +11,6 @@ from fraim.inputs.git import Git
 from fraim.inputs.local import Local
 from fraim.inputs.files import Files
 from fraim.inputs.file_chunks import chunk_input
-
-
-@dataclass
-class GetFileArgs:
-    limit: Optional[int] = None
-    repo: Optional[str] = None
-    path: Optional[str] = None
-    globs: Optional[List[str]] = None
-    patterns: List[str] = field(default_factory=list)
-
 
 def generate_file_chunks(
     config: Config, files: Files, project_path: str, chunk_size: int
@@ -33,22 +22,23 @@ def generate_file_chunks(
             yield chunk
 
 
-def get_files(args: GetFileArgs, config: Config) -> Tuple[str, Files]:
+def get_files(limit: Optional[int], repo: Optional[str], path: Optional[str], globs: List[str], config: Config) -> Tuple[str, Files]:
     """Get the local root path of the project and the files to scan."""
-    file_patterns = args.globs or args.patterns
-    config.logger.info(f"Using file patterns: {file_patterns}")
-    if args.limit is not None:
+    config.logger.info(f"Using file patterns: {globs}")
+    if limit is not None:
         # TODO: enforce this
-        config.logger.info(f"File limit set to {args.limit}")
-    if args.repo:
+        config.logger.info(f"File limit set to {limit}")
+    if repo and path:
+        raise ValueError("Repo and path cannot be specified at the same time.")
+    if repo:
         temp_dir = tempfile.mkdtemp(prefix="fraim_scan_")
         repo_path = os.path.join(temp_dir, "repo")
         config.logger.info(
-            f"Cloning repository: {args.repo} into path: {repo_path}")
-        return repo_path, Git(config, url=args.repo, tempdir=repo_path, globs=file_patterns, limit=args.limit)
-    elif args.path:
-        repo_path = args.path
-        config.logger.info(f"Using local path as input: {args.path}")
-        return repo_path, Local(config, Path(repo_path), globs=file_patterns, limit=args.limit)
+            f"Cloning repository: {repo} into path: {repo_path}")
+        return repo_path, Git(config, url=repo, tempdir=repo_path, globs=globs, limit=limit)
+    elif path:
+        repo_path = path
+        config.logger.info(f"Using local path as input: {path}")
+        return repo_path, Local(config, Path(repo_path), globs=globs, limit=limit)
     else:
-        raise ValueError("No input specified")
+        raise ValueError("Repo or path must be specified.")

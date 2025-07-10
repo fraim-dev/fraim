@@ -8,7 +8,6 @@ from abc import ABC, abstractmethod
 from typing import Any, Generic, List, Protocol, TypeVar
 
 from fraim.config import Config
-from fraim.core.contextuals import CodeChunk
 from fraim.outputs import sarif
 
 
@@ -20,7 +19,6 @@ from fraim.outputs import sarif
 class WorkflowInput(Protocol):
     """Protocol defining the required input interface for all workflows."""
 
-    code: CodeChunk
     config: Config
 
 

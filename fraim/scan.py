@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 from fraim.config.config import Config
-from fraim.workflows.registry import get_workflow_class
+from fraim.workflows.registry import get_workflow_class, get_workflow_input_class
 
 
 @dataclass
@@ -14,10 +14,7 @@ class ScanArgs:
     """Typed dataclass for all fetch arguments with defaults."""
 
     workflow: str
-    repo: Optional[str] = None
-    path: Optional[str] = None
-    globs: Optional[List[str]] = None
-    limit: Optional[int] = None
+    workflow_args: Optional[dict] = None
 
 
 def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[str]] = None) -> None:
@@ -30,11 +27,18 @@ def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[s
 
     try:
         workflow_class = get_workflow_class(workflow_to_run)
+        input_class = get_workflow_input_class(workflow_to_run)
 
-        # Instantiate the workflow with any required dependencies from kwargs
+        # Create input object with workflow-specific arguments
+        input_kwargs = {
+            'config': config,
+            **(args.workflow_args or {})
+        }
+
+        workflow_input = input_class(**input_kwargs)
         workflow_instance = workflow_class(
             config, observability_backends=observability_backends)
-        asyncio.run(workflow_instance.workflow(input=args))
+        asyncio.run(workflow_instance.workflow(workflow_input))
     except Exception as e:
         config.logger.error(
             f"Error running {workflow_to_run}: {str(e)}")

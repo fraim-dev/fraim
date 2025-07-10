@@ -16,7 +16,7 @@ def run_workflows(code_chunk: CodeChunk, config: Config, workflows_to_run: List[
         try:
             if WorkflowRegistry.is_workflow_available(workflow):
                 results = WorkflowRegistry.execute_workflow(
-                    workflow, code=code_chunk, config=config)
+                    workflow, workflow_args={'code': code_chunk}, config=config)
                 all_results.extend(results)
             else:
                 config.logger.warning(
@@ -29,13 +29,14 @@ def run_workflows(code_chunk: CodeChunk, config: Config, workflows_to_run: List[
     return all_results
 
 
-def run_parallel_workflows_on_chunks(chunks: Generator[CodeChunk, None, None], config: Config, workflows_to_run: List[str], observability_backends: Optional[List[str]]) -> List[sarif.Result]:
+def run_parallel_workflows_on_chunks(chunks: Generator[CodeChunk, None, None], config: Config, workflows_to_run: List[str], observability_backends: Optional[List[str]], processes: Optional[int]) -> List[sarif.Result]:
     results: List[sarif.Result] = []
+    processes = processes or mp.cpu_count() // 2
     try:
         chunk_count = 0
         # TODO: actually test that multiprocessing has a measurable impact here.
         with mp.Pool(
-            processes=config.processes, initializer=initialize_worker, initargs=(
+            processes=processes, initializer=initialize_worker, initargs=(
                 config, observability_backends)
         ) as pool:
             # This must be partial because mp serializes the function.
