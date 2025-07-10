@@ -59,7 +59,6 @@ class Config:
         self.project_path = project_path
         self.logger = logger
 
-
     def _get_provider_from_model(self, model: str) -> str:
         """Extract the provider from the model name."""
         if "/" in model:

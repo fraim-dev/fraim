@@ -123,4 +123,4 @@ class SASTWorkflow(Workflow[SASTInput, SASTOutput]):
 
 def filter_results_by_confidence(results: List[sarif.Result], confidence_threshold: int) -> List[sarif.Result]:
     """Filter results by confidence."""
-    return [result for result in results if result.properties.confidence > confidence_threshold]
+    return [result for result in results if result.properties.confidence >= confidence_threshold]

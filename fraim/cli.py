@@ -9,13 +9,12 @@ from pathlib import Path
 import dataclasses
 from typing import get_type_hints, get_origin, get_args, Union, Type, List, Dict, Any
 
-from fraim.observability.logging import make_logger
-from fraim.scan import scan, ScanArgs
 from fraim.config.config import Config
 from fraim.observability import ObservabilityManager, ObservabilityRegistry
+from fraim.observability.logging import make_logger
 from fraim.scan import ScanArgs, scan
-from fraim.workflows import WorkflowRegistry
 from fraim.validate_cli import validate_cli_args
+from fraim.workflows import WorkflowRegistry
 
 
 def parse_args_to_scan_args(args: argparse.Namespace) -> ScanArgs:
@@ -40,16 +39,18 @@ def parse_args_to_scan_args(args: argparse.Namespace) -> ScanArgs:
         workflow=args.workflow,
         workflow_args=workflow_args,
     )
-    
+
+
 def parse_args_to_config(args: argparse.Namespace) -> Config:
     """Convert FetchRepoArgs to Config object."""
-    output_dir = args.output if args.output else str(Path(__file__).parent.parent / "fraim_output")
+    output_dir = args.output if args.output else str(
+        Path(__file__).parent.parent / "fraim_output")
 
     # Default logger
     logger = make_logger(
         name="fraim",
-        level = logging.DEBUG if args.debug else logging.INFO,
-        path = os.path.join(output_dir, "fraim_scan.log"),
+        level=logging.DEBUG if args.debug else logging.INFO,
+        path=os.path.join(output_dir, "fraim_scan.log"),
         show_logs=args.show_logs,
     )
     return Config(
@@ -64,7 +65,8 @@ def parse_args_to_config(args: argparse.Namespace) -> Config:
 
 def setup_observability(args: argparse.Namespace, config: Config) -> ObservabilityManager:
     """Setup observability backends based on CLI arguments."""
-    manager = ObservabilityManager(args.observability or [], logger=config.logger)
+    manager = ObservabilityManager(
+        args.observability or [], logger=config.logger)
     manager.setup()
     return manager
 
@@ -80,7 +82,8 @@ def build_workflow_arg(parser: argparse.ArgumentParser) -> None:
     # Build help text dynamically
     help_parts = []
     for workflow in workflow_choices:
-        description = workflow_descriptions.get(workflow, "No description available")
+        description = workflow_descriptions.get(
+            workflow, "No description available")
         help_parts.append(f"{workflow}: {description}")
     workflow_help = f" - {'\n - '.join(help_parts)}"
 
@@ -97,12 +100,14 @@ def build_observability_arg(parser: argparse.ArgumentParser) -> None:
     # Build observability help text dynamically
     observability_help_parts = []
     for backend in sorted(available_backends):
-        description = backend_descriptions.get(backend, "No description available")
+        description = backend_descriptions.get(
+            backend, "No description available")
         observability_help_parts.append(f"{backend}: {description}")
 
     observability_help = f"Enable LLM observability backends.\n - {'\n - '.join(observability_help_parts)}"
 
-    parser.add_argument("--observability", nargs="+", choices=available_backends, default=[], help=observability_help)
+    parser.add_argument("--observability", nargs="+",
+                        choices=available_backends, default=[], help=observability_help)
 
 
 def setup_workflow_subparsers(parser: argparse.ArgumentParser) -> None:
@@ -156,7 +161,8 @@ def cli() -> int:
     # Configuration
     #############################
     parser.add_argument("--output", help="Path to save the output HTML report")
-    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    parser.add_argument("--debug", action="store_true",
+                        help="Enable debug logging")
     parser.add_argument(
         "--model",
         default="gemini/gemini-2.5-flash",
@@ -179,7 +185,8 @@ def cli() -> int:
         "--temperature", type=float, default=0, help="Temperature setting for the model (0.0-1.0, default: 0)"
     )
 
-    parser.add_argument('--show-logs', type=bool, default=True, help='Prints logs to standard error output')
+    parser.add_argument("--show-logs", type=bool, default=True,
+                        help="Prints logs to standard error output")
 
     parsed_args = parser.parse_args()
 
@@ -189,7 +196,6 @@ def cli() -> int:
     except Exception as e:
         print(f"CLI Validation Error: {e}")
         exit(1)
-        
 
     # Parse config to get logger
     config = parse_args_to_config(parsed_args)
