@@ -12,7 +12,7 @@ import asyncio
 import dataclasses
 import sys
 from dataclasses import dataclass, field
-from typing import Union, get_type_hints, Any, Callable, Dict, List, Optional, Type, get_args, get_origin
+from typing import Any, Callable, Dict, List, Optional, Type, Union, get_args, get_origin, get_type_hints
 
 # Add this import for Python 3.9+ compatibility
 if sys.version_info >= (3, 9):
@@ -76,21 +76,21 @@ def is_workflow_available(workflow_name: str) -> bool:
     return workflow_name in _workflows
 
 
-def execute_workflow(workflow_name: str, config: Config, workflow_args: Optional[Dict[str, Any]] = None) -> List[sarif.Result]:
+def execute_workflow(
+    workflow_name: str, config: Config, workflow_args: Optional[Dict[str, Any]] = None
+) -> List[sarif.Result]:
     """Execute a workflow with workflow-specific arguments."""
     workflow_class = get_workflow_class(workflow_name)
     input_class = get_workflow_input_class(workflow_name)
 
     # Create input object with workflow-specific arguments
-    input_kwargs = {
-        'config': config,
-        **(workflow_args or {})
-    }
+    input_kwargs = {"config": config, **(workflow_args or {})}
 
     workflow_input = input_class(**input_kwargs)
     workflow_instance = workflow_class(config)
 
     return asyncio.run(workflow_instance.workflow(workflow_input))
+
 
 # TODO: Remove file_patterns from this decorator now that loading files is handled in the workflow
 def workflow(
@@ -129,7 +129,7 @@ def get_workflow_input_class(workflow_name: str) -> Type:
     # Get the first type parameter from Workflow[InputType, OutputType]
 
     # Try to extract the input type from the generic base class
-    orig_bases = getattr(workflow_class, '__orig_bases__', ())
+    orig_bases = getattr(workflow_class, "__orig_bases__", ())
     for base in orig_bases:
         origin = get_origin(base)
         if origin is not None:
@@ -150,7 +150,7 @@ def infer_cli_args_from_dataclass(input_class: Type) -> List[Dict[str, Any]]:
     type_hints = get_type_hints(input_class, include_extras=True)
 
     # Reserved fields that shouldn't become CLI arguments
-    reserved_fields = {'config'}
+    reserved_fields = {"config"}
 
     for field in dataclasses.fields(input_class):
         if field.name in reserved_fields:
@@ -158,8 +158,8 @@ def infer_cli_args_from_dataclass(input_class: Type) -> List[Dict[str, Any]]:
 
         field_type = type_hints.get(field.name, str)
         arg_config: Dict[str, Any] = {
-            'name': f'--{field.name.replace("_", "-")}',
-            'help': f'{field.name.replace("_", " ").title()}'
+            "name": f"--{field.name.replace('_', '-')}",
+            "help": f"{field.name.replace('_', ' ').title()}",
         }
 
         # Extract metadata from Annotated types
@@ -179,44 +179,44 @@ def infer_cli_args_from_dataclass(input_class: Type) -> List[Dict[str, Any]]:
         # Handle different field types (use actual_type instead of field_type)
         if actual_type == bool:
             if field.default is False:
-                arg_config['action'] = 'store_true'
+                arg_config["action"] = "store_true"
             elif field.default is True:
-                arg_config['action'] = 'store_false'
+                arg_config["action"] = "store_false"
         elif actual_type == int:
-            arg_config['type'] = int
+            arg_config["type"] = int
         elif actual_type == float:
-            arg_config['type'] = float
+            arg_config["type"] = float
         elif get_origin(actual_type) is list:
-            arg_config['nargs'] = '+'
+            arg_config["nargs"] = "+"
         elif get_origin(actual_type) is Union:
             # Handle Optional[T] which is Union[T, None]
             args = get_args(actual_type)
             if len(args) == 2 and type(None) in args:
                 non_none_type = args[0] if args[1] is type(None) else args[1]
                 if non_none_type == int:
-                    arg_config['type'] = int
+                    arg_config["type"] = int
                 elif non_none_type == float:
-                    arg_config['type'] = float
+                    arg_config["type"] = float
 
         # Set default value
         if field.default is not dataclasses.MISSING:
-            arg_config['default'] = field.default
+            arg_config["default"] = field.default
         elif field.default_factory is not dataclasses.MISSING:
-            arg_config['default'] = field.default_factory()
+            arg_config["default"] = field.default_factory()
 
         # Apply metadata from annotations (this takes precedence)
         if annotation_metadata:
-            if 'choices' in annotation_metadata:
-                arg_config['choices'] = annotation_metadata['choices']
-            if 'help' in annotation_metadata:
-                arg_config['help'] = annotation_metadata['help']
+            if "choices" in annotation_metadata:
+                arg_config["choices"] = annotation_metadata["choices"]
+            if "help" in annotation_metadata:
+                arg_config["help"] = annotation_metadata["help"]
 
         # Fallback to dataclass field metadata
-        if hasattr(field, 'metadata'):
-            if 'choices' in field.metadata and 'choices' not in arg_config:
-                arg_config['choices'] = field.metadata['choices']
-            if 'help' in field.metadata and 'help' not in arg_config:
-                arg_config['help'] = field.metadata['help']
+        if hasattr(field, "metadata"):
+            if "choices" in field.metadata and "choices" not in arg_config:
+                arg_config["choices"] = field.metadata["choices"]
+            if "help" in field.metadata and "help" not in arg_config:
+                arg_config["help"] = field.metadata["help"]
 
         cli_args.append(arg_config)
 
@@ -233,7 +233,4 @@ def get_workflow_cli_args(workflow_name: str) -> List[Dict[str, Any]]:
 
 def get_all_workflow_cli_args() -> Dict[str, List[Dict[str, Any]]]:
     """Get CLI arguments for all workflows."""
-    return {
-        workflow: get_workflow_cli_args(workflow)
-        for workflow in get_available_workflows()
-    }
+    return {workflow: get_workflow_cli_args(workflow) for workflow in get_available_workflows()}

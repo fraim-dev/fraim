@@ -2,12 +2,12 @@
 # Copyright (c) 2025 Resourcely Inc.
 
 import argparse
+import dataclasses
 import logging
 import multiprocessing as mp
 import os
 from pathlib import Path
-import dataclasses
-from typing import get_type_hints, get_origin, get_args, Union, Type, List, Dict, Any
+from typing import Any, Dict, List, Type, Union, get_args, get_origin, get_type_hints
 
 from fraim.config.config import Config
 from fraim.observability import ObservabilityManager, ObservabilityRegistry
@@ -30,7 +30,7 @@ def parse_args_to_scan_args(args: argparse.Namespace) -> ScanArgs:
 
         # Extract workflow-specific arguments from parsed args
         for field_name in field_names:
-            if field_name not in {'config'}:  # Skip reserved fields
+            if field_name not in {"config"}:  # Skip reserved fields
                 arg_name = field_name
                 if hasattr(args, arg_name):
                     workflow_args[field_name] = getattr(args, arg_name)
@@ -43,8 +43,7 @@ def parse_args_to_scan_args(args: argparse.Namespace) -> ScanArgs:
 
 def parse_args_to_config(args: argparse.Namespace) -> Config:
     """Convert FetchRepoArgs to Config object."""
-    output_dir = args.output if args.output else str(
-        Path(__file__).parent.parent / "fraim_output")
+    output_dir = args.output if args.output else str(Path(__file__).parent.parent / "fraim_output")
 
     # Default logger
     logger = make_logger(
@@ -65,8 +64,7 @@ def parse_args_to_config(args: argparse.Namespace) -> Config:
 
 def setup_observability(args: argparse.Namespace, config: Config) -> ObservabilityManager:
     """Setup observability backends based on CLI arguments."""
-    manager = ObservabilityManager(
-        args.observability or [], logger=config.logger)
+    manager = ObservabilityManager(args.observability or [], logger=config.logger)
     manager.setup()
     return manager
 
@@ -82,13 +80,11 @@ def build_workflow_arg(parser: argparse.ArgumentParser) -> None:
     # Build help text dynamically
     help_parts = []
     for workflow in workflow_choices:
-        description = workflow_descriptions.get(
-            workflow, "No description available")
+        description = workflow_descriptions.get(workflow, "No description available")
         help_parts.append(f"{workflow}: {description}")
     workflow_help = f" - {'\n - '.join(help_parts)}"
 
-    parser.add_argument(
-        "workflow", choices=workflow_choices, help=workflow_help)
+    parser.add_argument("workflow", choices=workflow_choices, help=workflow_help)
 
 
 def build_observability_arg(parser: argparse.ArgumentParser) -> None:
@@ -100,14 +96,12 @@ def build_observability_arg(parser: argparse.ArgumentParser) -> None:
     # Build observability help text dynamically
     observability_help_parts = []
     for backend in sorted(available_backends):
-        description = backend_descriptions.get(
-            backend, "No description available")
+        description = backend_descriptions.get(backend, "No description available")
         observability_help_parts.append(f"{backend}: {description}")
 
     observability_help = f"Enable LLM observability backends.\n - {'\n - '.join(observability_help_parts)}"
 
-    parser.add_argument("--observability", nargs="+",
-                        choices=available_backends, default=[], help=observability_help)
+    parser.add_argument("--observability", nargs="+", choices=available_backends, default=[], help=observability_help)
 
 
 def setup_workflow_subparsers(parser: argparse.ArgumentParser) -> None:
@@ -119,21 +113,19 @@ def setup_workflow_subparsers(parser: argparse.ArgumentParser) -> None:
 
     # Create subparsers for workflows
     subparsers = parser.add_subparsers(
-        dest='workflow',
-        title='Available Workflows',
-        description='Choose a workflow to run',
-        help='Workflow-specific commands',
-        required=True
+        dest="workflow",
+        title="Available Workflows",
+        description="Choose a workflow to run",
+        help="Workflow-specific commands",
+        required=True,
     )
 
     # Create a subparser for each workflow
     for workflow_name in available_workflows:
         workflow_parser = subparsers.add_parser(
             workflow_name,
-            help=workflow_descriptions.get(
-                workflow_name, 'No description available'),
-            description=workflow_descriptions.get(
-                workflow_name, 'No description available')
+            help=workflow_descriptions.get(workflow_name, "No description available"),
+            description=workflow_descriptions.get(workflow_name, "No description available"),
         )
 
         # Add auto-generated workflow-specific arguments
@@ -141,15 +133,13 @@ def setup_workflow_subparsers(parser: argparse.ArgumentParser) -> None:
         for arg_config in cli_args:
             # Make a copy to avoid mutating the original
             arg_config_copy = arg_config.copy()
-            arg_name = arg_config_copy.pop('name')
+            arg_name = arg_config_copy.pop("name")
             workflow_parser.add_argument(arg_name, **arg_config_copy)
 
 
 def cli() -> int:
     """Main entry point for the script."""
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter
-    )
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 
     #############################
     # Scan Args
@@ -161,8 +151,7 @@ def cli() -> int:
     # Configuration
     #############################
     parser.add_argument("--output", help="Path to save the output HTML report")
-    parser.add_argument("--debug", action="store_true",
-                        help="Enable debug logging")
+    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     parser.add_argument(
         "--model",
         default="gemini/gemini-2.5-flash",
@@ -185,8 +174,7 @@ def cli() -> int:
         "--temperature", type=float, default=0, help="Temperature setting for the model (0.0-1.0, default: 0)"
     )
 
-    parser.add_argument("--show-logs", type=bool, default=True,
-                        help="Prints logs to standard error output")
+    parser.add_argument("--show-logs", type=bool, default=True, help="Prints logs to standard error output")
 
     parsed_args = parser.parse_args()
 

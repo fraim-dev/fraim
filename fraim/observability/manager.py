@@ -89,9 +89,7 @@ def initialize_worker(config: Config, observability_backends: Optional[List[str]
     """Initialize worker process with observability setup."""
     if observability_backends:
         try:
-            manager = ObservabilityManager(
-                observability_backends, logger=config.logger)
+            manager = ObservabilityManager(observability_backends, logger=config.logger)
             manager.setup()
         except Exception as e:
-            config.logger.warning(
-                f"Failed to setup observability in worker process: {str(e)}")
+            config.logger.warning(f"Failed to setup observability in worker process: {str(e)}")

@@ -13,9 +13,9 @@ from . import registry as WorkflowRegistry
 
 # Import all workflows to trigger their registration
 from .application import workflow as application_workflow
-from .iac_repo import workflow as iac_repo_workflow
 from .code import workflow as code_workflow
 from .iac import workflow as iac_workflow
+from .iac_repo import workflow as iac_repo_workflow
 
 __all__ = [
     "WorkflowRegistry",

@@ -30,15 +30,10 @@ def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[s
         input_class = get_workflow_input_class(workflow_to_run)
 
         # Create input object with workflow-specific arguments
-        input_kwargs = {
-            'config': config,
-            **(args.workflow_args or {})
-        }
+        input_kwargs = {"config": config, **(args.workflow_args or {})}
 
         workflow_input = input_class(**input_kwargs)
-        workflow_instance = workflow_class(
-            config, observability_backends=observability_backends)
+        workflow_instance = workflow_class(config, observability_backends=observability_backends)
         asyncio.run(workflow_instance.workflow(workflow_input))
     except Exception as e:
-        config.logger.error(
-            f"Error running {workflow_to_run}: {str(e)}")
+        config.logger.error(f"Error running {workflow_to_run}: {str(e)}")

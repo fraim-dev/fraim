@@ -10,7 +10,7 @@ Analyzes source code for security vulnerabilities using AI-powered scanning.
 import asyncio
 import os
 from dataclasses import dataclass
-from typing import Any, List, Annotated, Optional
+from typing import Annotated, Any, List, Optional
 
 from fraim.config import Config
 from fraim.core.contextuals import CodeChunk
@@ -57,6 +57,7 @@ class SASTInput:
 
     code: CodeChunk
     config: Config
+
 
 @dataclass
 class TriagerInput:
