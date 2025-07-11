@@ -6,7 +6,7 @@ Manager for LLM observability backends.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import litellm
 

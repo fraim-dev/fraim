@@ -23,8 +23,8 @@ from fraim.core.steps.llm import LLMStep
 from fraim.core.workflows import Workflow
 from fraim.inputs.project import ProjectInput
 from fraim.outputs import sarif
-from fraim.util.sarif.write_sarif_report import write_sarif_report
 from fraim.workflows.registry import workflow
+from fraim.workflows.utils import write_sarif_and_html_report
 
 FILE_PATTERNS = [
     "*.tf",
@@ -137,7 +137,9 @@ class IaCWorkflow(Workflow[IaCInput, IaCOutput]):
         elif input.path:
             repo_name = os.path.basename(os.path.abspath(input.path))
 
-        write_sarif_report(results=results, repo_name=repo_name, config=config)
+        write_sarif_and_html_report(
+            results=results, repo_name=repo_name, output_dir=config.output_dir, logger=config.logger
+        )
 
         return results
 
