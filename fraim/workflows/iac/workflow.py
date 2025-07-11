@@ -57,6 +57,7 @@ FILE_PATTERNS = [
 
 SCANNER_PROMPTS = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__file__), "scanner_prompts.yaml"))
 
+
 @dataclass
 class IaCInput:
     """Input for the IaC workflow."""
@@ -68,8 +69,7 @@ class IaCInput:
     path: Annotated[Optional[str], {"help": "Local path to scan"}] = None
     # File processing
     chunk_size: Annotated[int, {"help": "Number of lines per chunk"}] = 500
-    limit: Annotated[Optional[int], {
-        "help": "Limit the number of files to scan"}] = None
+    limit: Annotated[Optional[int], {"help": "Limit the number of files to scan"}] = None
     globs: Annotated[
         Optional[List[str]],
         {"help": "Globs to use for file scanning. If not provided, will use file_patterns defined in the workflow."},
@@ -116,18 +116,14 @@ class IaCWorkflow(Workflow[IaCInput, IaCOutput]):
             # Hack to pass in the project path to the config
             config.project_path = project.project_path
             for chunk in project:
-
                 # 1. Scan the code for vulnerabilities.
-                self.config.logger.info(
-                    f"Scanning code for vulnerabilities: {Path(chunk.file_path)}")
+                self.config.logger.info(f"Scanning code for vulnerabilities: {Path(chunk.file_path)}")
                 iac_input = IaCCodeChunkInput(code=chunk, config=input.config)
                 vulns = await self.scanner_step.run(iac_input)
 
                 # 2. Filter the vulnerability by confidence.
-                self.config.logger.info(
-                    "Filtering vulnerabilities by confidence")
-                high_confidence_vulns = filter_results_by_confidence(
-                    vulns.results, input.config.confidence)
+                self.config.logger.info("Filtering vulnerabilities by confidence")
+                high_confidence_vulns = filter_results_by_confidence(vulns.results, input.config.confidence)
 
                 results.extend(high_confidence_vulns)
 
@@ -144,7 +140,6 @@ class IaCWorkflow(Workflow[IaCInput, IaCOutput]):
         write_sarif_report(results=results, repo_name=repo_name, config=config)
 
         return results
-
 
 
 def filter_results_by_confidence(results: List[sarif.Result], confidence_threshold: int) -> List[sarif.Result]:
