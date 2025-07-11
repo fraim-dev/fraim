@@ -3,8 +3,6 @@ import tempfile
 from pathlib import Path
 from typing import Any, Generator
 
-from pydantic import BaseModel
-
 from fraim.config.config import Config
 from fraim.core.contextuals.code import CodeChunk
 from fraim.inputs.file_chunks import chunk_input
@@ -18,6 +16,7 @@ class ProjectInput:
     files: Files
     chunk_size: int
     project_path: str
+    repo_name: str
 
     def __init__(self, config: Config, kwargs: Any) -> None:
         self.config = config
@@ -33,9 +32,11 @@ class ProjectInput:
             temp_dir = tempfile.mkdtemp(prefix="fraim_scan_")
             self.project_path = os.path.join(temp_dir, "repo")
             self.config.logger.info(f"Cloning repository: {path_or_url} into path: {self.project_path}")
+            self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
             self.files = Git(self.config, url=path_or_url, tempdir=self.project_path, globs=globs, limit=limit)
         else:
             self.project_path = path_or_url
+            self.repo_name = os.path.basename(os.path.abspath(path_or_url))
             self.files = Local(self.config, Path(path_or_url), globs=globs, limit=limit)
 
     def __iter__(self) -> Generator[CodeChunk, None, None]:

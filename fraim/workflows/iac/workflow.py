@@ -63,12 +63,11 @@ class IaCInput:
     """Input for the IaC workflow."""
 
     config: Config
-    processes: Annotated[int, {"help": "Number of processes to use"}]
-    # Actual Input
-    repo: Annotated[Optional[str], {"help": "Repository URL to scan"}] = None
-    path: Annotated[Optional[str], {"help": "Local path to scan"}] = None
+    location: Annotated[str, {
+        "help": "Repository URL or path to scan"}]
     # File processing
-    chunk_size: Annotated[int, {"help": "Number of lines per chunk"}] = 500
+    chunk_size: Annotated[Optional[int], {
+        "help": "Number of lines per chunk"}] = 500
     limit: Annotated[Optional[int], {"help": "Limit the number of files to scan"}] = None
     globs: Annotated[
         Optional[List[str]],
@@ -110,7 +109,7 @@ class IaCWorkflow(Workflow[IaCInput, IaCOutput]):
 
         try:
             kwargs = SimpleNamespace(
-                location=input.repo or input.path, globs=input.globs, limit=input.limit, chunk_size=input.chunk_size
+                location=input.location, globs=input.globs, limit=input.limit, chunk_size=input.chunk_size
             )
             project = ProjectInput(config=config, kwargs=kwargs)
             # Hack to pass in the project path to the config
@@ -131,14 +130,8 @@ class IaCWorkflow(Workflow[IaCInput, IaCOutput]):
             config.logger.error(f"Error during scan: {str(e)}")
             raise e
 
-        repo_name = "Security Scan Report"
-        if input.repo:
-            repo_name = input.repo.split("/")[-1].replace(".git", "")
-        elif input.path:
-            repo_name = os.path.basename(os.path.abspath(input.path))
-
         write_sarif_and_html_report(
-            results=results, repo_name=repo_name, output_dir=config.output_dir, logger=config.logger
+            results=results, repo_name=project.repo_name, output_dir=config.output_dir, logger=config.logger
         )
 
         return results
