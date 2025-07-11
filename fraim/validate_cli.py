@@ -13,18 +13,8 @@ class ProviderDetails(TypedDict):
 
 def validate_cli_args(args: argparse.Namespace) -> None:
     """Validate CLI arguments."""
-    validate_input(args)
-
     # Validate model and API key compatibility
     validate_model_api_key(args.model)
-
-
-def validate_input(args: argparse.Namespace) -> None:
-    """Validate input."""
-    if args.repo and args.path:
-        raise ValueError("Specify only one input. Cannot specify both --repo and --path")
-    if not args.repo and not args.path:
-        raise ValueError("Must specify one input. Specify either --repo or --path")
 
 
 def validate_model_api_key(model: str) -> None:
