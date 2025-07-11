@@ -9,8 +9,8 @@ Analyzes application configurations and deployment files for security vulnerabil
 
 import os
 from dataclasses import dataclass
-from typing import Annotated, Any, List, Optional
 from types import SimpleNamespace
+from typing import Annotated, Any, List, Optional
 
 from fraim.config import Config
 from fraim.core.workflows import Workflow
@@ -63,8 +63,7 @@ class ApplicationInput:
     path: Annotated[Optional[str], {"help": "Local path to scan"}] = None
     # File processing
     chunk_size: Annotated[int, {"help": "Number of lines per chunk"}] = 500
-    limit: Annotated[Optional[int], {
-        "help": "Limit the number of files to scan"}] = None
+    limit: Annotated[Optional[int], {"help": "Limit the number of files to scan"}] = None
     globs: Annotated[
         Optional[List[str]],
         {"help": "Globs to use for file scanning. If not provided, will use file_patterns defined in the workflow."},
@@ -90,17 +89,18 @@ class ApplicationWorkflow(Workflow[ApplicationInput, ApplicationOutput]):
 
         try:
             kwargs = SimpleNamespace(
-                location=input.repo or input.path,
-                globs=input.globs,
-                limit=input.limit,
-                chunk_size=input.chunk_size
+                location=input.repo or input.path, globs=input.globs, limit=input.limit, chunk_size=input.chunk_size
             )
             project = ProjectInput(config=config, kwargs=kwargs)
             config.project_path = project.project_path
 
             results.extend(
                 run_parallel_workflows_on_chunks(
-                    chunks=iter(project), config=config, workflows_to_run=WORKFLOWS_TO_RUN, processes=input.processes, observability_backends=self.observability_backends
+                    chunks=iter(project),
+                    config=config,
+                    workflows_to_run=WORKFLOWS_TO_RUN,
+                    processes=input.processes,
+                    observability_backends=self.observability_backends,
                 )
             )
 

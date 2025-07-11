@@ -1,7 +1,8 @@
 import os
-from pathlib import Path
 import tempfile
+from pathlib import Path
 from typing import Any, Generator
+
 from pydantic import BaseModel
 
 from fraim.config.config import Config
@@ -31,14 +32,11 @@ class ProjectInput:
         if path_or_url.startswith("http://") or path_or_url.startswith("https://") or path_or_url.startswith("git@"):
             temp_dir = tempfile.mkdtemp(prefix="fraim_scan_")
             self.project_path = os.path.join(temp_dir, "repo")
-            self.config.logger.info(
-                f"Cloning repository: {path_or_url} into path: {self.project_path}")
-            self.files = Git(self.config, url=path_or_url,
-                             tempdir=self.project_path, globs=globs, limit=limit)
+            self.config.logger.info(f"Cloning repository: {path_or_url} into path: {self.project_path}")
+            self.files = Git(self.config, url=path_or_url, tempdir=self.project_path, globs=globs, limit=limit)
         else:
             self.project_path = path_or_url
-            self.files = Local(self.config, Path(
-                path_or_url), globs=globs, limit=limit)
+            self.files = Local(self.config, Path(path_or_url), globs=globs, limit=limit)
 
     def __iter__(self) -> Generator[CodeChunk, None, None]:
         for file in self.files:
