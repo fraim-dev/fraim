@@ -15,10 +15,6 @@ Fraim comes built as a CLI, but you can also run workflows via our Github Action
 
 ## 🔎 Preview
 
-![CLI Preview](assets/cli-preview.gif)
-*Example run of the CLI*
-
-
 ![UI Preview](assets/ui-preview.gif)
 *Output of running the `code` workflow*
 
