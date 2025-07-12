@@ -5,6 +5,7 @@ A flexible framework for security teams to build and deploy AI-powered workflows
 ## 🔭 Overview
 
 Fraim empowers security teams to easily create, customize, and deploy AI workflows tailored to their specific security needs. Rather than providing a one-size-fits-all solution, Fraim gives teams the building blocks to construct intelligent automation that integrates seamlessly with their existing security stack.
+Fraim comes built as a CLI, but you can also run workflows via our Github Action.
 
 ## ❓ Why Fraim?
 
@@ -12,26 +13,42 @@ Fraim empowers security teams to easily create, customize, and deploy AI workflo
 - **Security Team Focused**: Designed specifically for security operations and threat analysis
 - **Extensible Architecture**: Easily add new workflows, data sources, and AI models
 
-## 💬 Community & Support
-
-Join our growing community of security professionals using Fraim:
-
-- **Documentation**: Visit [docs.fraim.dev](https://docs.fraim.dev) for comprehensive guides and tutorials
-- **Schedule a Demo**: [Book time with our team](https://calendly.com/fraim-dev/fraim-intro) - We'd love to help! Schedule a call for anything related to Fraim (debugging, new integrations, customizing workflows, or even just to chat)
-- **Slack Community**: [Join our Slack](https://join.slack.com/t/fraimworkspace/shared_invite/zt-38cunxtki-B80QAlLj7k8JoPaaYWUKNA) - Get help, share ideas, and connect with other security minded people looking to use AI to help their team succeed
-- **Issues**: Report bugs and request features via GitHub Issues
-- **Contributing**: See the [contributing guide](CONTRIBUTING.md) for more information.
-
 ## 🔎 Preview
-
-![CLI Preview](assets/cli-preview.gif)
-*Example run of the CLI*
-
 
 ![UI Preview](assets/ui-preview.gif)
 *Output of running the `code` workflow*
 
-## 🚀 Quick Start
+## Github Action Quick Start
+
+NOTE: This example assumes you are using a Gemini based model. If you’d like to use an OpenAI based model, replace references of GEMINI with OPENAI and specify an OpenAI model in the action arguments.
+
+Set your API key as a Secret in your repo. - Settings -> Secrets and Variables -> New Repository Secret -> GEMINI_API_KEY
+Define your workflow inside your repo at .github/workflows/<action_name>.yml
+
+```yaml
+name: AI Security Scan
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write # Required for uploading SARIF
+      pull-requests: write # Required for PR comments and annotations
+    
+    steps:
+      - name: Run Fraim Security Scan
+        uses: fraim-dev/fraim-action@v0
+        with:
+          gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+          workflows: 'code'
+```
+
+## 🚀 CLI Quick Start
 
 ### Prerequisites
 
@@ -75,6 +92,16 @@ fraim --repo https://github.com/username/repo-name --workflows code
 # Analyze local directory
 fraim --path /path/to/code --workflows code
 ```
+
+## 💬 Community & Support
+
+Join our growing community of security professionals using Fraim:
+
+- **Documentation**: Visit [docs.fraim.dev](https://docs.fraim.dev) for comprehensive guides and tutorials
+- **Schedule a Demo**: [Book time with our team](https://calendly.com/fraim-dev/fraim-intro) - We'd love to help! Schedule a call for anything related to Fraim (debugging, new integrations, customizing workflows, or even just to chat)
+- **Slack Community**: [Join our Slack](https://join.slack.com/t/fraimworkspace/shared_invite/zt-38cunxtki-B80QAlLj7k8JoPaaYWUKNA) - Get help, share ideas, and connect with other security minded people looking to use AI to help their team succeed
+- **Issues**: Report bugs and request features via GitHub Issues
+- **Contributing**: See the [contributing guide](CONTRIBUTING.md) for more information.
 
 ## 📖 Documentation
 

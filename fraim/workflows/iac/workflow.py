@@ -100,7 +100,7 @@ class IaCWorkflow(Workflow[IaCInput, IaCOutput]):
 
 def filter_results_by_confidence(results: List[sarif.Result], confidence_threshold: int) -> List[sarif.Result]:
     """Filter results by confidence."""
-    return [result for result in results if result.properties.confidence > confidence_threshold]
+    return [result for result in results if result.properties.confidence >= confidence_threshold]
 
 
 # TODO: replace this an LLM step that determines if the file is an IaC file.
