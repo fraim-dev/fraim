@@ -186,7 +186,7 @@ FILE_PATTERNS = [
 # Load prompts from YAML files
 PROMPTS = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__file__), "my_prompts.yaml"))
 
-@workflow('my_custom_workflow', file_patterns=FILE_PATTERNS)
+@workflow('my_custom_workflow')
 class MyCustomWorkflow(Workflow[MyWorkflowInput, MyWorkflowOutput]):
     """Analyzes custom configuration files for security issues"""
 

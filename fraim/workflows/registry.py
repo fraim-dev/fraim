@@ -92,15 +92,12 @@ def execute_workflow(
     return asyncio.run(workflow_instance.workflow(workflow_input))
 
 
-# TODO: Remove file_patterns from this decorator now that loading files is handled in the workflow
-def workflow(
-    workflow_name: str, file_patterns: Optional[List[str]] = None, **metadata: Any
-) -> Callable[[Type[Workflow]], Type[Workflow]]:
+def workflow(workflow_name: str, **metadata: Any) -> Callable[[Type[Workflow]], Type[Workflow]]:
     """
     Decorator to register a workflow class.
 
     Usage:
-        @workflow('code', file_patterns=['*.py', '*.js', '*.java'])
+        @workflow('code')
         class CodeWorkflow(Workflow[WorkflowInputData, List[sarif.Result]]):
             '''Analyzes source code for security vulnerabilities'''
 
@@ -113,9 +110,6 @@ def workflow(
         # Use class's docstring as description if not provided in metadata
         if "description" not in metadata and workflow_class.__doc__:
             metadata["description"] = workflow_class.__doc__.strip()
-
-        if file_patterns:
-            metadata["file_patterns"] = file_patterns
 
         register(workflow_name, workflow_class, **metadata)
         return workflow_class

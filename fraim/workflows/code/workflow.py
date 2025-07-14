@@ -89,7 +89,7 @@ class TriagerInput:
 type SASTOutput = List[sarif.Result]
 
 
-@workflow("code", file_patterns=FILE_PATTERNS)
+@workflow("code")
 class SASTWorkflow(Workflow[CodeInput, SASTOutput]):
     """Analyzes source code for security vulnerabilities"""
 

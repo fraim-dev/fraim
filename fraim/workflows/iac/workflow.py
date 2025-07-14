@@ -85,7 +85,7 @@ class IaCCodeChunkInput:
 type IaCOutput = List[sarif.Result]
 
 
-@workflow("iac", file_patterns=FILE_PATTERNS)
+@workflow("iac")
 class IaCWorkflow(Workflow[IaCInput, IaCOutput]):
     """Analyzes IaC files for security vulnerabilities, compliance issues, and best practice deviations."""
 
