@@ -13,11 +13,11 @@ def chunk_input(file: File, project_path: str, chunk_size: int) -> List[CodeChun
     """Split file content into chunks with line numbers."""
     lines = file.body.split("\n")
     chunks = []
-    relative_path = os.path.relpath(str(file.path), project_path)
+    file_path = os.path.relpath(str(file.path), project_path)
 
     # If file is small enough, just process it as a single chunk
     if len(lines) <= chunk_size:
-        return [CodeChunk(file.body, relative_path, 1, len(lines) - 1)]
+        return [CodeChunk(file.body, file_path, 1, len(lines) - 1)]
 
     # Create chunks at logical boundaries
     for i in range(0, len(lines), chunk_size):
@@ -58,7 +58,7 @@ def chunk_input(file: File, project_path: str, chunk_size: int) -> List[CodeChun
 
         chunk_content = "\n".join(lines[chunk_start:chunk_end])
         numbered_content = prepend_line_numbers_to_snippet(chunk_content)
-        chunks.append(CodeChunk(numbered_content, relative_path, chunk_start, chunk_end))
+        chunks.append(CodeChunk(numbered_content, file_path, chunk_start, chunk_end))
 
     return chunks
 
