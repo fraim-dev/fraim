@@ -1,12 +1,12 @@
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any, Generator, Iterator, Type
 
 from fraim.config.config import Config
 from fraim.core.contextuals.code import CodeChunk
 from fraim.inputs.file_chunks import chunk_input
-from fraim.inputs.files import Files
+from fraim.inputs.files import File, Files
 from fraim.inputs.git import Git
 from fraim.inputs.local import Local
 
@@ -17,6 +17,7 @@ class ProjectInput:
     chunk_size: int
     project_path: str
     repo_name: str
+    chunker: Type["ProjectInputFileChunker"]
 
     def __init__(self, config: Config, kwargs: Any) -> None:
         self.config = config
@@ -24,6 +25,7 @@ class ProjectInput:
         globs = kwargs.globs
         limit = kwargs.limit
         self.chunk_size = kwargs.chunk_size
+        self.chunker = ProjectInputFileChunker
 
         if path_or_url is None:
             raise ValueError("Location is required")
@@ -40,8 +42,19 @@ class ProjectInput:
             self.files = Local(self.config, Path(path_or_url), globs=globs, limit=limit)
 
     def __iter__(self) -> Generator[CodeChunk, None, None]:
-        for file in self.files:
-            self.config.logger.info(f"Generating chunks for file: {file.path}")
-            chunked = chunk_input(file, self.project_path, self.chunk_size)
-            for chunk in chunked:
-                yield chunk
+        with self.files as files:
+            for file in files:
+                self.config.logger.info(
+                    f"Generating chunks for file: {file.path}")
+                for chunk in chunk_input(file, self.project_path, self.chunk_size):
+                    yield chunk
+
+
+class ProjectInputFileChunker:
+    def __init__(self, file: File, project_path: str, chunk_size: int) -> None:
+        self.file = file
+        self.project_path = project_path
+        self.chunk_size = chunk_size
+
+    def __iter__(self) -> Iterator[CodeChunk]:
+        return iter(chunk_input(self.file, self.project_path, self.chunk_size))

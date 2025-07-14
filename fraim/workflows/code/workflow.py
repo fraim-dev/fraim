@@ -116,6 +116,37 @@ class SASTWorkflow(Workflow[CodeInput, SASTOutput]):
             triager_llm, TRIAGER_PROMPTS["system"], TRIAGER_PROMPTS["user"], triager_parser
         )
 
+    async def process_chunk(self, chunk: CodeChunk, config: Config) -> List[sarif.Result]:
+        """Process a single chunk and return its results."""
+
+        # 1. Scan the code for potential vulnerabilities.
+        self.config.logger.info(
+            "Scanning the code for potential vulnerabilities")
+        potential_vulns = await self.scanner_step.run(SASTInput(code=chunk, config=config))
+
+        # 2. Filter vulnerabilities by confidence.
+        self.config.logger.info("Filtering vulnerabilities by confidence")
+        high_confidence_vulns = filter_results_by_confidence(
+            potential_vulns.results, config.confidence)
+
+        # 3. Triage the high-confidence vulns in parallel.
+        self.config.logger.info("Triaging high-confidence vulns in parallel")
+        triaged_vulns = await asyncio.gather(
+            *[
+                self.triager_step.run(TriagerInput(
+                    vulnerability=str(vuln), code=chunk, config=config))
+                for vuln in high_confidence_vulns
+            ]
+        )
+
+        # 4. Filter the triaged vulnerabilities by confidence
+        self.config.logger.info(
+            "Filtering the triaged vulnerabilities by confidence")
+        high_confidence_triaged_vulns = filter_results_by_confidence(
+            triaged_vulns, config.confidence)
+
+        return high_confidence_triaged_vulns
+
     async def workflow(self, input: CodeInput) -> SASTOutput:
         config = self.config
         results: List[sarif.Result] = []
@@ -125,40 +156,16 @@ class SASTWorkflow(Workflow[CodeInput, SASTOutput]):
                 location=input.location, globs=input.globs, limit=input.limit, chunk_size=input.chunk_size
             )
             project = ProjectInput(config=config, kwargs=kwargs)
-            # Hack to pass in the project path to the config
             config.project_path = project.project_path
 
-            # TODO: Get to this API with modifications to Output
-            # initial_scan_work = [self.scanner_step.run(SASTInput(code=chunk, config=config)) for chunk in project]
-            # initial_scan_results = await asyncio.gather(*initial_scan_work)
+            # Process all chunks in parallel
+            all_chunk_results = await asyncio.gather(
+                *[self.process_chunk(chunk, config) for chunk in project]
+            )
 
-            # triage_work = [self.triager_step.run(TriagerInput(vulnerability=str(vuln), config=config)) for vuln in initial_scan_results]
-            # triage_results = await asyncio.gather(*triage_work)
-
-            for chunk in project:
-                # 1. Scan the code for potential vulnerabilities.
-                self.config.logger.info("Scanning the code for potential vulnerabilities")
-                potential_vulns = await self.scanner_step.run(SASTInput(code=chunk, config=config))
-
-                # 2. Filter vulnerabilities by confidence.
-                self.config.logger.info("Filtering vulnerabilities by confidence")
-                high_confidence_vulns = filter_results_by_confidence(potential_vulns.results, input.config.confidence)
-
-                # 3. Triage the high-confidence vulns in parallel.
-                self.config.logger.info("Triaging high-confidence vulns in parallel")
-                triaged_vulns = await asyncio.gather(
-                    *[
-                        self.triager_step.run(TriagerInput(vulnerability=str(vuln), code=chunk, config=input.config))
-                        for vuln in high_confidence_vulns
-                    ]
-                )
-
-                # 4. Filter the triaged vulnerabilities by confidence
-                self.config.logger.info("Filtering the triaged vulnerabilities by confidence")
-                high_confidence_triaged_vulns = filter_results_by_confidence(triaged_vulns, input.config.confidence)
-
-                # 5. Report the vulnerabilities that still have a high confidence after triaging
-                results.extend(high_confidence_triaged_vulns)
+            # Flatten the results from all chunks
+            for chunk_results in all_chunk_results:
+                results.extend(chunk_results)
 
         except Exception as e:
             config.logger.error(f"Error during scan: {str(e)}")
