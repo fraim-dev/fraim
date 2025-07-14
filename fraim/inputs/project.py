@@ -44,8 +44,7 @@ class ProjectInput:
     def __iter__(self) -> Generator[CodeChunk, None, None]:
         with self.files as files:
             for file in files:
-                self.config.logger.info(
-                    f"Generating chunks for file: {file.path}")
+                self.config.logger.info(f"Generating chunks for file: {file.path}")
                 for chunk in chunk_input(file, self.project_path, self.chunk_size):
                     yield chunk
 

@@ -59,11 +59,9 @@ class CodeInput:
     """Input for the Code workflow."""
 
     config: Config
-    location: Annotated[str, {
-        "help": "Repository URL or path to scan"}]
+    location: Annotated[str, {"help": "Repository URL or path to scan"}]
     # File processing
-    chunk_size: Annotated[Optional[int], {
-        "help": "Number of lines per chunk"}] = 500
+    chunk_size: Annotated[Optional[int], {"help": "Number of lines per chunk"}] = 500
     limit: Annotated[Optional[int], {"help": "Limit the number of files to scan"}] = None
     globs: Annotated[
         Optional[List[str]],
@@ -120,30 +118,25 @@ class SASTWorkflow(Workflow[CodeInput, SASTOutput]):
         """Process a single chunk and return its results."""
 
         # 1. Scan the code for potential vulnerabilities.
-        self.config.logger.info(
-            "Scanning the code for potential vulnerabilities")
+        self.config.logger.info("Scanning the code for potential vulnerabilities")
         potential_vulns = await self.scanner_step.run(SASTInput(code=chunk, config=config))
 
         # 2. Filter vulnerabilities by confidence.
         self.config.logger.info("Filtering vulnerabilities by confidence")
-        high_confidence_vulns = filter_results_by_confidence(
-            potential_vulns.results, config.confidence)
+        high_confidence_vulns = filter_results_by_confidence(potential_vulns.results, config.confidence)
 
         # 3. Triage the high-confidence vulns in parallel.
         self.config.logger.info("Triaging high-confidence vulns in parallel")
         triaged_vulns = await asyncio.gather(
             *[
-                self.triager_step.run(TriagerInput(
-                    vulnerability=str(vuln), code=chunk, config=config))
+                self.triager_step.run(TriagerInput(vulnerability=str(vuln), code=chunk, config=config))
                 for vuln in high_confidence_vulns
             ]
         )
 
         # 4. Filter the triaged vulnerabilities by confidence
-        self.config.logger.info(
-            "Filtering the triaged vulnerabilities by confidence")
-        high_confidence_triaged_vulns = filter_results_by_confidence(
-            triaged_vulns, config.confidence)
+        self.config.logger.info("Filtering the triaged vulnerabilities by confidence")
+        high_confidence_triaged_vulns = filter_results_by_confidence(triaged_vulns, config.confidence)
 
         return high_confidence_triaged_vulns
 
@@ -159,9 +152,7 @@ class SASTWorkflow(Workflow[CodeInput, SASTOutput]):
             config.project_path = project.project_path
 
             # Process all chunks in parallel
-            all_chunk_results = await asyncio.gather(
-                *[self.process_chunk(chunk, config) for chunk in project]
-            )
+            all_chunk_results = await asyncio.gather(*[self.process_chunk(chunk, config) for chunk in project])
 
             # Flatten the results from all chunks
             for chunk_results in all_chunk_results:

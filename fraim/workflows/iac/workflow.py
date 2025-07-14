@@ -63,11 +63,9 @@ class IaCInput:
     """Input for the IaC workflow."""
 
     config: Config
-    location: Annotated[str, {
-        "help": "Repository URL or path to scan"}]
+    location: Annotated[str, {"help": "Repository URL or path to scan"}]
     # File processing
-    chunk_size: Annotated[Optional[int], {
-        "help": "Number of lines per chunk"}] = 500
+    chunk_size: Annotated[Optional[int], {"help": "Number of lines per chunk"}] = 500
     limit: Annotated[Optional[int], {"help": "Limit the number of files to scan"}] = None
     globs: Annotated[
         Optional[List[str]],
