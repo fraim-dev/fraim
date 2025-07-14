@@ -8,6 +8,7 @@ Analyzes IaC files (Terraform, CloudFormation, Kubernetes, Docker, etc.)
 for security misconfigurations and compliance issues.
 """
 
+import asyncio
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -101,6 +102,20 @@ class IaCWorkflow(Workflow[IaCInput, IaCOutput]):
             scanner_llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser
         )
 
+    async def process_chunk(self, chunk: CodeChunk, config: Config) -> List[sarif.Result]:
+        """Process a single chunk and return its results."""
+
+        # 1. Scan the code for vulnerabilities.
+        self.config.logger.info(f"Scanning code for vulnerabilities: {Path(chunk.file_path)}")
+        iac_input = IaCCodeChunkInput(code=chunk, config=config)
+        vulns = await self.scanner_step.run(iac_input)
+
+        # 2. Filter the vulnerability by confidence.
+        self.config.logger.info("Filtering vulnerabilities by confidence")
+        high_confidence_vulns = filter_results_by_confidence(vulns.results, config.confidence)
+
+        return high_confidence_vulns
+
     async def workflow(self, input: IaCInput) -> IaCOutput:
         config = self.config
         results: List[sarif.Result] = []
@@ -112,17 +127,13 @@ class IaCWorkflow(Workflow[IaCInput, IaCOutput]):
             project = ProjectInput(config=config, kwargs=kwargs)
             # Hack to pass in the project path to the config
             config.project_path = project.project_path
-            for chunk in project:
-                # 1. Scan the code for vulnerabilities.
-                self.config.logger.info(f"Scanning code for vulnerabilities: {Path(chunk.file_path)}")
-                iac_input = IaCCodeChunkInput(code=chunk, config=input.config)
-                vulns = await self.scanner_step.run(iac_input)
 
-                # 2. Filter the vulnerability by confidence.
-                self.config.logger.info("Filtering vulnerabilities by confidence")
-                high_confidence_vulns = filter_results_by_confidence(vulns.results, input.config.confidence)
+            # Process all chunks in parallel
+            all_chunk_results = await asyncio.gather(*[self.process_chunk(chunk, config) for chunk in project])
 
-                results.extend(high_confidence_vulns)
+            # Flatten the results from all chunks
+            for chunk_results in all_chunk_results:
+                results.extend(chunk_results)
 
         except Exception as e:
             config.logger.error(f"Error during scan: {str(e)}")
