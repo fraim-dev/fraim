@@ -10,7 +10,7 @@ for security misconfigurations and compliance issues.
 
 import asyncio
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Annotated, Any, List, Optional
@@ -71,7 +71,7 @@ class IaCInput:
     globs: Annotated[
         Optional[List[str]],
         {"help": "Globs to use for file scanning. If not provided, will use file_patterns defined in the workflow."},
-    ] = None
+    ] = field(default_factory=lambda: FILE_PATTERNS)
 
 
 @dataclass
