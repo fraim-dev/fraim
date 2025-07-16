@@ -125,8 +125,6 @@ class IaCWorkflow(Workflow[IaCInput, IaCOutput]):
                 location=input.location, globs=input.globs, limit=input.limit, chunk_size=input.chunk_size
             )
             project = ProjectInput(config=config, kwargs=kwargs)
-            # Hack to pass in the project path to the config
-            config.project_path = project.project_path
 
             # Process all chunks in parallel
             all_chunk_results = await asyncio.gather(*[self.process_chunk(chunk, config) for chunk in project])

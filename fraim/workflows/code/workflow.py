@@ -96,23 +96,40 @@ class SASTWorkflow(Workflow[CodeInput, SASTOutput]):
     def __init__(self, config: Config, *args: Any, **kwargs: Any) -> None:
         self.config = config
 
-        # Construct an LLM instance
-        llm = LiteLLM.from_config(config)
+        # Only store what we need for lazy initialization
+        self._llm: Optional[LiteLLM] = None
+        self._scanner_step: Optional[LLMStep[SASTInput, sarif.RunResults]] = None
+        self._triager_step: Optional[LLMStep[TriagerInput, sarif.Result]] = None
 
-        # Construct the Scanner Step
-        scanner_llm = llm
-        scanner_parser = PydanticOutputParser(sarif.RunResults)
-        self.scanner_step: LLMStep[SASTInput, sarif.RunResults] = LLMStep(
-            scanner_llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser
-        )
+    @property
+    def llm(self) -> LiteLLM:
+        """Lazily initialize the LLM instance."""
+        if self._llm is None:
+            self._llm = LiteLLM.from_config(self.config)
+        return self._llm
 
-        # Construct the Triager Step
-        triager_tools = TreeSitterTools(config.project_path).tools
-        triager_llm = llm.with_tools(triager_tools)
-        triager_parser = PydanticOutputParser(triage_sarif.Result)
-        self.triager_step: LLMStep[TriagerInput, sarif.Result] = LLMStep(
-            triager_llm, TRIAGER_PROMPTS["system"], TRIAGER_PROMPTS["user"], triager_parser
-        )
+    @property
+    def scanner_step(self) -> LLMStep[SASTInput, sarif.RunResults]:
+        """Lazily initialize the scanner step."""
+        if self._scanner_step is None:
+            scanner_parser = PydanticOutputParser(sarif.RunResults)
+            self._scanner_step = LLMStep(self.llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser)
+        return self._scanner_step
+
+    @property
+    def triager_step(self) -> LLMStep[TriagerInput, sarif.Result]:
+        """Lazily initialize the triager step."""
+        if self._triager_step is None:
+            if not self.project or not hasattr(self.project, "project_path") or self.project.project_path is None:
+                raise ValueError("project_path must be set before accessing triager_step")
+
+            triager_tools = TreeSitterTools(self.project.project_path).tools
+            triager_llm = self.llm.with_tools(triager_tools)
+            triager_parser = PydanticOutputParser(triage_sarif.Result)
+            self._triager_step = LLMStep(
+                triager_llm, TRIAGER_PROMPTS["system"], TRIAGER_PROMPTS["user"], triager_parser
+            )
+        return self._triager_step
 
     async def process_chunk(self, chunk: CodeChunk, config: Config) -> List[sarif.Result]:
         """Process a single chunk and return its results."""
@@ -148,11 +165,10 @@ class SASTWorkflow(Workflow[CodeInput, SASTOutput]):
             kwargs = SimpleNamespace(
                 location=input.location, globs=input.globs, limit=input.limit, chunk_size=input.chunk_size
             )
-            project = ProjectInput(config=config, kwargs=kwargs)
-            config.project_path = project.project_path
+            self.project = ProjectInput(config=config, kwargs=kwargs)
 
-            # Process all chunks in parallel
-            all_chunk_results = await asyncio.gather(*[self.process_chunk(chunk, config) for chunk in project])
+            # Process all chunks in parallel, steps are initialized lazily when first accessed
+            all_chunk_results = await asyncio.gather(*[self.process_chunk(chunk, config) for chunk in self.project])
 
             # Flatten the results from all chunks
             for chunk_results in all_chunk_results:
@@ -163,7 +179,7 @@ class SASTWorkflow(Workflow[CodeInput, SASTOutput]):
             raise e
 
         write_sarif_and_html_report(
-            results=results, repo_name=project.repo_name, output_dir=config.output_dir, logger=config.logger
+            results=results, repo_name=self.project.repo_name, output_dir=config.output_dir, logger=config.logger
         )
 
         return results

@@ -31,8 +31,7 @@ class ProjectInput:
 
         if path_or_url.startswith("http://") or path_or_url.startswith("https://") or path_or_url.startswith("git@"):
             self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
-            self.files = GitRemote(
-                self.config, url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_")
+            self.files = GitRemote(self.config, url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_")
             self.project_path = self.files.root_path()
         else:
             self.project_path = path_or_url
