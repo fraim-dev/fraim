@@ -71,13 +71,13 @@ The code workflow detects various security issues:
 
 ```bash
 # Basic code analysis
-fraim code --path .
+fraim code --location .
 
 # Python-focused analysis
-fraim code --path . --globs "*.py"
+fraim code --location . --globs "*.py"
 
 # High-confidence findings only
-fraim --confidence 9 code --path .
+fraim --confidence 9 code --location .
 ```
 
 ### Infrastructure as Code (IAC) Analysis

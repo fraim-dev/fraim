@@ -75,7 +75,7 @@ uv sync --user
 3. **Test API Connectivity:**
    ```bash
    # Test with a small analysis
-   fraim --path . --limit 1 --debug
+   fraim --debug code --location . --limit 1
    ```
 
 ### Model Configuration Issues
@@ -85,14 +85,14 @@ uv sync --user
 **Solution:**
 ```bash
 # Use correct model format
-fraim --model gemini/gemini-2.5-flash  # ✅ Correct
-fraim --model gemini-flash             # ❌ Incorrect
+fraim --model gemini/gemini-2.5-flash code --location .  # ✅ Correct
+fraim --model gemini-flash code --location .             # ❌ Incorrect
 
 # Available models:
-fraim --model gemini/gemini-2.5-flash
-fraim --model gpt-4
-fraim --model gpt-3.5-turbo
-fraim --model claude-3-sonnet-20240229
+fraim --model gemini/gemini-2.5-flash code --location .
+fraim --model gpt-4 code --location .
+fraim --model gpt-3.5-turbo code --location .
+fraim --model claude-3-sonnet-20240229 code --location .
 ```
 
 ## Runtime Issues
@@ -103,22 +103,17 @@ fraim --model claude-3-sonnet-20240229
 
 **Solutions:**
 
-1. **Reduce Parallel Processes:**
+1. **Reduce Chunk Size:**
    ```bash
-   fraim --path . --processes 2
+   fraim code --location . --chunk-size 200
    ```
 
-2. **Decrease Chunk Size:**
+2. **Limit File Analysis:**
    ```bash
-   fraim --path . --chunk-size 200
+   fraim code --location . --limit 50
    ```
 
-3. **Limit File Analysis:**
-   ```bash
-   fraim --path . --limit 50
-   ```
-
-4. **Monitor System Resources:**
+3. **Monitor System Resources:**
    ```bash
    # Check memory usage during analysis
    top
@@ -131,28 +126,22 @@ fraim --model claude-3-sonnet-20240229
 
 **Solutions:**
 
-1. **Optimize Process Count:**
+1. **Optimize Chunk Size:**
    ```bash
-   # For 4-core systems
-   fraim --path . --processes 4
+   # Smaller chunks for detailed analysis
+   fraim code --location . --chunk-size 300
    
-   # For 8+ core systems
-   fraim --path . --processes 8
-   ```
-
-2. **Adjust Chunk Size:**
-   ```bash
    # Larger chunks for faster processing
-   fraim --path . --chunk-size 800
+   fraim code --location . --chunk-size 800
    ```
 
-3. **Use File Limits:**
+2. **Use File Limits:**
    ```bash
    # Test with fewer files first
-   fraim --path . --limit 20 --debug
+   fraim --debug code --location . --limit 20
    ```
 
-4. **Check Network Connectivity:**
+3. **Check Network Connectivity:**
    ```bash
    # Test API response time
    ping api.openai.com
@@ -165,20 +154,15 @@ fraim --model claude-3-sonnet-20240229
 
 **Solutions:**
 
-1. **Reduce Parallelism:**
+1. **Increase Chunk Size:**
    ```bash
-   fraim --path . --processes 1
+   fraim code --location . --chunk-size 1000
    ```
 
-2. **Increase Chunk Size:**
-   ```bash
-   fraim --path . --chunk-size 1000
-   ```
-
-3. **Use Different Model:**
+2. **Use Different Model:**
    ```bash
    # Some models have higher rate limits
-   fraim --path . --model gpt-3.5-turbo
+   fraim --model gpt-3.5-turbo code --location .
    ```
 
 4. **Check API Quotas:**
@@ -199,12 +183,12 @@ fraim --model claude-3-sonnet-20240229
    find . -name "*.py" | head -10
    
    # Test with specific patterns
-   fraim --path . --globs "*.py" --debug
+   fraim --debug code --location . --globs "*.py"
    ```
 
 2. **Debug File Discovery:**
    ```bash
-   fraim --path . --debug | grep -i "found"
+   fraim --debug code --location . | grep -i "found"
    ```
 
 3. **Check Directory Permissions:**
@@ -221,23 +205,23 @@ fraim --model claude-3-sonnet-20240229
 1. **Adjust Confidence Threshold:**
    ```bash
    # Fewer false positives
-   fraim --path . --confidence 8
+   fraim --confidence 8 code --location .
    
    # More comprehensive analysis
-   fraim --path . --confidence 5
+   fraim --confidence 5 code --location .
    ```
 
 2. **Optimize Chunk Size:**
    ```bash
    # Better context for analysis
-   fraim --path . --chunk-size 300
+   fraim code --location . --chunk-size 300
    ```
 
 3. **Use Better Model:**
    ```bash
    # More capable models
-   fraim --path . --model gpt-4
-   fraim --path . --model claude-3-opus-20240229
+   fraim --model gpt-4 code --location .
+   fraim --model claude-3-opus-20240229 code --location .
    ```
 
 ### Incomplete Analysis
@@ -248,7 +232,7 @@ fraim --model claude-3-sonnet-20240229
 
 1. **Check Debug Output:**
    ```bash
-   fraim --path . --debug | tail -50
+   fraim --debug code --location . | tail -50
    ```
 
 2. **Verify Disk Space:**
@@ -284,7 +268,7 @@ fraim --model claude-3-sonnet-20240229
 
 3. **Use Custom Output Path:**
    ```bash
-   fraim --path . --output /tmp/fraim-reports/
+   fraim --output /tmp/fraim-reports/ code --location .
    ```
 
 ### Corrupted Reports
@@ -295,20 +279,20 @@ fraim --model claude-3-sonnet-20240229
 
 1. **Check for Errors:**
    ```bash
-   fraim --path . --debug | grep -i error
+   fraim --debug code --location . | grep -i error
    ```
 
 2. **Verify Analysis Completed:**
    ```bash
    # Look for completion messages
-   fraim --path . --debug | grep -i "completed"
+   fraim --debug code --location . | grep -i "completed"
    ```
 
 3. **Test with Minimal Example:**
    ```bash
    mkdir test-fraim
    echo "print('hello')" > test-fraim/test.py
-   fraim --path test-fraim --limit 1
+   fraim code --location test-fraim --limit 1
    ```
 
 ## Integration Issues
@@ -329,13 +313,13 @@ fraim --model claude-3-sonnet-20240229
 2. **Use Non-Interactive Mode:**
    ```bash
    # Avoid hanging in CI
-   fraim --path . --processes 2 --confidence 8
+   fraim --confidence 8 code --location . --chunk-size 500
    ```
 
 3. **Set Timeouts:**
    ```bash
    # Prevent infinite hangs
-   timeout 30m fraim code --path .
+   timeout 30m fraim code --location .
    ```
 
 ### Docker Issues
@@ -356,7 +340,7 @@ fraim --model claude-3-sonnet-20240229
    # Set environment variables
    ENV GEMINI_API_KEY=${GEMINI_API_KEY}
    
-   CMD ["uv", "run", "fraim", "code", "--path", "."]
+   CMD ["uv", "run", "fraim", "code", "--location", "."]
    ```
 
 2. **Memory Limits:**
@@ -370,13 +354,13 @@ fraim --model claude-3-sonnet-20240229
 
 ```bash
 # Full debug output
-fraim --path . --debug
+fraim --debug code --location .
 
 # Filter for specific issues
-fraim --path . --debug | grep -i "error\|warning\|failed"
+fraim --debug code --location . | grep -i "error\|warning\|failed"
 
 # Save debug output
-fraim --path . --debug > debug.log 2>&1
+fraim --debug code --location . > debug.log 2>&1
 ```
 
 ### Test Minimal Examples
@@ -395,7 +379,7 @@ os.system(user_input)
 EOF
 
 # Test analysis
-fraim --path . --limit 1 --debug
+fraim --debug code --location . --limit 1
 ```
 
 ### System Information
@@ -442,7 +426,7 @@ When reporting issues, include:
 
 2. **Command Used:**
    ```bash
-   fraim code --path . --debug
+   fraim --debug code --location .
    ```
 
 3. **Debug Output:**

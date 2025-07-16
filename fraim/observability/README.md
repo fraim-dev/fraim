@@ -24,20 +24,22 @@ fraim/observability/
 
 ```bash
 # No observability (default)
-python -m fraim.cli --repo https://github.com/example/repo
+python -m fraim.cli code --location https://github.com/example/repo
 
 # Enable Langfuse observability
-python -m fraim.cli --repo https://github.com/example/repo --observability langfuse
+python -m fraim.cli --observability langfuse code --location https://github.com/example/repo
 
 ```
 
 ### Setting Up Langfuse
 
 1. **Get your API keys:**
+
    - Local: Go to `http://localhost:3000`, create a project, get keys from Settings > API Keys
    - Cloud: Go to `https://cloud.langfuse.com`, create account/project, get keys
 
 2. **Set environment variables:**
+
    ```bash
    export LANGFUSE_PUBLIC_KEY="pk-lf-your-key-here"
    export LANGFUSE_SECRET_KEY="sk-lf-your-key-here"
@@ -46,7 +48,7 @@ python -m fraim.cli --repo https://github.com/example/repo --observability langf
 
 3. **Run with observability:**
    ```bash
-   python -m fraim.cli --observability langfuse --repo https://github.com/example/repo
+   python -m fraim.cli --observability langfuse code --location https://github.com/example/repo
    ```
 
 ## Adding New Backends
@@ -61,23 +63,23 @@ from ..base import ObservabilityBackend
 class MyBackend(ObservabilityBackend):
     def get_name(self) -> str:
         return "mybackend"
-    
+
     def get_description(self) -> str:
         return "My custom observability backend"
-    
+
     def get_required_env_vars(self) -> List[str]:
         return ["MY_API_KEY"]
-    
+
     def get_optional_env_vars(self) -> Dict[str, str]:
         return {"MY_HOST": "https://api.myservice.com"}
-    
+
     def validate_config(self) -> bool:
         # Check if required env vars are set
         pass
-    
+
     def setup_callbacks(self) -> List[str]:
         return ["mybackend"]  # Must be supported by litellm
-    
+
     def get_config_help(self) -> str:
         return "Configuration help for MyBackend..."
 ```
@@ -93,7 +95,7 @@ ObservabilityRegistry.register(MyBackend())
 
 ```bash
 python -m fraim.cli --help  # Should show your backend in the list
-python -m fraim.cli --observability mybackend --repo ...
+python -m fraim.cli --observability mybackend code --location ...
 ```
 
 The CLI automatically picks up new backends through the `build_observability_arg()` helper function, so no CLI changes are needed.
@@ -156,6 +158,7 @@ The architecture supports any observability backend that litellm supports or can
 - **Multiple backends**: Can enable multiple backends simultaneously
 
 Example for multiple backends:
+
 ```bash
-python -m fraim.cli --observability langfuse wandb --repo ...
+python -m fraim.cli --observability langfuse wandb ... code --location
 ```

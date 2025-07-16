@@ -16,7 +16,7 @@ Fraim comes built as a CLI, but you can also run workflows via our Github Action
 ## 🔎 Preview
 
 ![UI Preview](assets/ui-preview.gif)
-*Output of running the `code` workflow*
+_Output of running the `code` workflow_
 
 ## Github Action Quick Start
 
@@ -39,13 +39,13 @@ jobs:
       actions: read
       security-events: write # Required for uploading SARIF
       pull-requests: write # Required for PR comments and annotations
-    
+
     steps:
       - name: Run Fraim Security Scan
         uses: fraim-dev/fraim-action@v0
         with:
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
-          workflows: 'code'
+          workflows: "code"
 ```
 
 ## 🚀 CLI Quick Start
@@ -61,36 +61,37 @@ jobs:
 NOTE: These instructions are for Linux based systems, see [docs](https://docs.fraim.dev/installation) for Windows installation instructions
 
 1. **Install Fraim**:
+
 ```bash
 pipx install fraim
 ```
 
 2. **Configure your AI provider**:
-   
-    #### Google Gemini
 
-    1. Get an API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
-    2. Export it in your environment: 
-        ```
-        export GEMINI_API_KEY=your_api_key_here
-        ```
+   #### Google Gemini
 
-    #### OpenAI
+   1. Get an API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+   2. Export it in your environment:
+      ```
+      export GEMINI_API_KEY=your_api_key_here
+      ```
 
-    3. Get an API key from [OpenAI Platform](https://platform.openai.com/api-keys)
-    4. Export it in your environment:
-        ```
-        export OPENAI_API_KEY=your_api_key_here
-        ```
+   #### OpenAI
+
+   3. Get an API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+   4. Export it in your environment:
+      ```
+      export OPENAI_API_KEY=your_api_key_here
+      ```
 
 ### Basic Usage
 
 ```bash
 # Run code security analysis on a Git repository
-fraim code --repo https://github.com/username/repo-name
+fraim code --location https://github.com/username/repo-name
 
 # Analyze local directory
-fraim code --path /path/to/code
+fraim code --location /path/to/code
 ```
 
 ## 💬 Community & Support
@@ -110,13 +111,13 @@ Join our growing community of security professionals using Fraim:
 ```bash
 
 # Adjust performance settings
-fraim code --path /code --processes 4 --chunk-size 1000
+fraim code --location /code --chunk-size 1000
 
 # Enable debug logging
-fraim --debug code --path /code
+fraim --debug code --location /code
 
 # Custom output location
-fraim --output /path/to/results/ code --path /code
+fraim --output /path/to/results/ code --location /code
 ```
 
 ### Observability
@@ -126,13 +127,15 @@ Fraim supports optional observability and tracing through [Langfuse](https://lan
 To enable observability:
 
 1. **Install with observability support**:
+
 ```bash
 pipx install 'fraim[langfuse]'
 ```
 
 2. **Enable observability during execution**:
+
 ```bash
-fraim --observability langfuse --path /code code 
+fraim --observability langfuse code --location /code
 ```
 
 This will trace your workflow execution, LLM calls, and performance metrics in Langfuse for analysis and debugging.
@@ -140,6 +143,7 @@ This will trace your workflow execution, LLM calls, and performance metrics in L
 ### Configuration
 
 Fraim uses a flexible configuration system that allows you to:
+
 - Customize AI model parameters
 - Configure workflow-specific settings
 - Set up custom data sources
@@ -160,25 +164,29 @@ See the `fraim/config/` directory for configuration options.
 Fraim includes several pre-built workflows that demonstrate the framework's capabilities:
 
 ### Code Security Analysis
-*Status: Available*
-*Workflow Name: scan*
+
+_Status: Available_
+_Workflow Name: code_
 
 Automated source code vulnerability scanning using AI-powered analysis. Detects common security issues across multiple programming languages including SQL injection, XSS, CSRF, and more.
 
 Example
+
 ```
-fraim code --repo https://github.com/username/repo-name
+fraim code --location https://github.com/username/repo-name
 ```
 
 ### Infrastructure as Code (IAC) Analysis
-*Status: Available*
-*Workflow Name: iac*
+
+_Status: Available_
+_Workflow Name: iac_
 
 Analyzes infrastructure configuration files for security misconfigurations and compliance violations.
 
 Example
+
 ```
-fraim iac --repo https://github.com/username/repo-name
+fraim iac --location https://github.com/username/repo-name
 ```
 
 ## 🛠️ Building Custom Workflows
@@ -227,17 +235,17 @@ class MyCustomWorkflow(Workflow[MyWorkflowInput, MyWorkflowOutput]):
 
     async def workflow(self, input: MyWorkflowInput) -> MyWorkflowOutput:
         """Main workflow execution"""
-        
+
         # 1. Analyze the configuration file
         analysis_results = await self.analysis_step.run({"code": input.code})
-        
+
         # 2. Filter results by confidence threshold
         filtered_results = self.filter_results_by_confidence(
             analysis_results.results, input.config.confidence
         )
-        
+
         return filtered_results
-    
+
     def filter_results_by_confidence(self, results: List[sarif.Result], confidence_threshold: int) -> List[sarif.Result]:
         """Filter results by confidence."""
         return [result for result in results if result.properties.confidence > confidence_threshold]
@@ -250,9 +258,9 @@ Create `my_prompts.yaml` in the same directory:
 ```yaml
 system: |
   You are a configuration security analyzer.
-  
+
   Your job is to analyze configuration files for security misconfigurations and vulnerabilities.
-  
+
   <vulnerability_types>
     Valid vulnerability types (use EXACTLY as shown):
     
@@ -272,7 +280,7 @@ system: |
 
 user: |
   Analyze the following configuration file for security issues:
-  
+
   {{ code }}
 ```
 
@@ -282,4 +290,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-*Fraim is built by security teams, for security teams. Help us make AI-powered security accessible to everyone.*
+_Fraim is built by security teams, for security teams. Help us make AI-powered security accessible to everyone._

@@ -155,7 +155,7 @@ def cli() -> int:
     parser.add_argument(
         "--model",
         default="gemini/gemini-2.5-flash",
-        help="Gemini model to use for initial scan (default: gemini-2.0-flash)",
+        help="Gemini model to use for initial scan (default: gemini/gemini-2.5-flash)",
     )
     parser.add_argument(
         "--max-iterations",
