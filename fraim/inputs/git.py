@@ -1,52 +1,68 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 
-import shutil
+import os
 import subprocess
-import tempfile
 from pathlib import Path
-from types import TracebackType
+from tempfile import TemporaryDirectory
 from typing import Iterator, List, Optional, Type
-
-from typing_extensions import Self
 
 from fraim.config.config import Config
 from fraim.inputs.files import File, Files
 from fraim.inputs.local import Local
 
 
-class Git(Files):
+class GitRemote(Files):
     def __init__(
         self,
         config: Config,
         url: str,
-        tempdir: Optional[str] = None,
         globs: Optional[List[str]] = None,
         limit: Optional[int] = None,
+        prefix: Optional[str] = None,
     ):
         self.config = config
         self.url = url
-        self.tempdir = tempdir
         self.globs = globs
         self.limit = limit
+        self.tempdir = TemporaryDirectory(prefix=prefix)
+        self.path = Path(self.tempdir.name)
 
-    def __iter__(self) -> Iterator[File]:
-        if self.tempdir:
-            files_input = Local(self.config, Path(self.tempdir), self.globs, self.limit)
-            return iter(files_input)
-        return iter([])
+    def root_path(self) -> str:
+        return self.path.name
 
-    def __enter__(self) -> Self:
-        self.tempdir = self.tempdir if self.tempdir else tempfile.mkdtemp()
-        result = subprocess.run(["git", "clone", self.url, self.tempdir], check=False, capture_output=True, text=True)
-        if result.returncode != 0:
-            print(f"Git clone failed with error:\n{result.stderr}")
-            raise subprocess.CalledProcessError(result.returncode, result.args, result.stdout, result.stderr)
+    def __enter__(self) -> "GitRemote":
         return self
 
     def __exit__(
-        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[object]
     ) -> None:
-        if self.tempdir:
-            shutil.rmtree(self.tempdir)
-            self.tempdir = None
+        self.tempdir.cleanup()
+
+    def __iter__(self) -> Iterator[File]:
+        self.config.logger.debug("Starting git repository input iterator")
+
+        # Clone remote repository to a local directory, delegate to file iterator.
+        self._clone_to_path()
+        for file in Local(self.config, self.path, self.globs, self.limit):
+            yield file
+
+    def _clone_to_path(self) -> None:
+        if not _is_directory_empty(self.path.name):
+            self.config.logger.debug("Target directory not empty, skipping git clone")
+            return
+
+        self.config.logger.info(f"Cloning repository: {self.path.name}")
+        result = subprocess.run(
+            args=["git", "clone", "--depth", "1", self.url, self.path.name], check=False, capture_output=True, text=True
+        )
+
+        if result.returncode != 0:
+            self.config.logger.error(f"Git clone failed: {result.stderr}")
+            raise subprocess.CalledProcessError(result.returncode, result.args, result.stdout, result.stderr)
+        else:
+            self.config.logger.info("Repository cloned: {tempdir}")
+
+
+def _is_directory_empty(path: str) -> bool:
+    return os.path.isdir(path) and not os.listdir(path)

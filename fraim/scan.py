@@ -3,18 +3,18 @@
 
 import multiprocessing as mp
 import os
-import tempfile
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Generator, List, Optional, Tuple
 
 from fraim.config.config import Config
 from fraim.core.contextuals.code import CodeChunk
 from fraim.inputs.file_chunks import chunk_input
-from fraim.inputs.files import File, Files
-from fraim.inputs.git import Git
+from fraim.inputs.files import Files
+from fraim.inputs.git import GitRemote
 from fraim.inputs.local import Local
 from fraim.observability import ObservabilityManager
 from fraim.outputs import sarif
@@ -41,23 +41,17 @@ def resolve_file_patterns(args: ScanArgs) -> List[str]:
         return WorkflowRegistry.get_file_patterns_for_workflows(args.workflows)
 
 
-def get_files(args: ScanArgs, config: Config) -> Tuple[str, Files]:
+def get_files_context(args: ScanArgs, config: Config) -> Files:
     """Get the local root path of the project and the files to scan."""
     file_patterns = resolve_file_patterns(args)
     config.logger.info(f"Using file patterns: {file_patterns}")
     if args.limit is not None:
         config.logger.info(f"File limit set to {args.limit}")  # TODO: enforce this
     if args.repo:
-        temp_dir = tempfile.mkdtemp(prefix="fraim_scan_")
-        repo_path = os.path.join(temp_dir, "repo")
-        config.logger.info(f"Cloning repository: {args.repo} into path: {repo_path}")
-        return repo_path, Git(config, url=args.repo, tempdir=repo_path, globs=file_patterns, limit=args.limit)
-    elif args.path:
-        repo_path = args.path
-        config.logger.info(f"Using local path as input: {args.path}")
-        return repo_path, Local(config, Path(repo_path), globs=file_patterns, limit=args.limit)
-    else:
-        raise ValueError("No input specified")
+        return GitRemote(config, url=args.repo, globs=file_patterns, limit=args.limit, prefix="fraim_scan_")
+    if args.path:
+        return Local(config, Path(args.path), globs=file_patterns, limit=args.limit)
+    raise ValueError("No input specified")
 
 
 def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[str]] = None) -> None:
@@ -70,12 +64,12 @@ def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[s
     #######################################
     config.logger.info(f"Running workflows: {workflows_to_run}")
     try:
-        project_path, files_context = get_files(args, config)
-        config.project_path = project_path  # Hack to pass in the project path to the config
+        files_context = get_files_context(args, config)
+        config.project_path = files_context.root_path()  # Hack to pass in the project path to the config
 
         # Process chunks in parallel as they become available (streaming)
         with files_context as files:
-            chunks = generate_file_chunks(config, files=files, project_path=project_path, chunk_size=config.chunk_size)
+            chunks = generate_file_chunks(config, files=files, chunk_size=config.chunk_size)
             try:
                 chunk_count = 0
                 with mp.Pool(
@@ -135,9 +129,8 @@ def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[s
         config.logger.error(f"Failed to write HTML report to {html_output_file}: {str(e)}")
 
 
-def generate_file_chunks(
-    config: Config, files: Files, project_path: str, chunk_size: int
-) -> Generator[CodeChunk, None, None]:
+def generate_file_chunks(config: Config, files: Files, chunk_size: int) -> Generator[CodeChunk, None, None]:
+    project_path = files.root_path()
     for file in files:
         config.logger.info(f"Generating chunks for file: {file.path}")
         chunked = chunk_input(file, project_path, chunk_size)
