@@ -131,7 +131,6 @@ class Config:
 
         # Silence noisy third-party loggers (LiteLLM is handled in the LiteLLM wrapper)
         third_party_loggers = [
-            "httpx",
             "urllib3",
             "urllib3.connectionpool",
         ]

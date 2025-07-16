@@ -34,7 +34,7 @@ class PromptTemplate:
             A dictionary of PromptTemplate objects.
         """
         try:
-            with open(yaml_path, "r") as file:
+            with open(yaml_path, "r", encoding="utf-8") as file:
                 yaml_data = yaml.safe_load(file)
 
             if not isinstance(yaml_data, dict):
@@ -70,7 +70,7 @@ class PromptTemplate:
             PromptTemplateError: If the template file does not exist or is invalid.
         """
         try:
-            with open(file_path, "r") as file:
+            with open(file_path, "r", encoding="utf-8") as file:
                 return cls.from_string(file.read(), inputs)
         except FileNotFoundError as e:
             raise PromptTemplateError(f"Could not find template file: {file_path}") from e

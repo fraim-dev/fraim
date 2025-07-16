@@ -19,6 +19,7 @@ def _configure_litellm_logging() -> None:
     """Configure LiteLLM logging to be less verbose."""
     # Silence LiteLLM loggers
     litellm_loggers = [
+        "httpx",
         "litellm",
         "LiteLLM",
         "LiteLLM Proxy",

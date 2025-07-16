@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 
+import os
 import shutil
+import stat
 import subprocess
 import tempfile
 from pathlib import Path
@@ -13,6 +15,18 @@ from typing_extensions import Self
 from fraim.config.config import Config
 from fraim.inputs.files import File, Files
 from fraim.inputs.local import Local
+
+
+def _remove_readonly(func, path, excinfo):
+    """
+    Error handler for shutil.rmtree that attempts to remove read-only files.
+    """
+    # Check if the error is a PermissionError
+    if issubclass(excinfo[1].__class__, PermissionError):
+        # Change the file permissions to writable
+        os.chmod(path, stat.S_IWRITE)
+        # Retry the function that failed
+        func(path)
 
 
 class Git(Files):
@@ -48,5 +62,5 @@ class Git(Files):
         self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> None:
         if self.tempdir:
-            shutil.rmtree(self.tempdir)
+            shutil.rmtree(self.tempdir, onerror=_remove_readonly)
             self.tempdir = None
