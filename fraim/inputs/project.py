@@ -1,5 +1,4 @@
 import os
-import tempfile
 from pathlib import Path
 from typing import Any, Generator, Iterator, Type
 
@@ -7,7 +6,7 @@ from fraim.config.config import Config
 from fraim.core.contextuals.code import CodeChunk
 from fraim.inputs.file_chunks import chunk_input
 from fraim.inputs.files import File, Files
-from fraim.inputs.git import Git
+from fraim.inputs.git import GitRemote
 from fraim.inputs.local import Local
 
 
@@ -31,11 +30,10 @@ class ProjectInput:
             raise ValueError("Location is required")
 
         if path_or_url.startswith("http://") or path_or_url.startswith("https://") or path_or_url.startswith("git@"):
-            temp_dir = tempfile.mkdtemp(prefix="fraim_scan_")
-            self.project_path = os.path.join(temp_dir, "repo")
-            self.config.logger.info(f"Cloning repository: {path_or_url} into path: {self.project_path}")
             self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
-            self.files = Git(self.config, url=path_or_url, tempdir=self.project_path, globs=globs, limit=limit)
+            self.files = GitRemote(
+                self.config, url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_")
+            self.project_path = self.files.root_path()
         else:
             self.project_path = path_or_url
             self.repo_name = os.path.basename(os.path.abspath(path_or_url))

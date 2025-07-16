@@ -41,7 +41,11 @@ class Local(Files):
         )
         self.limit = limit
 
+    def root_path(self) -> str:
+        return self.path.name
+
     def __iter__(self) -> Iterator[File]:
+        self.config.logger.info(f"Scanning local files: {self.path}, with globs: {self.globs}")
         gen = self._files()
         if self.limit is not None:
             return itertools.islice(gen, self.limit)
