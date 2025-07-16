@@ -78,7 +78,7 @@ from .my_workflow import workflow as my_workflow  # Add this line
 ### 3. Run the Workflow
 
 ```bash
-fraim --workflows my_workflow <other_args>
+fraim my_workflow <other_args>
 ```
 
 ## Workflow Input

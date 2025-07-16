@@ -14,17 +14,27 @@ fraim [INPUT_OPTIONS] [WORKFLOW_OPTIONS] [CONFIGURATION_OPTIONS]
 
 ### Analyze a Git Repository
 ```bash
-# Analyze a public repository with all available workflows
-fraim --repo https://github.com/username/repository-name --workflows all
-
 # Analyze with specific workflows
-fraim --repo https://github.com/username/repository-name --workflows code
+fraim code --repo https://github.com/username/repository-name
 ```
 
 ### Analyze Local Directory
 ```bash
 # Analyze specific directory
-fraim --path /path/to/your/project
+fraim code --path /path/to/your/project
+```
+
+## Workflows
+Specify which security analysis workflows to run.
+
+**Available workflows:**
+- `code` - Source code security analysis
+- `iac` - Infrastructure as Code analysis (in development)
+
+**Examples:**
+```bash
+fraim code --path .           # Run code analysis on the path
+fraim iac --path .            # Run IaC analysis on the path
 ```
 
 ## Command-Line Options
@@ -51,23 +61,6 @@ fraim --path ../sibling-project   # Relative path
 ```
 
 **Note:** You must specify either `--repo` or `--path`, but not both.
-
-### Workflow Selection
-
-#### `--workflows <WORKFLOW_LIST>`
-Specify which security analysis workflows to run. You can run individual workflows or all available workflows.
-
-**Available workflows:**
-- `code` - Source code security analysis
-- `iac` - Infrastructure as Code analysis (in development)
-- `all` - Run all available workflows (default)
-
-**Examples:**
-```bash
-fraim --path . --workflows code        # Run only code analysis
-fraim --path . --workflows code iac    # Run multiple specific workflows
-fraim --path . --workflows all         # Run all workflows (default)
-```
 
 ### File Filtering
 
@@ -261,9 +254,8 @@ export LANGFUSE_HOST="your_langfuse_host"
 
 ### Comprehensive Analysis
 ```bash
-# Full analysis with custom settings
-fraim --repo https://github.com/company/app \
-      --workflows all \
+# Code analysis with custom settings
+fraim code --repo https://github.com/company/app \
       --model gemini/gemini-2.5-flash \
       --processes 12 \
       --chunk-size 600 \
@@ -276,8 +268,7 @@ fraim --repo https://github.com/company/app \
 ### CI/CD Integration
 ```bash
 # Optimized for CI/CD pipelines
-fraim --path . \
-      --workflows code \
+fraim code --path . \
       --confidence 8 \
       --processes 4 \
       --output ./security-reports/ \
@@ -287,8 +278,7 @@ fraim --path . \
 ### Large Codebase Analysis
 ```bash
 # Settings for analyzing large repositories
-fraim --repo https://github.com/large/project \
-      --workflows code \
+fraim --repo code https://github.com/large/project \
       --processes 16 \
       --chunk-size 1000 \
       --confidence 7 \
@@ -298,9 +288,8 @@ fraim --repo https://github.com/large/project \
 ### Specific File Analysis
 ```bash
 # Focus on specific file types and directories
-fraim --path . \
+fraim code --path . \
       --globs "src/**/*.py" "api/**/*.py" \
-      --workflows code \
       --confidence 6 \
       --debug
 ```
@@ -328,10 +317,10 @@ Fraim generates two types of reports:
 **"No input specified" error:**
 ```bash
 # ❌ Missing input
-fraim --workflows code
+fraim code
 
 # ✅ Correct usage
-fraim --path . --workflows code
+fraim code --path .
 ```
 
 **"API key not found" error:**

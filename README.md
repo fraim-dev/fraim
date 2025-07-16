@@ -87,10 +87,10 @@ pipx install fraim
 
 ```bash
 # Run code security analysis on a Git repository
-fraim --repo https://github.com/username/repo-name --workflows code
+fraim code --repo https://github.com/username/repo-name
 
 # Analyze local directory
-fraim --path /path/to/code --workflows code
+fraim code --path /path/to/code
 ```
 
 ## 💬 Community & Support
@@ -108,17 +108,15 @@ Join our growing community of security professionals using Fraim:
 ### Running Workflows
 
 ```bash
-# Specify particular workflows
-fraim --path /code --workflows code iac
 
 # Adjust performance settings
-fraim --path /code --workflows code --processes 4 --chunk-size 1000
+fraim code --path /code --processes 4 --chunk-size 1000
 
 # Enable debug logging
-fraim --path /code --workflows code --debug
+fraim --debug code --path /code
 
 # Custom output location
-fraim --path /code --workflows code --output /path/to/results/
+fraim --output /path/to/results/ code --path /code
 ```
 
 ### Observability
@@ -134,7 +132,7 @@ pipx install 'fraim[langfuse]'
 
 2. **Enable observability during execution**:
 ```bash
-fraim --path /code --workflows code --observability langfuse
+fraim --observability langfuse --path /code code 
 ```
 
 This will trace your workflow execution, LLM calls, and performance metrics in Langfuse for analysis and debugging.
@@ -169,7 +167,7 @@ Automated source code vulnerability scanning using AI-powered analysis. Detects 
 
 Example
 ```
-fraim --repo https://github.com/username/repo-name --workflows code
+fraim code --repo https://github.com/username/repo-name
 ```
 
 ### Infrastructure as Code (IAC) Analysis
@@ -180,7 +178,7 @@ Analyzes infrastructure configuration files for security misconfigurations and c
 
 Example
 ```
-fraim --repo https://github.com/username/repo-name --workflows iac
+fraim iac --repo https://github.com/username/repo-name
 ```
 
 ## 🛠️ Building Custom Workflows

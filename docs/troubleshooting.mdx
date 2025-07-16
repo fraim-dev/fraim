@@ -335,7 +335,7 @@ fraim --model claude-3-sonnet-20240229
 3. **Set Timeouts:**
    ```bash
    # Prevent infinite hangs
-   timeout 30m fraim --path . --workflows code
+   timeout 30m fraim code --path .
    ```
 
 ### Docker Issues
@@ -356,7 +356,7 @@ fraim --model claude-3-sonnet-20240229
    # Set environment variables
    ENV GEMINI_API_KEY=${GEMINI_API_KEY}
    
-   CMD ["uv", "run", "fraim", "--path", ".", "--workflows", "code"]
+   CMD ["uv", "run", "fraim", "code", "--path", "."]
    ```
 
 2. **Memory Limits:**
@@ -442,7 +442,7 @@ When reporting issues, include:
 
 2. **Command Used:**
    ```bash
-   fraim --path . --workflows code --debug
+   fraim code --path . --debug
    ```
 
 3. **Debug Output:**
