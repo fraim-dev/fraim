@@ -65,7 +65,7 @@ def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[s
     config.logger.info(f"Running workflows: {workflows_to_run}")
     try:
         files_context = get_files_context(args, config)
-        config.project_path = files_context.root_path() # Hack to pass in the project path to the config
+        config.project_path = files_context.root_path()  # Hack to pass in the project path to the config
 
         # Process chunks in parallel as they become available (streaming)
         with files_context as files:
@@ -129,9 +129,7 @@ def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[s
         config.logger.error(f"Failed to write HTML report to {html_output_file}: {str(e)}")
 
 
-def generate_file_chunks(
-    config: Config, files: Files, chunk_size: int
-) -> Generator[CodeChunk, None, None]:
+def generate_file_chunks(config: Config, files: Files, chunk_size: int) -> Generator[CodeChunk, None, None]:
     project_path = files.root_path()
     for file in files:
         config.logger.info(f"Generating chunks for file: {file.path}")

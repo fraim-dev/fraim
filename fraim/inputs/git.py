@@ -5,11 +5,12 @@ import os
 import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Iterator, List, Optional
+from typing import Iterator, List, Optional, Type
 
 from fraim.config.config import Config
 from fraim.inputs.files import File, Files
 from fraim.inputs.local import Local
+
 
 class GitRemote(Files):
     def __init__(
@@ -25,14 +26,17 @@ class GitRemote(Files):
         self.globs = globs
         self.limit = limit
         self.tempdir = TemporaryDirectory(prefix=prefix)
+        self.path = Path(self.tempdir.name)
 
     def root_path(self) -> str:
-        return self.tempdir.name
+        return self.path.name
 
-    def __enter__(self):
+    def __enter__(self) -> "GitRemote":
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[object]
+    ) -> None:
         self.tempdir.cleanup()
 
     def __iter__(self) -> Iterator[File]:
@@ -50,10 +54,8 @@ class GitRemote(Files):
 
         self.config.logger.info(f"Cloning repository: {self.path.name}")
         result = subprocess.run(
-            args=["git", "clone", "--depth", "1", self.url, self.path.name],
-            check=False,
-            capture_output=True,
-            text=True)
+            args=["git", "clone", "--depth", "1", self.url, self.path.name], check=False, capture_output=True, text=True
+        )
 
         if result.returncode != 0:
             self.config.logger.error(f"Git clone failed: {result.stderr}")
@@ -62,5 +64,5 @@ class GitRemote(Files):
             self.config.logger.info("Repository cloned: {tempdir}")
 
 
-def _is_directory_empty(path):
+def _is_directory_empty(path: str) -> bool:
     return os.path.isdir(path) and not os.listdir(path)
