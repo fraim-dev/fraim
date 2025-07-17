@@ -191,6 +191,9 @@ def infer_cli_args_from_dataclass(input_class: Type) -> List[Dict[str, Any]]:
                     arg_config["type"] = int
                 elif non_none_type == float:
                     arg_config["type"] = float
+                elif get_origin(non_none_type) is list:
+                    # Handle Optional[List[T]] - e.g., Optional[List[str]]
+                    arg_config["nargs"] = "+"
 
         # Set default value
         if field.default is not dataclasses.MISSING:

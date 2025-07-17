@@ -67,6 +67,10 @@ class CodeInput:
         Optional[List[str]],
         {"help": "Globs to use for file scanning. If not provided, will use file_patterns defined in the workflow."},
     ] = field(default_factory=lambda: FILE_PATTERNS)
+    max_concurrent_chunks: Annotated[int, {
+        "help": "Maximum number of chunks to process concurrently"}] = 20
+    max_concurrent_triagers: Annotated[int, {
+        "help": "Maximum number of triager requests per chunk to run concurrently"}] = 10
 
 
 @dataclass
@@ -131,31 +135,52 @@ class SASTWorkflow(Workflow[CodeInput, SASTOutput]):
             )
         return self._triager_step
 
-    async def process_chunk(self, chunk: CodeChunk, config: Config) -> List[sarif.Result]:
+    async def process_chunk(self, chunk: CodeChunk, config: Config, max_concurrent_triagers: int) -> List[sarif.Result]:
         """Process a single chunk and return its results."""
 
-        # 1. Scan the code for potential vulnerabilities.
-        self.config.logger.info("Scanning the code for potential vulnerabilities")
-        potential_vulns = await self.scanner_step.run(SASTInput(code=chunk, config=config))
+        try:
+            # 1. Scan the code for potential vulnerabilities.
+            self.config.logger.debug(
+                "Scanning the code for potential vulnerabilities")
+            potential_vulns = await self.scanner_step.run(SASTInput(code=chunk, config=config))
 
-        # 2. Filter vulnerabilities by confidence.
-        self.config.logger.info("Filtering vulnerabilities by confidence")
-        high_confidence_vulns = filter_results_by_confidence(potential_vulns.results, config.confidence)
+            # 2. Filter vulnerabilities by confidence.
+            self.config.logger.debug("Filtering vulnerabilities by confidence")
+            high_confidence_vulns = filter_results_by_confidence(
+                potential_vulns.results, config.confidence)
 
-        # 3. Triage the high-confidence vulns in parallel.
-        self.config.logger.info("Triaging high-confidence vulns in parallel")
-        triaged_vulns = await asyncio.gather(
-            *[
-                self.triager_step.run(TriagerInput(vulnerability=str(vuln), code=chunk, config=config))
-                for vuln in high_confidence_vulns
-            ]
-        )
+            # 3. Triage the high-confidence vulns with limited concurrency.
+            self.config.logger.debug(
+                "Triaging high-confidence vulns with limited concurrency")
 
-        # 4. Filter the triaged vulnerabilities by confidence
-        self.config.logger.info("Filtering the triaged vulnerabilities by confidence")
-        high_confidence_triaged_vulns = filter_results_by_confidence(triaged_vulns, config.confidence)
+            # Create semaphore to limit concurrent triager requests
+            triager_semaphore = asyncio.Semaphore(max_concurrent_triagers)
 
-        return high_confidence_triaged_vulns
+            async def triage_with_semaphore(vuln: sarif.Result) -> Optional[sarif.Result]:
+                """Triage a vulnerability with semaphore to limit concurrency."""
+                async with triager_semaphore:
+                    return await self.triager_step.run(TriagerInput(vulnerability=str(vuln), code=chunk, config=config))
+
+            triaged_results = await asyncio.gather(*[triage_with_semaphore(vuln) for vuln in high_confidence_vulns])
+
+            # Filter out None results from failed triaging attempts
+            triaged_vulns = [
+                result for result in triaged_results if result is not None]
+
+            # 4. Filter the triaged vulnerabilities by confidence
+            self.config.logger.debug(
+                "Filtering the triaged vulnerabilities by confidence")
+            high_confidence_triaged_vulns = filter_results_by_confidence(
+                triaged_vulns, config.confidence)
+
+            return high_confidence_triaged_vulns
+
+        except Exception as e:
+            self.config.logger.error(
+                f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {str(e)}. "
+                "Skipping this chunk and continuing with scan."
+            )
+            return []
 
     async def workflow(self, input: CodeInput) -> SASTOutput:
         config = self.config
@@ -167,12 +192,35 @@ class SASTWorkflow(Workflow[CodeInput, SASTOutput]):
             )
             self.project = ProjectInput(config=config, kwargs=kwargs)
 
-            # Process all chunks in parallel, steps are initialized lazily when first accessed
-            all_chunk_results = await asyncio.gather(*[self.process_chunk(chunk, config) for chunk in self.project])
+            # Create semaphore to limit concurrent chunk processing
+            max_concurrent_chunks = input.max_concurrent_chunks or 5
+            semaphore = asyncio.Semaphore(max_concurrent_chunks)
 
-            # Flatten the results from all chunks
-            for chunk_results in all_chunk_results:
-                results.extend(chunk_results)
+            async def process_chunk_with_semaphore(chunk: CodeChunk) -> List[sarif.Result]:
+                """Process a chunk with semaphore to limit concurrency."""
+                async with semaphore:
+                    return await self.process_chunk(chunk, config, input.max_concurrent_triagers or 3)
+
+            # Process chunks as they stream in from the ProjectInput iterator
+            active_tasks = set()
+
+            for chunk in self.project:
+                # Create task for this chunk and add to active tasks
+                task = asyncio.create_task(process_chunk_with_semaphore(chunk))
+                active_tasks.add(task)
+
+                # If we've hit our concurrency limit, wait for some tasks to complete
+                if len(active_tasks) >= max_concurrent_chunks:
+                    done, active_tasks = await asyncio.wait(active_tasks, return_when=asyncio.FIRST_COMPLETED)
+                    for completed_task in done:
+                        chunk_results = await completed_task
+                        results.extend(chunk_results)
+
+            # Wait for any remaining tasks to complete
+            if active_tasks:
+                for future in asyncio.as_completed(active_tasks):
+                    chunk_results = await future
+                    results.extend(chunk_results)
 
         except Exception as e:
             config.logger.error(f"Error during scan: {str(e)}")
