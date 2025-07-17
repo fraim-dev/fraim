@@ -72,6 +72,7 @@ class IaCInput:
         Optional[List[str]],
         {"help": "Globs to use for file scanning. If not provided, will use file_patterns defined in the workflow."},
     ] = field(default_factory=lambda: FILE_PATTERNS)
+    max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
 
 
 @dataclass
@@ -105,16 +106,23 @@ class IaCWorkflow(Workflow[IaCInput, IaCOutput]):
     async def process_chunk(self, chunk: CodeChunk, config: Config) -> List[sarif.Result]:
         """Process a single chunk and return its results."""
 
-        # 1. Scan the code for vulnerabilities.
-        self.config.logger.info(f"Scanning code for vulnerabilities: {Path(chunk.file_path)}")
-        iac_input = IaCCodeChunkInput(code=chunk, config=config)
-        vulns = await self.scanner_step.run(iac_input)
+        try:
+            # 1. Scan the code for vulnerabilities.
+            self.config.logger.info(f"Scanning code for vulnerabilities: {Path(chunk.file_path)}")
+            iac_input = IaCCodeChunkInput(code=chunk, config=config)
+            vulns = await self.scanner_step.run(iac_input)
 
-        # 2. Filter the vulnerability by confidence.
-        self.config.logger.info("Filtering vulnerabilities by confidence")
-        high_confidence_vulns = filter_results_by_confidence(vulns.results, config.confidence)
+            # 2. Filter the vulnerability by confidence.
+            self.config.logger.info("Filtering vulnerabilities by confidence")
+            high_confidence_vulns = filter_results_by_confidence(vulns.results, config.confidence)
 
-        return high_confidence_vulns
+            return high_confidence_vulns
+        except Exception as e:
+            self.config.logger.error(
+                f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {str(e)}. "
+                "Skipping this chunk and continuing with scan."
+            )
+            return []
 
     async def workflow(self, input: IaCInput) -> IaCOutput:
         config = self.config
@@ -126,12 +134,35 @@ class IaCWorkflow(Workflow[IaCInput, IaCOutput]):
             )
             project = ProjectInput(config=config, kwargs=kwargs)
 
-            # Process all chunks in parallel
-            all_chunk_results = await asyncio.gather(*[self.process_chunk(chunk, config) for chunk in project])
+            # Create semaphore to limit concurrent chunk processing
+            max_concurrent_chunks = input.max_concurrent_chunks or 5
+            semaphore = asyncio.Semaphore(max_concurrent_chunks)
 
-            # Flatten the results from all chunks
-            for chunk_results in all_chunk_results:
-                results.extend(chunk_results)
+            async def process_chunk_with_semaphore(chunk: CodeChunk) -> List[sarif.Result]:
+                """Process a chunk with semaphore to limit concurrency."""
+                async with semaphore:
+                    return await self.process_chunk(chunk, config)
+
+            # Process chunks as they stream in from the ProjectInput iterator
+            active_tasks = set()
+
+            for chunk in project:
+                # Create task for this chunk and add to active tasks
+                task = asyncio.create_task(process_chunk_with_semaphore(chunk))
+                active_tasks.add(task)
+
+                # If we've hit our concurrency limit, wait for some tasks to complete
+                if len(active_tasks) >= max_concurrent_chunks:
+                    done, active_tasks = await asyncio.wait(active_tasks, return_when=asyncio.FIRST_COMPLETED)
+                    for completed_task in done:
+                        chunk_results = await completed_task
+                        results.extend(chunk_results)
+
+            # Wait for any remaining tasks to complete
+            if active_tasks:
+                for future in asyncio.as_completed(active_tasks):
+                    chunk_results = await future
+                    results.extend(chunk_results)
 
         except Exception as e:
             config.logger.error(f"Error during scan: {str(e)}")

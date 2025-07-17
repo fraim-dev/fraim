@@ -67,10 +67,10 @@ class CodeInput:
         Optional[List[str]],
         {"help": "Globs to use for file scanning. If not provided, will use file_patterns defined in the workflow."},
     ] = field(default_factory=lambda: FILE_PATTERNS)
-    max_concurrent_chunks: Annotated[int, {
-        "help": "Maximum number of chunks to process concurrently"}] = 20
-    max_concurrent_triagers: Annotated[int, {
-        "help": "Maximum number of triager requests per chunk to run concurrently"}] = 10
+    max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
+    max_concurrent_triagers: Annotated[
+        int, {"help": "Maximum number of triager requests per chunk to run concurrently"}
+    ] = 3
 
 
 @dataclass
@@ -140,18 +140,15 @@ class SASTWorkflow(Workflow[CodeInput, SASTOutput]):
 
         try:
             # 1. Scan the code for potential vulnerabilities.
-            self.config.logger.debug(
-                "Scanning the code for potential vulnerabilities")
+            self.config.logger.debug("Scanning the code for potential vulnerabilities")
             potential_vulns = await self.scanner_step.run(SASTInput(code=chunk, config=config))
 
             # 2. Filter vulnerabilities by confidence.
             self.config.logger.debug("Filtering vulnerabilities by confidence")
-            high_confidence_vulns = filter_results_by_confidence(
-                potential_vulns.results, config.confidence)
+            high_confidence_vulns = filter_results_by_confidence(potential_vulns.results, config.confidence)
 
             # 3. Triage the high-confidence vulns with limited concurrency.
-            self.config.logger.debug(
-                "Triaging high-confidence vulns with limited concurrency")
+            self.config.logger.debug("Triaging high-confidence vulns with limited concurrency")
 
             # Create semaphore to limit concurrent triager requests
             triager_semaphore = asyncio.Semaphore(max_concurrent_triagers)
@@ -164,14 +161,11 @@ class SASTWorkflow(Workflow[CodeInput, SASTOutput]):
             triaged_results = await asyncio.gather(*[triage_with_semaphore(vuln) for vuln in high_confidence_vulns])
 
             # Filter out None results from failed triaging attempts
-            triaged_vulns = [
-                result for result in triaged_results if result is not None]
+            triaged_vulns = [result for result in triaged_results if result is not None]
 
             # 4. Filter the triaged vulnerabilities by confidence
-            self.config.logger.debug(
-                "Filtering the triaged vulnerabilities by confidence")
-            high_confidence_triaged_vulns = filter_results_by_confidence(
-                triaged_vulns, config.confidence)
+            self.config.logger.debug("Filtering the triaged vulnerabilities by confidence")
+            high_confidence_triaged_vulns = filter_results_by_confidence(triaged_vulns, config.confidence)
 
             return high_confidence_triaged_vulns
 
