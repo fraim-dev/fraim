@@ -8,19 +8,12 @@ from abc import ABC, abstractmethod
 from typing import Any, Generic, List, Protocol, TypeVar
 
 from fraim.config import Config
-from fraim.core.contextuals import CodeChunk
 from fraim.outputs import sarif
 
 
-# Temporarily bound the input type to include code and config until we've refactored
-# to push input handling into the workflow.
-#
-# Currently, the main loop that calls the workflow assumes that the workflow
-# wants a contextual code chunk and the global config.
 class WorkflowInput(Protocol):
     """Protocol defining the required input interface for all workflows."""
 
-    code: CodeChunk
     config: Config
 
 
