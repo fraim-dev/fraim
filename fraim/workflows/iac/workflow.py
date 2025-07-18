@@ -25,7 +25,7 @@ from fraim.core.workflows import Workflow
 from fraim.inputs.project import ProjectInput
 from fraim.outputs import sarif
 from fraim.workflows.registry import workflow
-from fraim.workflows.utils import write_sarif_and_html_report
+from fraim.workflows.utils import filter_results_by_confidence, write_sarif_and_html_report
 
 FILE_PATTERNS = [
     "*.tf",
@@ -173,8 +173,3 @@ class IaCWorkflow(Workflow[IaCInput, IaCOutput]):
         )
 
         return results
-
-
-def filter_results_by_confidence(results: List[sarif.Result], confidence_threshold: int) -> List[sarif.Result]:
-    """Filter results by confidence."""
-    return [result for result in results if result.properties.confidence > confidence_threshold]
