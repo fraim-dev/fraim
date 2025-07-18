@@ -29,7 +29,7 @@ class GitRemote(Files):
         self.path = Path(self.tempdir.name)
 
     def root_path(self) -> str:
-        return self.path.name
+        return str(self.path.absolute())
 
     def __enter__(self) -> "GitRemote":
         return self
