@@ -16,6 +16,6 @@ jobs:
     steps:
       - name: Run Fraim Security Scan
         id: fraim-scan
-        uses: fraim-dev/fraim-action@a89c4d378dd9e6bb36d6a84af0251e61ee7dea11
+        uses: fraim-dev/fraim-action@9f6e53bcbc9d13fdb2bd1b0bd927ffee87794f21
         with:
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
