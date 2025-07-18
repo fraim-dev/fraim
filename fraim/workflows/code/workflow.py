@@ -25,7 +25,7 @@ from fraim.outputs import sarif
 from fraim.tools.tree_sitter import TreeSitterTools
 from fraim.util.pydantic import merge_models
 from fraim.workflows.registry import workflow
-from fraim.workflows.utils import write_sarif_and_html_report
+from fraim.workflows.utils import filter_results_by_confidence, write_sarif_and_html_report
 
 from . import triage_sarif_overlay
 
@@ -225,8 +225,3 @@ class SASTWorkflow(Workflow[CodeInput, SASTOutput]):
         )
 
         return results
-
-
-def filter_results_by_confidence(results: List[sarif.Result], confidence_threshold: int) -> List[sarif.Result]:
-    """Filter results by confidence."""
-    return [result for result in results if result.properties.confidence >= confidence_threshold]
