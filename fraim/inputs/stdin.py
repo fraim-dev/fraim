@@ -14,6 +14,9 @@ class StandardInput(Files):
     def __init__(self, body: str):
         self.body = body
 
+    def root_path(self) -> str:
+        return "stdin"
+
     def __iter__(self) -> Iterator[File]:
         yield File(Path("stdin"), self.body)
 

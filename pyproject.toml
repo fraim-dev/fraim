@@ -27,6 +27,8 @@ dependencies = [
     "mcp-server-tree-sitter>=0.5.1",
     "packaging>=21.0",
     "pydantic>=2.11.1",
+    "gitpython>=3.1,<4.0",
+    "unidiff>=0.7,<1.0"
 ]
 
 [dependency-groups]
