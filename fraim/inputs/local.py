@@ -58,10 +58,9 @@ class Local(Files):
                 if path.is_file() and path not in seen:
                     seen.add(path)
                     self.config.logger.info(f"Reading file: {path}")
+                    # TODO: Avoid reading files that are too large?
                     try:
-                        yield File(
-                            path, path.read_text(encoding="utf-8")
-                        )  # buffer the files one at a time. avoid reading files that are too large?
+                        yield File(path, path.read_text(encoding="utf-8"))
                     except Exception as e:
                         if isinstance(e, UnicodeDecodeError):
                             self.config.logger.warning(f"Skipping file with encoding issues: {path}")
