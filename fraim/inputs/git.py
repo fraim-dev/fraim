@@ -48,13 +48,13 @@ class GitRemote(Files):
             yield file
 
     def _clone_to_path(self) -> None:
-        if not _is_directory_empty(self.path.name):
-            self.config.logger.debug("Target directory not empty, skipping git clone")
+        if not _is_directory_empty(str(self.path)):
+            self.config.logger.debug(f"Target directory {str(self.path)} not empty, skipping git clone")
             return
 
-        self.config.logger.info(f"Cloning repository: {self.path.name}")
+        self.config.logger.info(f"Cloning repository: {self.url}")
         result = subprocess.run(
-            args=["git", "clone", "--depth", "1", self.url, self.path.name], check=False, capture_output=True, text=True
+            args=["git", "clone", "--depth", "1", self.url, str(self.path)], check=False, capture_output=True, text=True
         )
 
         if result.returncode != 0:
