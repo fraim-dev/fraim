@@ -4,6 +4,8 @@
 """A step that calls an LLM"""
 
 import dataclasses
+import asyncio
+import logging
 from typing import TYPE_CHECKING, Any, Dict, Generic, List, Optional, TypeVar, Union
 
 if TYPE_CHECKING:
@@ -39,6 +41,8 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
         static_inputs: Optional[Dict[str, Any]] = None,
         tools: Optional[List[BaseTool]] = None,
         max_tool_iterations: Optional[int] = None,
+        max_retries: int = 3,
+        retry_delay: float = 1.0,
     ):
         """Creates a step that calls an LLM with a system prompt and a user prompt.
 
@@ -58,6 +62,8 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
             static_inputs: Static inputs to use for the system and user prompts
             tools: Optional list of tools to make available to the LLM
             max_tool_iterations: Optional maximum number of tool iterations (if not provided, uses LLM's default)
+            max_retries: Maximum number of retries when LLM returns None content (default: 3)
+            retry_delay: Base delay in seconds between retries, with exponential backoff (default: 1.0)
         """
         if tools is not None:
             self.llm = llm.with_tools(tools, max_tool_iterations)
@@ -66,6 +72,8 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
 
         self.system_prompt = system_prompt
         self.user_prompt = user_prompt
+        self.max_retries = max_retries
+        self.retry_delay = retry_delay
 
         # Automatically wrap parser in RetryOnErrorOutputParser if it's not already one
         # TODO: add a way to disable this automatic wrapping
@@ -116,19 +124,46 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
 
     async def run(self, input: TDynamicInput, **kwargs: Any) -> TOutput:
         messages = self._prepare_messages(_normalize_input(input))
-        response = await self.llm.run(messages)
+        logger = logging.getLogger(__name__)
+        
+        for attempt in range(self.max_retries + 1):
+            try:
+                response = await self.llm.run(messages)
 
-        choice = response.choices[0]
-        if isinstance(choice, StreamingChoices):
-            raise ValueError("Streaming responses are not supported")
+                choice = response.choices[0]
+                if isinstance(choice, StreamingChoices):
+                    raise ValueError("Streaming responses are not supported")
 
-        # At this point, choice is guaranteed to be of type Choices
-        message_content = choice.message.content
-        if message_content is None:
-            raise ValueError("Message content is None")
+                # At this point, choice is guaranteed to be of type Choices
+                message_content = choice.message.content
+                if message_content is None:
+                    if attempt < self.max_retries:
+                        delay = self.retry_delay * (2 ** attempt)  # Exponential backoff
+                        logger.warning(
+                            f"LLM returned None content on attempt {attempt + 1}/{self.max_retries + 1}. "
+                            f"Retrying in {delay:.1f} seconds... Response: {choice}"
+                        )
+                        await asyncio.sleep(delay)
+                        continue
+                    else:
+                        logger.error(f"LLM returned None content after {self.max_retries + 1} attempts. Final response: {choice}")
+                        raise ValueError("Message content is None after all retry attempts")
 
-        context = ParseContext(llm=self.llm, messages=messages)
-        return await self.parser.parse(message_content, context=context)
+                # Success - parse and return the result
+                context = ParseContext(llm=self.llm, messages=messages)
+                return await self.parser.parse(message_content, context=context)
+                
+            except Exception as e:
+                # Only retry on None content errors, not other exceptions
+                if "Message content is None" not in str(e) or attempt == self.max_retries:
+                    raise
+                
+                delay = self.retry_delay * (2 ** attempt)
+                logger.warning(f"Error on attempt {attempt + 1}/{self.max_retries + 1}: {e}. Retrying in {delay:.1f} seconds...")
+                await asyncio.sleep(delay)
+        
+        # This should never be reached due to the exception handling above, but satisfies the linter
+        raise ValueError("Unexpected end of retry loop")
 
     def _prepare_messages(self, input: Dict[str, Any]) -> List[Message]:
         user_message = self._render_user_message(input)
