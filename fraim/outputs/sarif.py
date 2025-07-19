@@ -96,6 +96,42 @@ class CodeFlow(BaseSchema):
     )
 
 
+class Replacement(BaseSchema):
+    """A replacement of a single region of an artifact."""
+
+    deletedRegion: Optional[Region] = Field(
+        default=None,
+        description="The region of the artifact to delete."
+    )
+    insertedContent: Optional[ArtifactContent] = Field(
+        default=None,
+        description="The content to insert at the location specified by the 'deletedRegion' property."
+    )
+
+
+class ArtifactChange(BaseSchema):
+    """A change to a single artifact."""
+
+    artifactLocation: ArtifactLocation = Field(
+        description="The location of the artifact to change."
+    )
+    replacements: List[Replacement] = Field(
+        description="An array of one or more replacements to be made to the artifact."
+    )
+
+
+class Fix(BaseSchema):
+    """A proposed fix for the problem represented by a result object."""
+
+    description: Optional[Message] = Field(
+        default=None,
+        description="A message that describes the proposed fix, enabling viewers to present a proposed fix to an end user."
+    )
+    artifactChanges: List[ArtifactChange] = Field(
+        description="One or more artifact changes that comprise a fix for a result."
+    )
+
+
 class ResultProperties(BaseSchema):
     """Key/value pairs that provide additional information about a result."""
 
@@ -127,6 +163,10 @@ class Result(BaseSchema):
     codeFlows: Optional[List[CodeFlow]] = Field(
         default=None,
         description="An array of zero or more unique codeFlow objects, each of which describes a pattern of execution relevant to detecting the result.",
+    )
+    fixes: Optional[List[Fix]] = Field(
+        default=None,
+        description="An array of zero or more unique fix objects, each of which represents a proposed fix for the problem indicated by the result."
     )
 
 

@@ -34,9 +34,9 @@ class ProjectInput:
             self.files = GitRemote(self.config, url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_")
             self.project_path = self.files.root_path()
         else:
-            self.project_path = path_or_url
             self.repo_name = os.path.basename(os.path.abspath(path_or_url))
             self.files = Local(self.config, Path(path_or_url), globs=globs, limit=limit)
+            self.project_path = self.files.root_path()
 
     def __iter__(self) -> Generator[CodeChunk, None, None]:
         with self.files as files:
