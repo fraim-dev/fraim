@@ -42,7 +42,7 @@ class Local(Files):
         self.limit = limit
 
     def root_path(self) -> str:
-        return self.path.name
+        return str(self.path.absolute())
 
     def __iter__(self) -> Iterator[File]:
         self.config.logger.info(f"Scanning local files: {self.path}, with globs: {self.globs}")
@@ -57,7 +57,7 @@ class Local(Files):
             for path in self.path.rglob(glob_pattern):
                 if path.is_file() and path not in seen:
                     seen.add(path)
-                    self.config.logger.info(f"Reading file: {path}")
+                    self.config.logger.debug(f"Reading file: {path}")
                     try:
                         yield File(
                             path, path.read_text(encoding="utf-8")

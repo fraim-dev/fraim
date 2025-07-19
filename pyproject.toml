@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fraim"
-version = "0.3.2"
+version = "0.3.3.dev1"
 description = "A CLI app that runs AI-powered security workflows"
 readme = "README.md"
 requires-python = ">=3.12"
