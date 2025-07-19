@@ -30,6 +30,7 @@ from fraim.workflows.utils import filter_results_by_confidence, write_sarif_and_
 from . import triage_sarif_overlay
 
 FILE_PATTERNS = [
+    "*.tf",
     "*.py",
     "*.c",
     "*.cpp",

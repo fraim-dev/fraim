@@ -526,4 +526,9 @@ class SearchTextTool(TreeSitterBaseTool):
 
 
 def get_most_common_language(project: Project) -> str:
+    if not project.languages:
+        # Default to a common language if no languages are detected
+        # This can happen with infrastructure-only projects that contain
+        # only .tf, .yaml, .json, .docker files etc.
+        return "python"  # Safe fallback for tree-sitter operations
     return max(project.languages.keys(), key=lambda x: project.languages[x])  # type: ignore[no-any-return]
