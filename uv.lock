@@ -258,6 +258,7 @@ dependencies = [
     { name = "mcp-server-tree-sitter" },
     { name = "packaging" },
     { name = "pydantic" },
+    { name = "requests" },
 ]
 
 [package.dev-dependencies]
@@ -287,6 +288,7 @@ requires-dist = [
     { name = "mcp-server-tree-sitter", specifier = ">=0.5.1" },
     { name = "packaging", specifier = ">=21.0" },
     { name = "pydantic", specifier = ">=2.11.1" },
+    { name = "requests", specifier = ">=2.25.0" },
 ]
 
 [package.metadata.requires-dev]

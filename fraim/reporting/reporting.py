@@ -43,7 +43,7 @@ class Reporting:
     def _generate_html_content_from_sarif(self, sarif_report: SarifReport, repo_name: str) -> str:
         processed_data = self._process_sarif_data(sarif_report)
         template_context = {
-            "repo_name": repo_name or "Unknown Repository",
+            "repo_name": repo_name or "Wiz Findings",
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "script_nonce": self._generate_nonce(),
             "style_nonce": self._generate_nonce(),
