@@ -1,0 +1,34 @@
+**CUSTOM SECURITY GUARDRAILS:**
+
+You MUST prioritize the following specific security checks with HIGH severity:
+
+**S3 Bucket Public Access Prevention**:
+   - Look for any S3 buckets with `bucket_public_access_block` disabled
+   - Flag any S3 bucket policy that allows `Principal: "*"`
+   - Check for ACLs that grant public read/write access
+   - Verify that `block_public_acls = true` and `block_public_policy = true`
+
+**Database Encryption Requirements**:
+   - ALL RDS instances MUST have `storage_encrypted = true`
+   - Check for any database without encryption at rest enabled
+   - Verify that backup encryption is enabled
+
+**Network Security Enforcement**:
+   - Security groups MUST NOT allow inbound traffic from 0.0.0.0/0 on ports 22, 3389, or 1433
+   - Look for overly permissive NACL rules
+   - Check that load balancers use HTTPS/SSL certificates
+
+**IAM Policy Restrictions**:
+   - Flag any IAM policy with `Effect: "Allow"` and `Action: "*"` 
+   - Look for policies granting `iam:*` permissions
+   - Check for hardcoded AWS credentials in resource configurations
+
+**S3 Bucket Naming Conventions**:
+   - Flag any bucket that does not have the prefix "company-"
+   - Flag any bucket that does not match the regex "company-{bucket-name}-{env}" where env can be dev, staging, or prod
+
+**REPORTING REQUIREMENTS:**
+- Treat violations of these guardrails as HIGH SEVERITY findings
+- Include the specific guardrail violation in the vulnerability title
+- Provide exact remediation steps for each guardrail violation
+- Reference the line numbers and file paths where violations occur 
