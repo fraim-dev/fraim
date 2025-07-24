@@ -19,12 +19,7 @@ class WorkflowInput(Protocol):
 
 TInput = TypeVar("TInput", bound=WorkflowInput)
 
-# Temporarily bound the output type to List[sarif.Result] until we've refactored to push
-# output reporting into the workflow.
-#
-# Currently, the main loop that calls the workflow assumes that the output is a list of
-# sarif.Result objects.
-TOutput = TypeVar("TOutput", bound=List[sarif.Result])
+TOutput = TypeVar("TOutput")
 
 
 class Workflow(ABC, Generic[TInput, TOutput]):
