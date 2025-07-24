@@ -8,11 +8,10 @@ Analyzes source code and documentation to extract system purpose, intended users
 This workflow addresses the Project Overview section of threat assessment questionnaires.
 """
 
-import asyncio
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated, Any, Dict, List, Optional, Set
+from typing import Annotated, Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -22,9 +21,7 @@ from fraim.core.llms.litellm import LiteLLM
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
-from fraim.core.workflows import ChunkWorkflowInput, Workflow
-from fraim.inputs.project import ProjectInput
-from fraim.outputs import sarif
+from fraim.core.workflows import ChunkProcessingMixin, ChunkWorkflowInput, Workflow
 from fraim.workflows.registry import workflow
 
 # File patterns for system analysis - focusing on documentation and key configuration files
@@ -103,13 +100,11 @@ SYSTEM_ANALYSIS_PROMPTS = PromptTemplate.from_yaml(
 class SystemAnalysisInput(ChunkWorkflowInput):
     """Input for the System Analysis workflow."""
 
-    business_context: Annotated[
-        str, {"help": "Additional business context to consider during analysis"}
-    ] = ""
+    business_context: Annotated[str, {"help": "Additional business context to consider during analysis"}] = ""
 
     focus_areas: Annotated[
         Optional[List[str]],
-        {"help": "Specific areas to focus on (e.g., authentication, data_processing, api_endpoints)"}
+        {"help": "Specific areas to focus on (e.g., authentication, data_processing, api_endpoints)"},
     ] = None
 
 
@@ -137,7 +132,7 @@ class SystemAnalysisChunkInput:
 
 
 @workflow("system_analysis")
-class SystemAnalysisWorkflow(Workflow[SystemAnalysisInput, Dict[str, Any]]):
+class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput, Dict[str, Any]]):
     """
     Analyzes codebase and documentation to extract system purpose, intended users, and business context.
 
@@ -150,16 +145,13 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisInput, Dict[str, Any]]):
     """
 
     def __init__(self, config: Config, *args: Any, **kwargs: Any) -> None:
-        self.config = config
+        super().__init__(config, *args, **kwargs)
 
         # Initialize LLM and analysis step
         self.llm = LiteLLM.from_config(self.config)
         analysis_parser = PydanticOutputParser(SystemAnalysisResult)
         self.analysis_step: LLMStep[SystemAnalysisChunkInput, SystemAnalysisResult] = LLMStep(
-            self.llm,
-            SYSTEM_ANALYSIS_PROMPTS["system"],
-            SYSTEM_ANALYSIS_PROMPTS["user"],
-            analysis_parser
+            self.llm, SYSTEM_ANALYSIS_PROMPTS["system"], SYSTEM_ANALYSIS_PROMPTS["user"], analysis_parser
         )
 
     @property
@@ -167,99 +159,33 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisInput, Dict[str, Any]]):
         """File patterns for system analysis."""
         return FILE_PATTERNS
 
-    def setup_project_input(self, input: SystemAnalysisInput) -> ProjectInput:
-        """Setup project input for analysis."""
-        from types import SimpleNamespace
-
-        effective_globs = input.globs if input.globs is not None else self.file_patterns
-        kwargs = SimpleNamespace(
-            location=input.location,
-            globs=effective_globs,
-            limit=input.limit,
-            chunk_size=input.chunk_size
-        )
-        return ProjectInput(config=self.config, kwargs=kwargs)
-
-    async def process_chunks_concurrently(
-        self,
-        project: ProjectInput,
-        input: SystemAnalysisInput,
-        max_concurrent_chunks: int = 5,
-    ) -> List[SystemAnalysisResult]:
-        """Process chunks concurrently for system analysis."""
-        results: List[SystemAnalysisResult] = []
-
-        # Create semaphore to limit concurrent chunk processing
-        semaphore = asyncio.Semaphore(max_concurrent_chunks)
-
-        async def process_chunk_with_semaphore(chunk: CodeChunk) -> Optional[SystemAnalysisResult]:
-            """Process a chunk with semaphore to limit concurrency."""
-            async with semaphore:
-                return await self._process_single_chunk(
-                    chunk,
-                    input.business_context,
-                    input.focus_areas
-                )
-
-        # Process chunks as they stream in from the ProjectInput iterator
-        active_tasks: Set[asyncio.Task] = set()
-
-        for chunk in project:
-            # Create task for this chunk and add to active tasks
-            task = asyncio.create_task(process_chunk_with_semaphore(chunk))
-            active_tasks.add(task)
-
-            # If we've hit our concurrency limit, wait for some tasks to complete
-            if len(active_tasks) >= max_concurrent_chunks:
-                done, active_tasks = await asyncio.wait(active_tasks, return_when=asyncio.FIRST_COMPLETED)
-                for completed_task in done:
-                    chunk_result = await completed_task
-                    if chunk_result:
-                        results.append(chunk_result)
-
-        # Wait for any remaining tasks to complete
-        if active_tasks:
-            for future in asyncio.as_completed(active_tasks):
-                chunk_result = await future
-                if chunk_result:
-                    results.append(chunk_result)
-
-        return results
-
     async def _process_single_chunk(
-        self,
-        chunk: CodeChunk,
-        business_context: str = "",
-        focus_areas: Optional[List[str]] = None
-    ) -> Optional[SystemAnalysisResult]:
+        self, chunk: CodeChunk, business_context: str = "", focus_areas: Optional[List[str]] = None
+    ) -> List[SystemAnalysisResult]:
         """Process a single chunk to extract system information."""
         try:
-            self.config.logger.debug(
-                f"Analyzing chunk: {Path(chunk.file_path)}")
+            self.config.logger.debug(f"Analyzing chunk: {Path(chunk.file_path)}")
 
             chunk_input = SystemAnalysisChunkInput(
-                code=chunk,
-                config=self.config,
-                business_context=business_context,
-                focus_areas=focus_areas
+                code=chunk, config=self.config, business_context=business_context, focus_areas=focus_areas
             )
 
             result = await self.analysis_step.run(chunk_input)
 
             # Only return results with high confidence
             if result.confidence_score >= 0.8:
-                return result
+                return [result]
             else:
                 self.config.logger.debug(
                     f"Low confidence result ({result.confidence_score}) for {chunk.file_path}, skipping"
                 )
-                return None
+                return []
 
         except Exception as e:
             self.config.logger.error(
                 f"Failed to analyze chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {str(e)}"
             )
-            return None
+            return []
 
     def _aggregate_results(self, chunk_results: List[SystemAnalysisResult]) -> Dict[str, Any]:
         """Aggregate results from multiple chunks into a comprehensive system analysis."""
@@ -276,12 +202,11 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisInput, Dict[str, Any]]):
                 "confidence_score": 0.0,
                 "analysis_summary": "No analyzable files found",
                 "files_analyzed": 0,
-                "total_chunks_processed": 0
+                "total_chunks_processed": 0,
             }
 
         # Aggregate all findings
-        all_purposes = [
-            r.system_purpose for r in chunk_results if r.system_purpose.strip()]
+        all_purposes = [r.system_purpose for r in chunk_results if r.system_purpose.strip()]
         all_users = []
         all_contexts = []
         all_features = []
@@ -302,14 +227,11 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisInput, Dict[str, Any]]):
         unique_users = self._smart_deduplicate(all_users, max_items=7)
         unique_features = self._smart_deduplicate(all_features, max_items=10)
         unique_roles = self._smart_deduplicate(all_roles, max_items=6)
-        unique_integrations = self._smart_deduplicate(
-            all_integrations, max_items=8)
-        unique_data_types = self._smart_deduplicate(
-            all_data_types, max_items=10)
+        unique_integrations = self._smart_deduplicate(all_integrations, max_items=8)
+        unique_data_types = self._smart_deduplicate(all_data_types, max_items=10)
 
         # Select best system purpose (longest, most descriptive one)
-        system_purpose = max(
-            all_purposes, key=len) if all_purposes else "System purpose unclear"
+        system_purpose = max(all_purposes, key=len) if all_purposes else "System purpose unclear"
 
         # Combine business contexts intelligently
         business_context = self._merge_contexts(all_contexts)
@@ -320,8 +242,7 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisInput, Dict[str, Any]]):
 
         # Create comprehensive summary
         analysis_summary = self._create_analysis_summary(
-            system_purpose, unique_users, unique_features, unique_roles, len(
-                chunk_results)
+            system_purpose, unique_users, unique_features, unique_roles, len(chunk_results)
         )
 
         return {
@@ -335,7 +256,7 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisInput, Dict[str, Any]]):
             "confidence_score": avg_confidence,
             "analysis_summary": analysis_summary,
             "files_analyzed": len(chunk_results),
-            "total_chunks_processed": len(chunk_results)
+            "total_chunks_processed": len(chunk_results),
         }
 
     def _smart_deduplicate(self, items: List[str], max_items: int = 10) -> List[str]:
@@ -402,16 +323,45 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisInput, Dict[str, Any]]):
         """Clean text for similarity comparison."""
         # Remove common filler words and normalize
         common_words = {
-            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-            'of', 'with', 'by', 'via', 'through', 'using', 'user', 'users',
-            'system', 'application', 'app', 'data', 'information', 'content',
-            '(', ')', '[', ']', '-', ',', '.', ':', ';'
+            "the",
+            "a",
+            "an",
+            "and",
+            "or",
+            "but",
+            "in",
+            "on",
+            "at",
+            "to",
+            "for",
+            "of",
+            "with",
+            "by",
+            "via",
+            "through",
+            "using",
+            "user",
+            "users",
+            "system",
+            "application",
+            "app",
+            "data",
+            "information",
+            "content",
+            "(",
+            ")",
+            "[",
+            "]",
+            "-",
+            ",",
+            ".",
+            ":",
+            ";",
         }
 
         words = text.lower().split()
-        cleaned_words = [w.strip('()[],-.:;')
-                         for w in words if w.strip('()[],-.:;') not in common_words]
-        return ' '.join(cleaned_words)
+        cleaned_words = [w.strip("()[],-.:;") for w in words if w.strip("()[],-.:;") not in common_words]
+        return " ".join(cleaned_words)
 
     def _merge_contexts(self, contexts: List[str]) -> str:
         """Intelligently merge business contexts, removing redundancy."""
@@ -423,8 +373,7 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisInput, Dict[str, Any]]):
         seen_content = set()
 
         for context in contexts:
-            sentences = [s.strip() for s in context.replace(
-                '.', '.\n').split('\n') if s.strip()]
+            sentences = [s.strip() for s in context.replace(".", ".\n").split("\n") if s.strip()]
             for sentence in sentences:
                 sentence_clean = sentence.strip().lower()
                 if sentence_clean not in seen_content and len(sentence) > 10:
@@ -432,22 +381,17 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisInput, Dict[str, Any]]):
                     unique_sentences.append(sentence)
 
         # Combine and limit length
-        combined = '. '.join(unique_sentences[:5])  # Max 5 sentences
+        combined = ". ".join(unique_sentences[:5])  # Max 5 sentences
         return combined
 
     def _create_analysis_summary(
-        self,
-        purpose: str,
-        users: List[str],
-        features: List[str],
-        roles: List[str],
-        files_analyzed: int
+        self, purpose: str, users: List[str], features: List[str], roles: List[str], files_analyzed: int
     ) -> str:
         """Create a human-readable summary of the analysis."""
 
         summary_parts = [
             f"Analyzed {files_analyzed} files to understand system characteristics.",
-            f"System Purpose: {purpose}"
+            f"System Purpose: {purpose}",
         ]
 
         if users:
@@ -472,17 +416,19 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisInput, Dict[str, Any]]):
         try:
             self.config.logger.info("Starting System Analysis workflow")
 
-            # 1. Setup project input
+            # 1. Setup project input using mixin utility
             project = self.setup_project_input(input)
 
-            # 2. Process chunks concurrently
+            # 2. Create a closure that captures business_context and focus_areas
+            async def chunk_processor(chunk: CodeChunk) -> List[SystemAnalysisResult]:
+                return await self._process_single_chunk(chunk, input.business_context, input.focus_areas)
+
+            # 3. Process chunks concurrently using mixin utility
             chunk_results = await self.process_chunks_concurrently(
-                project=project,
-                input=input,
-                max_concurrent_chunks=input.max_concurrent_chunks
+                project=project, chunk_processor=chunk_processor, max_concurrent_chunks=input.max_concurrent_chunks
             )
 
-            # 3. Aggregate results
+            # 4. Aggregate results
             final_result = self._aggregate_results(chunk_results)
 
             self.config.logger.info(
@@ -490,27 +436,26 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisInput, Dict[str, Any]]):
                 f"Confidence: {final_result['confidence_score']:.2f}"
             )
 
+            # 5. Write output file if output_dir is configured
             output_dir = getattr(self.config, "output_dir", None)
             if output_dir:
-                import os
                 import datetime
+                import os
 
                 os.makedirs(output_dir, exist_ok=True)
                 app_name = getattr(self.config, "project_path", "application")
-                app_name = os.path.basename(
-                    app_name.rstrip(os.sep)) or "application"
+                app_name = os.path.basename(app_name.rstrip(os.sep)) or "application"
                 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                 output_filename = f"system_analysis_{app_name}_{timestamp}.json"
                 output_path = os.path.join(output_dir, output_filename)
                 try:
                     import json
+
                     with open(output_path, "w", encoding="utf-8") as f:
                         json.dump(final_result, f, indent=2)
-                    self.config.logger.info(
-                        f"System analysis results written to {output_path}")
+                    self.config.logger.info(f"System analysis results written to {output_path}")
                 except Exception as write_exc:
-                    self.config.logger.error(
-                        f"Failed to write system analysis results: {write_exc}")
+                    self.config.logger.error(f"Failed to write system analysis results: {write_exc}")
 
             return final_result
 
