@@ -90,10 +90,14 @@ FILE_PATTERNS = [
     "routes.js",
 ]
 
-# Load prompts from YAML file
-SYSTEM_ANALYSIS_PROMPTS = PromptTemplate.from_yaml(
-    os.path.join(os.path.dirname(__file__), "system_analysis_prompts.yaml")
+# Load prompts from YAML files
+DOCUMENT_ASSESSMENT_PROMPTS = PromptTemplate.from_yaml(
+    os.path.join(os.path.dirname(__file__), "document_assessment_prompts.yaml")
 )
+ANALYSIS_AND_DEDUP_PROMPTS = PromptTemplate.from_yaml(
+    os.path.join(os.path.dirname(__file__), "analysis_and_dedup_prompts.yaml")
+)
+FINAL_DEDUP_PROMPTS = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__file__), "final_dedup_prompts.yaml"))
 
 
 @dataclass
@@ -108,6 +112,14 @@ class SystemAnalysisInput(ChunkWorkflowInput):
     ] = None
 
 
+class DocumentAssessmentResult(BaseModel):
+    """Result from document type assessment and confidence scoring."""
+
+    document_type: str  # "SYSTEM_INFORMATION" or "POLICY_PROCESS_DOCUMENTATION"
+    confidence_score: float
+    reasoning: str
+
+
 class SystemAnalysisResult(BaseModel):
     """Structured result from system analysis."""
 
@@ -118,7 +130,18 @@ class SystemAnalysisResult(BaseModel):
     user_roles: List[str]
     external_integrations: List[str]
     data_types: List[str]
-    confidence_score: float
+
+
+class FinalAnalysisResult(BaseModel):
+    """Final aggregated and deduplicated system analysis result."""
+
+    system_purpose: str
+    intended_users: List[str]
+    business_context: str
+    key_features: List[str]
+    user_roles: List[str]
+    external_integrations: List[str]
+    data_types: List[str]
 
 
 @dataclass
@@ -129,6 +152,16 @@ class SystemAnalysisChunkInput:
     config: Config
     business_context: str = ""
     focus_areas: Optional[List[str]] = None
+    previous_findings: Optional[Dict[str, List[str]]] = None
+
+
+@dataclass
+class FinalDedupInput:
+    """Input for final deduplication step."""
+
+    # List of individual results with file_name added
+    analysis_results: List[Dict[str, Any]]
+    config: Config
 
 
 @workflow("system_analysis")
@@ -147,11 +180,25 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
     def __init__(self, config: Config, *args: Any, **kwargs: Any) -> None:
         super().__init__(config, *args, **kwargs)
 
-        # Initialize LLM and analysis step
+        # Initialize LLM and both analysis steps
         self.llm = LiteLLM.from_config(self.config)
+
+        # Step 1: Document assessment and confidence scoring
+        assessment_parser = PydanticOutputParser(DocumentAssessmentResult)
+        self.assessment_step: LLMStep[SystemAnalysisChunkInput, DocumentAssessmentResult] = LLMStep(
+            self.llm, DOCUMENT_ASSESSMENT_PROMPTS["system"], DOCUMENT_ASSESSMENT_PROMPTS["user"], assessment_parser
+        )
+
+        # Step 2: Analysis and deduplication
         analysis_parser = PydanticOutputParser(SystemAnalysisResult)
         self.analysis_step: LLMStep[SystemAnalysisChunkInput, SystemAnalysisResult] = LLMStep(
-            self.llm, SYSTEM_ANALYSIS_PROMPTS["system"], SYSTEM_ANALYSIS_PROMPTS["user"], analysis_parser
+            self.llm, ANALYSIS_AND_DEDUP_PROMPTS["system"], ANALYSIS_AND_DEDUP_PROMPTS["user"], analysis_parser
+        )
+
+        # Step 3: Final aggregation and deduplication
+        final_parser = PydanticOutputParser(FinalAnalysisResult)
+        self.final_dedup_step: LLMStep[FinalDedupInput, FinalAnalysisResult] = LLMStep(
+            self.llm, FINAL_DEDUP_PROMPTS["system"], FINAL_DEDUP_PROMPTS["user"], final_parser
         )
 
     @property
@@ -162,35 +209,55 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
     async def _process_single_chunk(
         self, chunk: CodeChunk, business_context: str = "", focus_areas: Optional[List[str]] = None
     ) -> List[SystemAnalysisResult]:
-        """Process a single chunk to extract system information."""
+        """Process a single chunk using two-step analysis: assessment then analysis."""
         try:
-            self.config.logger.debug(f"Analyzing chunk: {Path(chunk.file_path)}")
+            self.config.logger.debug(f"Processing chunk: {Path(chunk.file_path)}")
 
             chunk_input = SystemAnalysisChunkInput(
-                code=chunk, config=self.config, business_context=business_context, focus_areas=focus_areas
+                code=chunk,
+                config=self.config,
+                business_context=business_context,
+                focus_areas=focus_areas,
+                previous_findings={},  # Empty for now since each chunk is analyzed independently
             )
 
-            result = await self.analysis_step.run(chunk_input)
+            # Step 1: Document assessment and confidence scoring
+            assessment = await self.assessment_step.run(chunk_input)
 
-            # Only return results with high confidence
-            if result.confidence_score >= 0.8:
-                return [result]
-            else:
+            self.config.logger.debug(
+                f"Assessment for {chunk.file_path}: confidence={assessment.confidence_score:.2f}, "
+                f"type='{assessment.document_type}', reasoning='{assessment.reasoning[:100]}...'"
+            )
+
+            # Only proceed to analysis if confidence is high enough and document type is relevant
+            # Lowered threshold to 0.5 and made document type matching case-insensitive
+            if assessment.confidence_score < 0.5 or "SYSTEM" not in assessment.document_type.upper():
                 self.config.logger.debug(
-                    f"Low confidence result ({result.confidence_score}) for {chunk.file_path}, skipping"
+                    f"Skipping chunk {chunk.file_path} - confidence: {assessment.confidence_score:.2f}, "
+                    f"type: '{assessment.document_type}'"
                 )
                 return []
 
+            # Step 2: System analysis and deduplication
+            self.config.logger.debug(f"Analyzing chunk: {Path(chunk.file_path)}")
+            result = await self.analysis_step.run(chunk_input)
+            return [result]
+
         except Exception as e:
             self.config.logger.error(
-                f"Failed to analyze chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {str(e)}"
+                f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {str(e)}"
             )
             return []
 
-    def _aggregate_results(self, chunk_results: List[SystemAnalysisResult]) -> Dict[str, Any]:
-        """Aggregate results from multiple chunks into a comprehensive system analysis."""
+    async def _aggregate_results(self, chunk_results: List[SystemAnalysisResult]) -> Dict[str, Any]:
+        """Aggregate results from multiple chunks using LLM-based deduplication."""
 
         if not chunk_results:
+            self.config.logger.warning(
+                "No chunks passed document assessment filtering. "
+                "This might indicate that the confidence threshold is too high or "
+                "document types are not being classified as expected."
+            )
             return {
                 "system_purpose": "Unable to determine system purpose from available files",
                 "intended_users": [],
@@ -200,50 +267,93 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
                 "external_integrations": [],
                 "data_types": [],
                 "confidence_score": 0.0,
-                "analysis_summary": "No analyzable files found",
+                "analysis_summary": "No analyzable files found - check assessment filtering",
                 "files_analyzed": 0,
                 "total_chunks_processed": 0,
             }
 
-        # Aggregate all findings
+        try:
+            # Prepare data for final deduplication step
+            analysis_results_for_llm = []
+            for i, result in enumerate(chunk_results):
+                analysis_results_for_llm.append(
+                    {
+                        # We don't have individual file names, so use generic names
+                        "file_name": f"File {i + 1}",
+                        "system_purpose": result.system_purpose,
+                        "intended_users": result.intended_users,
+                        "business_context": result.business_context,
+                        "key_features": result.key_features,
+                        "user_roles": result.user_roles,
+                        "external_integrations": result.external_integrations,
+                        "data_types": result.data_types,
+                    }
+                )
+
+            # Run final LLM-based deduplication
+            final_input = FinalDedupInput(analysis_results=analysis_results_for_llm, config=self.config)
+
+            final_result = await self.final_dedup_step.run(final_input)
+
+            # Set confidence based on number of files analyzed (more files = higher confidence)
+            confidence_score = min(0.9, 0.6 + (len(chunk_results) * 0.1))
+
+            # Create comprehensive summary
+            analysis_summary = self._create_analysis_summary(
+                final_result.system_purpose,
+                final_result.intended_users,
+                final_result.key_features,
+                final_result.user_roles,
+                len(chunk_results),
+            )
+
+            return {
+                "system_purpose": final_result.system_purpose,
+                "intended_users": final_result.intended_users,
+                "business_context": final_result.business_context,
+                "key_features": final_result.key_features,
+                "user_roles": final_result.user_roles,
+                "external_integrations": final_result.external_integrations,
+                "data_types": final_result.data_types,
+                "confidence_score": confidence_score,
+                "analysis_summary": analysis_summary,
+                "files_analyzed": len(chunk_results),
+                "total_chunks_processed": len(chunk_results),
+            }
+
+        except Exception as e:
+            self.config.logger.error(f"Failed to run final deduplication: {str(e)}")
+            # Fallback to simple aggregation if LLM step fails
+            return self._simple_fallback_aggregation(chunk_results)
+
+    def _simple_fallback_aggregation(self, chunk_results: List[SystemAnalysisResult]) -> Dict[str, Any]:
+        """Simple fallback aggregation when LLM deduplication fails."""
         all_purposes = [r.system_purpose for r in chunk_results if r.system_purpose.strip()]
         all_users = []
-        all_contexts = []
         all_features = []
         all_roles = []
         all_integrations = []
         all_data_types = []
+        all_contexts = []
 
         for result in chunk_results:
             all_users.extend(result.intended_users)
-            if result.business_context.strip():
-                all_contexts.append(result.business_context)
             all_features.extend(result.key_features)
             all_roles.extend(result.user_roles)
             all_integrations.extend(result.external_integrations)
             all_data_types.extend(result.data_types)
+            if result.business_context.strip():
+                all_contexts.append(result.business_context)
 
-        # Smart deduplication with similarity matching
-        unique_users = self._smart_deduplicate(all_users, max_items=7)
-        unique_features = self._smart_deduplicate(all_features, max_items=10)
-        unique_roles = self._smart_deduplicate(all_roles, max_items=6)
-        unique_integrations = self._smart_deduplicate(all_integrations, max_items=8)
-        unique_data_types = self._smart_deduplicate(all_data_types, max_items=10)
+        # Simple deduplication (just remove exact duplicates)
+        unique_users = list(dict.fromkeys(all_users))[:7]
+        unique_features = list(dict.fromkeys(all_features))[:10]
+        unique_roles = list(dict.fromkeys(all_roles))[:6]
+        unique_integrations = list(dict.fromkeys(all_integrations))[:8]
+        unique_data_types = list(dict.fromkeys(all_data_types))[:10]
 
-        # Select best system purpose (longest, most descriptive one)
         system_purpose = max(all_purposes, key=len) if all_purposes else "System purpose unclear"
-
-        # Combine business contexts intelligently
-        business_context = self._merge_contexts(all_contexts)
-
-        # Calculate overall confidence (weighted average based on evidence quality)
-        total_confidence = sum(r.confidence_score for r in chunk_results)
-        avg_confidence = total_confidence / len(chunk_results)
-
-        # Create comprehensive summary
-        analysis_summary = self._create_analysis_summary(
-            system_purpose, unique_users, unique_features, unique_roles, len(chunk_results)
-        )
+        business_context = " ".join(all_contexts)[:500]  # Simple truncation
 
         return {
             "system_purpose": system_purpose,
@@ -253,136 +363,11 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
             "user_roles": unique_roles,
             "external_integrations": unique_integrations,
             "data_types": unique_data_types,
-            "confidence_score": avg_confidence,
-            "analysis_summary": analysis_summary,
+            "confidence_score": 0.5,  # Lower confidence for fallback
+            "analysis_summary": f"Fallback analysis of {len(chunk_results)} files",
             "files_analyzed": len(chunk_results),
             "total_chunks_processed": len(chunk_results),
         }
-
-    def _smart_deduplicate(self, items: List[str], max_items: int = 10) -> List[str]:
-        """Intelligently deduplicate items with similarity matching."""
-        if not items:
-            return []
-
-        # First pass: exact duplicates and normalize
-        seen = set()
-        normalized_items = []
-
-        for item in items:
-            if not item or not item.strip():
-                continue
-
-            # Normalize: strip, lower for comparison, but keep original case
-            item = item.strip()
-            normalized = item.lower()
-
-            if normalized not in seen:
-                seen.add(normalized)
-                normalized_items.append(item)
-
-        # Second pass: merge very similar items
-        final_items: List[str] = []
-        for item in normalized_items:
-            is_duplicate = False
-            for existing in final_items:
-                # Check if items are very similar (substring or very close)
-                if self._are_similar(item, existing):
-                    is_duplicate = True
-                    break
-
-            if not is_duplicate:
-                final_items.append(item)
-
-        # Sort by length (longer descriptions first) and take top items
-        final_items.sort(key=len, reverse=True)
-        return final_items[:max_items]
-
-    def _are_similar(self, item1: str, item2: str) -> bool:
-        """Check if two items are similar enough to be considered duplicates."""
-        item1_lower = item1.lower().strip()
-        item2_lower = item2.lower().strip()
-
-        # Exact match
-        if item1_lower == item2_lower:
-            return True
-
-        # One is substring of the other
-        if item1_lower in item2_lower or item2_lower in item1_lower:
-            return True
-
-        # Very similar after removing common words
-        item1_clean = self._clean_for_comparison(item1_lower)
-        item2_clean = self._clean_for_comparison(item2_lower)
-
-        if item1_clean == item2_clean:
-            return True
-
-        return False
-
-    def _clean_for_comparison(self, text: str) -> str:
-        """Clean text for similarity comparison."""
-        # Remove common filler words and normalize
-        common_words = {
-            "the",
-            "a",
-            "an",
-            "and",
-            "or",
-            "but",
-            "in",
-            "on",
-            "at",
-            "to",
-            "for",
-            "of",
-            "with",
-            "by",
-            "via",
-            "through",
-            "using",
-            "user",
-            "users",
-            "system",
-            "application",
-            "app",
-            "data",
-            "information",
-            "content",
-            "(",
-            ")",
-            "[",
-            "]",
-            "-",
-            ",",
-            ".",
-            ":",
-            ";",
-        }
-
-        words = text.lower().split()
-        cleaned_words = [w.strip("()[],-.:;") for w in words if w.strip("()[],-.:;") not in common_words]
-        return " ".join(cleaned_words)
-
-    def _merge_contexts(self, contexts: List[str]) -> str:
-        """Intelligently merge business contexts, removing redundancy."""
-        if not contexts:
-            return ""
-
-        # Deduplicate sentences and combine
-        unique_sentences = []
-        seen_content = set()
-
-        for context in contexts:
-            sentences = [s.strip() for s in context.replace(".", ".\n").split("\n") if s.strip()]
-            for sentence in sentences:
-                sentence_clean = sentence.strip().lower()
-                if sentence_clean not in seen_content and len(sentence) > 10:
-                    seen_content.add(sentence_clean)
-                    unique_sentences.append(sentence)
-
-        # Combine and limit length
-        combined = ". ".join(unique_sentences[:5])  # Max 5 sentences
-        return combined
 
     def _create_analysis_summary(
         self, purpose: str, users: List[str], features: List[str], roles: List[str], files_analyzed: int
@@ -429,7 +414,7 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
             )
 
             # 4. Aggregate results
-            final_result = self._aggregate_results(chunk_results)
+            final_result = await self._aggregate_results(chunk_results)
 
             self.config.logger.info(
                 f"System Analysis completed. Analyzed {final_result['files_analyzed']} files. "
