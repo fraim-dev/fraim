@@ -9,14 +9,16 @@ import asyncio
 from abc import abstractmethod
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Annotated, Any, Awaitable, Callable, List, Optional, Set
+from typing import Annotated, Any, Awaitable, Callable, List, Optional, Set, TypeVar
 
 from fraim.config import Config
 from fraim.core.contextuals import CodeChunk
 from fraim.inputs.project import ProjectInput
-from fraim.outputs import sarif
 
 from .workflow import WorkflowInput
+
+# Type variable for generic result types
+T = TypeVar("T")
 
 
 @dataclass
@@ -76,26 +78,26 @@ class ChunkProcessingMixin:
     async def process_chunks_concurrently(
         self,
         project: ProjectInput,
-        chunk_processor: Callable[[CodeChunk], Awaitable[List[sarif.Result]]],
+        chunk_processor: Callable[[CodeChunk], Awaitable[List[T]]],
         max_concurrent_chunks: int = 5,
-    ) -> List[sarif.Result]:
+    ) -> List[T]:
         """
         Process chunks concurrently using the provided processor function.
 
         Args:
             project: ProjectInput instance to iterate over
-            chunk_processor: Async function that processes a single chunk
+            chunk_processor: Async function that processes a single chunk and returns a list of results
             max_concurrent_chunks: Maximum concurrent chunk processing
 
         Returns:
             Combined results from all chunks
         """
-        results: List[sarif.Result] = []
+        results: List[T] = []
 
         # Create semaphore to limit concurrent chunk processing
         semaphore = asyncio.Semaphore(max_concurrent_chunks)
 
-        async def process_chunk_with_semaphore(chunk: CodeChunk) -> List[sarif.Result]:
+        async def process_chunk_with_semaphore(chunk: CodeChunk) -> List[T]:
             """Process a chunk with semaphore to limit concurrency."""
             async with semaphore:
                 return await chunk_processor(chunk)
