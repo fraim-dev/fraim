@@ -10,7 +10,7 @@ The workflow system uses a registry pattern that automatically discovers and rou
 from fraim.workflows.registry import workflow
 from fraim.core.workflows import Workflow
 
-@workflow('my_workflow', file_patterns=['*.py', '*.js'])
+@workflow('my_workflow')
 class MyWorkflow(Workflow):
     """My custom security workflow"""
     
@@ -45,7 +45,7 @@ from fraim.outputs import sarif
 
 FILE_PATTERNS = ['*.py', '*.js', '*.ts']
 
-@workflow('my_workflow', file_patterns=FILE_PATTERNS)
+@workflow('my_workflow')
 class MyWorkflow(Workflow):
     """Analyzes code for custom security issues"""
 
@@ -78,7 +78,7 @@ from .my_workflow import workflow as my_workflow  # Add this line
 ### 3. Run the Workflow
 
 ```bash
-fraim --workflows my_workflow <other_args>
+fraim my_workflow <other_args>
 ```
 
 ## Workflow Input

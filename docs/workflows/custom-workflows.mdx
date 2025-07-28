@@ -28,7 +28,7 @@ FILE_PATTERNS = [
 # Load prompts from YAML files
 PROMPTS = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__file__), "my_prompts.yaml"))
 
-@workflow('my_custom_workflow', file_patterns=FILE_PATTERNS)
+@workflow('my_custom_workflow')
 class MyCustomWorkflow(Workflow[MyWorkflowInput, MyWorkflowOutput]):
     """Analyzes custom configuration files for security issues"""
 
@@ -106,7 +106,7 @@ class MultiStepWorkflowInput:
 
 type MultiStepWorkflowOutput = List[sarif.Result]
 
-@workflow('multi_step_security', file_patterns=['*.py', '*.js', '*.java'])
+@workflow('multi_step_security')
 class MultiStepSecurityWorkflow(Workflow[MultiStepWorkflowInput, MultiStepWorkflowOutput]):
     """Multi-stage security analysis workflow"""
 
@@ -188,5 +188,5 @@ async def test_my_custom_workflow():
 ### 2. Integration Testing
 ```bash
 # Test your workflow with fraim CLI
-fraim --path . --workflows my_custom_workflow --debug
+fraim --debug my_custom_workflow --location .
 ```
