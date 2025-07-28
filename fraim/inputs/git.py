@@ -12,18 +12,6 @@ from fraim.inputs.files import File, Files
 from fraim.inputs.local import Local
 
 
-def _remove_readonly(func, path, excinfo):
-    """
-    Error handler for shutil.rmtree that attempts to remove read-only files.
-    """
-    # Check if the error is a PermissionError
-    if issubclass(excinfo[1].__class__, PermissionError):
-        # Change the file permissions to writable
-        os.chmod(path, stat.S_IWRITE)
-        # Retry the function that failed
-        func(path)
-
-
 class GitRemote(Files):
     def __init__(
         self,

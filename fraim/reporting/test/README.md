@@ -24,4 +24,4 @@ This will:
 
 ## Generated Files
 
-All generated HTML files are saved to the `outputs/` directory. 
+All generated HTML files are saved to the `outputs/` directory.

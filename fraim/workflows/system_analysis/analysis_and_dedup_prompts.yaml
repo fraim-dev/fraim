@@ -37,7 +37,7 @@ system: |
 
   Look for clues in:
   - Package/project configuration files
-  - API endpoints and route definitions  
+  - API endpoints and route definitions
   - Database models and schemas
   - Authentication/authorization code
   - Business logic and service layers

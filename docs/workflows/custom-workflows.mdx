@@ -44,17 +44,17 @@ class MyCustomWorkflow(Workflow[MyWorkflowInput, MyWorkflowOutput]):
 
     async def workflow(self, input: MyWorkflowInput) -> MyWorkflowOutput:
         """Main workflow execution"""
-        
+
         # 1. Analyze the configuration file
         analysis_results = await self.analysis_step.run({"code": input.code})
-        
+
         # 2. Filter results by confidence threshold
         filtered_results = self.filter_results_by_confidence(
             analysis_results.results, input.config.confidence
         )
-        
+
         return filtered_results
-    
+
     def filter_results_by_confidence(self, results: List[sarif.Result], confidence_threshold: int) -> List[sarif.Result]:
         """Filter results by confidence."""
         return [result for result in results if result.properties.confidence > confidence_threshold]
@@ -67,12 +67,12 @@ Create `my_prompts.yaml` in the same directory:
 ```yaml
 system: |
   You are a configuration security analyzer.
-  
+
   Your job is to analyze configuration files for security misconfigurations and vulnerabilities.
-  
+
   <vulnerability_types>
     Valid vulnerability types (use EXACTLY as shown):
-    
+
     - Hardcoded Credentials
     - Insecure Defaults
     - Excessive Permissions
@@ -89,7 +89,7 @@ system: |
 
 user: |
   Analyze the following configuration file for security issues:
-  
+
   {{ code }}
 ```
 
@@ -128,7 +128,7 @@ class MultiStepSecurityWorkflow(Workflow[MultiStepWorkflowInput, MultiStepWorkfl
 
     async def workflow(self, input: MultiStepWorkflowInput) -> MultiStepWorkflowOutput:
         """Execute multi-stage security analysis"""
-        
+
         # 1. Initial scan for potential vulnerabilities
         potential_vulns = await self.scanner_step.run({"code": input.code})
 
@@ -140,7 +140,7 @@ class MultiStepSecurityWorkflow(Workflow[MultiStepWorkflowInput, MultiStepWorkfl
         # 3. Triage high-confidence vulnerabilities in parallel
         import asyncio
         triaged_vulns = await asyncio.gather(*[
-            self.triager_step.run({"vulnerability": str(vuln), "code": input.code}) 
+            self.triager_step.run({"vulnerability": str(vuln), "code": input.code})
             for vuln in high_confidence_vulns
         ])
 
@@ -175,12 +175,12 @@ from fraim.core.contextuals import Contextual
 async def test_my_custom_workflow():
     config = Config(confidence=7, project_path="/test/path")
     workflow = MyCustomWorkflow(config)
-    
+
     code = Contextual("password=secret123\napi_key=abc123")
     input_data = MyWorkflowInput(code=code, config=config)
-    
+
     results = await workflow.workflow(input_data)
-    
+
     assert len(results) > 0
     assert any("hardcoded" in result.message.text.lower() for result in results)
 ```

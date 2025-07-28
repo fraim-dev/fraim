@@ -130,7 +130,7 @@ fraim --model claude-3-sonnet-20240229 code --location .
    ```bash
    # Smaller chunks for detailed analysis
    fraim code --location . --chunk-size 300
-   
+
    # Larger chunks for faster processing
    fraim code --location . --chunk-size 800
    ```
@@ -181,7 +181,7 @@ fraim --model claude-3-sonnet-20240229 code --location .
    ```bash
    # Verify files exist
    find . -name "*.py" | head -10
-   
+
    # Test with specific patterns
    fraim --debug code --location . --globs "*.py"
    ```
@@ -206,7 +206,7 @@ fraim --model claude-3-sonnet-20240229 code --location .
    ```bash
    # Fewer false positives
    fraim --confidence 8 code --location .
-   
+
    # More comprehensive analysis
    fraim --confidence 5 code --location .
    ```
@@ -331,15 +331,15 @@ fraim --model claude-3-sonnet-20240229 code --location .
 1. **Dockerfile Example:**
    ```dockerfile
    FROM python:3.12-slim
-   
+
    RUN pip install uv
    COPY . /app
    WORKDIR /app
    RUN uv sync
-   
+
    # Set environment variables
    ENV GEMINI_API_KEY=${GEMINI_API_KEY}
-   
+
    CMD ["uv", "run", "fraim", "code", "--location", "."]
    ```
 
@@ -446,4 +446,4 @@ When reporting issues, include:
 
 ---
 
-Still having issues? Check the [Configuration Guide](configuration.md) for advanced setup options or [create an issue](https://github.com/fraim-dev/fraim/issues) with your debug output. 
+Still having issues? Check the [Configuration Guide](configuration.md) for advanced setup options or [create an issue](https://github.com/fraim-dev/fraim/issues) with your debug output.

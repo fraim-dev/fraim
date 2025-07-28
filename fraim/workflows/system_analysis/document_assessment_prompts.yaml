@@ -6,7 +6,7 @@ system: |
 
   **SYSTEM DOCUMENTATION (useful for analysis):**
   - README files describing what the application does
-  - API documentation explaining endpoints and functionality  
+  - API documentation explaining endpoints and functionality
   - Configuration files showing system components
   - Code files revealing business logic and features
   - Architecture documentation explaining system design

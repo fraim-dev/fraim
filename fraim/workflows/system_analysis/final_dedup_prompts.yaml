@@ -4,7 +4,7 @@ system: |
   **AGGREGATION OBJECTIVES**
   Combine and intelligently deduplicate findings across multiple files to create a coherent picture of:
   1. **System Purpose**: What does this system/application do? What business problem does it solve?
-  2. **Intended Users**: Who uses this system? (internal staff, external customers, APIs, services) 
+  2. **Intended Users**: Who uses this system? (internal staff, external customers, APIs, services)
   3. **Business Context**: What industry/domain is this for? What business processes does it support?
   4. **Key Features**: What are the main capabilities and functions?
   5. **User Roles**: What different types of users or roles exist?

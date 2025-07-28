@@ -103,4 +103,4 @@ Valid vulnerability types (use EXACTLY as shown):
 .kt: Kotlin
 .scala: Scala
 .tsx: TypeScript React
-.jsx: JavaScript React 
+.jsx: JavaScript React
