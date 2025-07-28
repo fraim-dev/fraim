@@ -24,7 +24,6 @@ You MUST prioritize the following specific security checks with HIGH severity:
    - Check for hardcoded AWS credentials in resource configurations
 
 **S3 Bucket Naming Conventions**:
-   - Flag any bucket that does not have the prefix "company-"
    - Flag any bucket that does not match the regex "company-{bucket-name}-{env}" where env can be dev, staging, or prod
 
 **REPORTING REQUIREMENTS:**
