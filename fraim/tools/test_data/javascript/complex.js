@@ -95,4 +95,4 @@ module.exports = {
     fibonacciSequence,
     createUser,
     counter
-}; 
+};

@@ -129,7 +129,7 @@ class ListFilesTool(TreeSitterBaseTool):
     tool_func = list_project_files
     description: str = dedent("""
                               List files and directories in the project to understand codebase structure.
-    
+
                               Use this tool to as the first step in any code analysis to map out the project layout.
                               Use it to find files by location or type, explore specific directories, or verify existence of file.
 
@@ -168,7 +168,7 @@ class GetFileContentTool(TreeSitterBaseTool):
     description: str = dedent("""
                               Read file contents to analyze code.
 
-                              Use this tool after location files with the list_files tool. Read entire files unless 
+                              Use this tool after location files with the list_files tool. Read entire files unless
                               you know the exact lines needed. For large files, use start_line and max_lines to
                               read specific sections.
 
@@ -193,7 +193,7 @@ class GetFileAstTool(TreeSitterBaseTool):
     tool_func = get_file_ast
     description: str = dedent("""
                               Generate Abstract Syntax Tree (AST) to analyze code structure and patterns.
-    
+
                               Use this tool to understand function definitions, class hierarchies, imports, and code organization.
                               Essential for security analysis, refactoring, or understanding complex codebases.
 
@@ -330,14 +330,14 @@ class FindFunctionDefinitionTool(TreeSitterBaseTool):
 
                               Use this tool to find the definition of a function in the project.
                               This is useful for understanding the internal operation of a function.
-                              Currently supports Python, TypeScript, and JavaScript. Other languages 
+                              Currently supports Python, TypeScript, and JavaScript. Other languages
                               may not work correctly.
 
                               Outputs the definition of the function with code snippets, including:
                               - Docstrings
                               - Parameters
                               - Full function body
-                              
+
                               Results include:
                               - File path
                               - Start and end positions (row/column)
@@ -487,8 +487,8 @@ class SearchTextTool(TreeSitterBaseTool):
     description: str = dedent("""
                           Search for text patterns across the codebase using string matching.
 
-                          Use this tool to find literal text occurrences like hardcoded values, API keys, 
-                          comments, or string literals. For code structure analysis, use query_code or 
+                          Use this tool to find literal text occurrences like hardcoded values, API keys,
+                          comments, or string literals. For code structure analysis, use query_code or
                           find_function_definition tools instead.
 
                           Features:

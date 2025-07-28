@@ -263,7 +263,7 @@ system: |
 
   <vulnerability_types>
     Valid vulnerability types (use EXACTLY as shown):
-    
+
     - Hardcoded Credentials
     - Insecure Defaults
     - Excessive Permissions

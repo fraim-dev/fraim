@@ -5,7 +5,7 @@ system: |
 
   <vulnerability_types>
     Valid vulnerability types (use EXACTLY as shown):
-    
+
     - SQL Injection
     - XSS
     - CSRF

@@ -13,11 +13,11 @@ from fraim.core.workflows import Workflow
 @workflow('my_workflow')
 class MyWorkflow(Workflow):
     """My custom security workflow"""
-    
+
     def __init__(self):
         # Initialize your workflow
         pass
-    
+
     async def workflow(self, input) -> List[sarif.Result]:
         # Implement your workflow logic
         # input.code - the code to analyze
@@ -57,10 +57,10 @@ class MyWorkflow(Workflow):
         # Access the code and configuration
         code = input.code
         config = input.config
-        
+
         # Implement your analysis logic here
         results = []
-        
+
         # Return SARIF results
         return results
 ```

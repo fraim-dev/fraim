@@ -59,16 +59,16 @@ class LangfuseBackend(ObservabilityBackend):
   Required environment variables:
     LANGFUSE_PUBLIC_KEY - Your Langfuse public key (starts with pk-lf-...)
     LANGFUSE_SECRET_KEY - Your Langfuse secret key (starts with sk-lf-...)
-  
+
   Optional environment variables:
     LANGFUSE_HOST - Langfuse host URL (default: http://localhost:3000)
-  
+
   To get your API keys:
     1. Go to your Langfuse dashboard (http://localhost:3000 or https://cloud.langfuse.com)
     2. Create or select a project
     3. Navigate to Settings > API Keys
     4. Copy your Public Key and Secret Key
-  
+
   Example setup:
     export LANGFUSE_PUBLIC_KEY="pk-lf-your-key-here"
     export LANGFUSE_SECRET_KEY="sk-lf-your-key-here"
