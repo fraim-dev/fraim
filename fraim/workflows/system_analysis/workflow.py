@@ -22,6 +22,7 @@ from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
 from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor, Workflow
 from fraim.core.workflows.llm_processing import LLMProcessor, LLMProcessorOptions
+from fraim.workflows.utils import write_json_output
 
 # File patterns for system analysis - focusing on documentation and key configuration files
 FILE_PATTERNS = [
@@ -96,14 +97,16 @@ DOCUMENT_ASSESSMENT_PROMPTS = PromptTemplate.from_yaml(
 ANALYSIS_AND_DEDUP_PROMPTS = PromptTemplate.from_yaml(
     os.path.join(os.path.dirname(__file__), "analysis_and_dedup_prompts.yaml")
 )
-FINAL_DEDUP_PROMPTS = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__file__), "final_dedup_prompts.yaml"))
+FINAL_DEDUP_PROMPTS = PromptTemplate.from_yaml(os.path.join(
+    os.path.dirname(__file__), "final_dedup_prompts.yaml"))
 
 
 @dataclass
 class SystemAnalysisOptions(ChunkProcessingOptions, LLMProcessorOptions):
     """Input for the System Analysis workflow."""
 
-    business_context: Annotated[str, {"help": "Additional business context to consider during analysis"}] = ""
+    business_context: Annotated[str, {
+        "help": "Additional business context to consider during analysis"}] = ""
 
     focus_areas: Annotated[
         list[str] | None,
@@ -286,7 +289,8 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisOptions, dict[str, Any]], Ch
                 )
 
             # Run final LLM-based deduplication
-            final_input = FinalDedupOptions(analysis_results=analysis_results_for_llm)
+            final_input = FinalDedupOptions(
+                analysis_results=analysis_results_for_llm)
 
             final_result = await self.final_dedup_step.run(final_input)
 
@@ -323,7 +327,8 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisOptions, dict[str, Any]], Ch
 
     def _simple_fallback_aggregation(self, chunk_results: list[SystemAnalysisResult]) -> dict[str, Any]:
         """Simple fallback aggregation when LLM deduplication fails."""
-        all_purposes = [r.system_purpose for r in chunk_results if r.system_purpose.strip()]
+        all_purposes = [
+            r.system_purpose for r in chunk_results if r.system_purpose.strip()]
         all_users = []
         all_features = []
         all_roles = []
@@ -347,7 +352,8 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisOptions, dict[str, Any]], Ch
         unique_integrations = list(dict.fromkeys(all_integrations))[:8]
         unique_data_types = list(dict.fromkeys(all_data_types))[:10]
 
-        system_purpose = max(all_purposes, key=len) if all_purposes else "System purpose unclear"
+        system_purpose = max(
+            all_purposes, key=len) if all_purposes else "System purpose unclear"
         business_context = " ".join(all_contexts)[:500]  # Simple truncation
 
         return {
@@ -416,24 +422,7 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisOptions, dict[str, Any]], Ch
         )
 
         # 5. Write output file if output_dir is configured
-        output_dir = getattr(self.args, "output_dir", None)
-        if output_dir:
-            import datetime
-            import os
-
-            os.makedirs(output_dir, exist_ok=True)
-            app_name = getattr(self.args, "project_path", "application")  # TODO: Fix
-            app_name = os.path.basename(app_name.rstrip(os.sep)) or "application"
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_filename = f"system_analysis_{app_name}_{timestamp}.json"
-            output_path = os.path.join(output_dir, output_filename)
-            try:
-                import json
-
-                with open(output_path, "w", encoding="utf-8") as f:
-                    json.dump(final_result, f, indent=2)
-                self.logger.info(f"System analysis results written to {output_path}")
-            except Exception as write_exc:
-                self.logger.error(f"Failed to write system analysis results: {write_exc}")
+        write_json_output(results=final_result,
+                          workflow_name="system_analysis", config=self.args)
 
         return final_result
