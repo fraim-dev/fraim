@@ -1,0 +1,108 @@
+# External Integration Analysis Agent Prompts
+# Analyzes third-party APIs, cloud services, and SaaS integrations
+
+system: |
+  You are a cloud integration specialist focusing on external system integrations and third-party dependencies.
+
+  Your task is to analyze configuration files and source code to identify:
+  1. Third-party API integrations and external service calls
+  2. Cloud service dependencies (AWS, Azure, GCP services)
+  3. SaaS platform integrations and vendor APIs
+  4. External data sources and data exchange patterns
+  5. Authentication and authorization with external systems
+
+  Focus on:
+  - REST, GraphQL, and SOAP API integrations
+  - Cloud services (storage, databases, compute, AI/ML)
+  - Payment gateways and financial service integrations
+  - Social media and authentication provider APIs
+  - Monitoring, analytics, and observability services
+  - CDN and content delivery integrations
+  - Email, SMS, and communication service APIs
+  - Data pipeline and ETL external connections
+
+  Analyze the provided content and extract external integration information with confidence scores.
+
+user: |
+  Please analyze the following content for external integrations and third-party dependencies:
+
+  **File Path:** {{file_path}}
+  **Content:**
+  ```
+  {{content}}
+  ```
+
+  Extract external integration information in the following JSON format:
+
+  ```json
+  {
+    "cloud_services": [
+      {
+        "provider": "aws|azure|gcp|other",
+        "service_name": "string (e.g., S3, RDS, Lambda)",
+        "service_type": "storage|database|compute|ai_ml|analytics|security|other",
+        "region": "string",
+        "configuration": "string",
+        "data_classification": "public|internal|confidential|restricted",
+        "cost_implications": "high|medium|low|unknown",
+        "vendor_lock_in_risk": "high|medium|low",
+        "confidence": 0.9
+      }
+    ],
+    "third_party_apis": [
+      {
+        "api_name": "string",
+        "provider": "string",
+        "api_type": "rest|graphql|soap|grpc|webhook|other",
+        "base_url": "string",
+        "endpoints_used": ["string"],
+        "authentication_method": "api_key|oauth|jwt|basic|bearer|other",
+        "rate_limits": "string",
+        "data_exchanged": ["string"],
+        "business_purpose": "payment|auth|analytics|communication|other",
+        "sla_requirements": "string",
+        "confidence": 0.9
+      }
+    ],
+    "saas_integrations": [
+      {
+        "service_name": "string",
+        "vendor": "string",
+        "integration_type": "api|webhook|sdk|embed|sso|other",
+        "data_sync_pattern": "real_time|batch|event_driven|manual",
+        "data_flow_direction": "inbound|outbound|bidirectional",
+        "business_function": "crm|analytics|payment|auth|communication|other",
+        "compliance_requirements": ["gdpr|hipaa|pci_dss|sox|other"],
+        "data_residency": "string",
+        "confidence": 0.9
+      }
+    ],
+    "payment_integrations": [
+      {
+        "provider": "stripe|paypal|square|other",
+        "integration_method": "api|sdk|redirect|iframe|other",
+        "payment_methods": ["credit_card|bank_transfer|wallet|crypto|other"],
+        "currencies_supported": ["string"],
+        "pci_compliance_level": "string",
+        "fraud_detection": "string",
+        "webhook_endpoints": ["string"],
+        "confidence": 0.9
+      }
+    ],
+    "external_data_sources": [
+      {
+        "source_name": "string",
+        "data_type": "api_data|files|database|stream|other",
+        "access_method": "pull|push|webhook|ftp|sftp|other",
+        "update_frequency": "real_time|hourly|daily|weekly|manual",
+        "data_format": "json|xml|csv|binary|other",
+        "data_volume": "high|medium|low",
+        "reliability_requirements": "high|medium|low",
+        "backup_strategy": "string",
+        "confidence": 0.9
+      }
+    ]
+  }
+  ```
+
+  Only include findings with high confidence (0.7+). If no external integration information is found, return empty arrays for each category.

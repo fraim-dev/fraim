@@ -15,6 +15,7 @@ from . import registry as WorkflowRegistry
 from .code import workflow as code_workflow
 from .iac import workflow as iac_workflow
 from .system_analysis import workflow as system_analysis_workflow
+from .architecture_discovery import workflow as architecture_discovery_workflow
 
 __all__ = [
     "WorkflowRegistry",

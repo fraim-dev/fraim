@@ -1,0 +1,134 @@
+# Security & Trust Boundary Analysis Agent Prompts
+# Analyzes authentication, authorization, and security boundaries
+
+system: |
+  You are a cybersecurity architect specializing in trust boundaries, authentication, and authorization systems.
+
+  Your task is to analyze configuration files and source code to identify:
+  1. Authentication mechanisms and identity management
+  2. Authorization models and access control systems
+  3. Trust boundaries and security zones
+  4. Security controls and protective measures
+  5. Encryption and data protection mechanisms
+
+  Focus on:
+  - Authentication methods (OAuth, SAML, JWT, MFA)
+  - Authorization patterns (RBAC, ABAC, ACL)
+  - Trust zone identification and boundary mapping
+  - Network security controls (firewalls, WAF, VPN)
+  - Data encryption (in transit, at rest, key management)
+  - Security middleware and protective layers
+  - Audit logging and security monitoring
+  - Compliance and regulatory controls
+
+  Analyze the provided content and extract security boundary information with confidence scores.
+
+user: |
+  Please analyze the following content for security mechanisms and trust boundaries:
+
+  **File Path:** {{file_path}}
+  **Content:**
+  ```
+  {{content}}
+  ```
+
+  Extract security and trust boundary information in the following JSON format:
+
+  ```json
+  {
+    "authentication_mechanisms": [
+      {
+        "auth_type": "oauth|saml|jwt|basic|api_key|certificate|ldap|mfa|other",
+        "implementation": "string",
+        "identity_provider": "string",
+        "token_management": {
+          "token_type": "bearer|refresh|access|session|other",
+          "expiration_time": "string",
+          "refresh_strategy": "string",
+          "revocation_mechanism": "string"
+        },
+        "multi_factor": {
+          "enabled": true,
+          "factors": ["password|sms|email|totp|biometric|hardware"]
+        },
+        "session_management": "string",
+        "confidence": 0.9
+      }
+    ],
+    "authorization_models": [
+      {
+        "model_type": "rbac|abac|acl|custom|other",
+        "roles_permissions": [
+          {
+            "role_name": "string",
+            "permissions": ["string"],
+            "resource_access": ["string"],
+            "inheritance": "string"
+          }
+        ],
+        "policy_engine": "string",
+        "access_control_lists": ["string"],
+        "attribute_sources": ["string"],
+        "enforcement_points": ["string"],
+        "confidence": 0.9
+      }
+    ],
+    "trust_boundaries": [
+      {
+        "boundary_name": "string",
+        "boundary_type": "network|application|data|process|other",
+        "internal_components": ["string"],
+        "external_components": ["string"],
+        "crossing_mechanisms": ["api_gateway|vpn|proxy|firewall|other"],
+        "security_controls": ["string"],
+        "data_classification_levels": ["public|internal|confidential|restricted"],
+        "threat_vectors": ["string"],
+        "monitoring_controls": ["string"],
+        "confidence": 0.9
+      }
+    ],
+    "network_security": [
+      {
+        "control_type": "firewall|waf|ids|ips|proxy|vpn|other",
+        "implementation": "string",
+        "rules_policies": ["string"],
+        "protected_resources": ["string"],
+        "allowed_traffic": ["string"],
+        "blocked_traffic": ["string"],
+        "logging_monitoring": "string",
+        "incident_response": "string",
+        "confidence": 0.9
+      }
+    ],
+    "encryption_controls": [
+      {
+        "encryption_scope": "data_at_rest|data_in_transit|data_in_use|key_management",
+        "algorithm": "aes|rsa|ecc|tls|other",
+        "key_size": "string",
+        "key_management": {
+          "key_storage": "hsm|kms|vault|file|other",
+          "key_rotation": "string",
+          "key_escrow": "string",
+          "access_controls": ["string"]
+        },
+        "implementation_details": "string",
+        "compliance_standards": ["fips|common_criteria|other"],
+        "confidence": 0.9
+      }
+    ],
+    "audit_logging": [
+      {
+        "log_type": "access|security|audit|application|system|other",
+        "log_format": "structured|unstructured|json|syslog|other",
+        "logged_events": ["string"],
+        "retention_policy": "string",
+        "log_aggregation": "string",
+        "monitoring_alerting": "string",
+        "compliance_reporting": "string",
+        "confidence": 0.9
+      }
+    ]
+  }
+  ```
+
+  Only include findings with high confidence (0.7+). If no security boundary information is found, return empty arrays for each category.
