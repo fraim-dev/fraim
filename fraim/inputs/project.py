@@ -5,14 +5,15 @@ from typing import Any, Generator, Iterator, Type
 from fraim.config.config import Config
 from fraim.core.contextuals.code import CodeChunk
 from fraim.inputs.file_chunks import chunk_input
-from fraim.inputs.files import File, Files
+from fraim.inputs.file import File
+from fraim.inputs.input import Input
 from fraim.inputs.git import GitRemote
 from fraim.inputs.local import Local
 
 
 class ProjectInput:
     config: Config
-    files: Files
+    files: Input
     chunk_size: int
     project_path: str
     repo_name: str

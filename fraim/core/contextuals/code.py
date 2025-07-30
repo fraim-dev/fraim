@@ -21,5 +21,6 @@ class CodeChunk(Contextual[str]):
     def description(self, _: str) -> None:
         raise AttributeError("description is read-only")
 
+    # TODO: Change to repr
     def __str__(self) -> str:
         return f'<code_chunk file_path="{self.file_path}" line_number_start_inclusive="{self.line_number_start_inclusive}" line_number_end_inclusive="{self.line_number_end_inclusive}">\n{self.content}\n</code_chunk>'

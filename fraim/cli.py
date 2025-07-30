@@ -59,6 +59,8 @@ def parse_args_to_config(args: argparse.Namespace) -> Config:
         max_iterations=args.max_iterations,
         confidence=args.confidence,
         temperature=args.temperature,
+        git_base=args.git_base,
+        git_head=args.git_head,
     )
 
 
@@ -175,6 +177,9 @@ def cli() -> int:
     )
 
     parser.add_argument("--show-logs", type=bool, default=True, help="Prints logs to standard error output")
+
+    parser.add_argument('--base', type=str, help="Git base commit for diff input")
+    parser.add_argument('--head', type=str, help="Git head commit for diff input")
 
     parsed_args = parser.parse_args()
 

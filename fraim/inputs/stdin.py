@@ -7,17 +7,18 @@ from typing import Iterator, Optional, Type
 
 from typing_extensions import Self
 
-from fraim.inputs.files import File, Files
+from fraim.core.contextuals import CodeChunk
+from fraim.inputs.file import File
+from fraim.inputs.input import Input
 
-
-class StandardInput(Files):
+class StandardInput(Input):
     def __init__(self, body: str):
         self.body = body
 
     def root_path(self) -> str:
         return "stdin"
 
-    def __iter__(self) -> Iterator[File]:
+    def __iter__(self) -> Iterator[CodeChunk]:
         yield File(Path("stdin"), self.body)
 
     def __enter__(self) -> Self:

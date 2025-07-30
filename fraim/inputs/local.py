@@ -9,10 +9,10 @@ from typing import Iterator, List, Optional, Type
 from typing_extensions import Self
 
 from fraim.config.config import Config
-from fraim.inputs.files import File, Files
+from fraim.inputs.input import Input
+from fraim.inputs.file import File
 
-
-class Local(Files):
+class Local(Input):
     def __init__(self, config: Config, path: Path, globs: Optional[List[str]] = None, limit: Optional[int] = None):
         self.config = config
         self.path = path

@@ -5,7 +5,7 @@ import os
 from typing import List
 
 from fraim.core.contextuals.code import CodeChunk
-from fraim.inputs.files import File
+from fraim.inputs.file import File
 
 
 # TODO: generator

@@ -8,11 +8,11 @@ from tempfile import TemporaryDirectory
 from typing import Iterator, List, Optional, Type
 
 from fraim.config.config import Config
-from fraim.inputs.files import File, Files
+from fraim.inputs.file import File
 from fraim.inputs.local import Local
+from fraim.inputs.input import Input
 
-
-class GitRemote(Files):
+class GitRemote(Input):
     def __init__(
         self,
         config: Config,
