@@ -14,7 +14,7 @@ import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Annotated, Any, Dict, List, Optional, Union
+from typing import Annotated, Any, Dict, List, Optional, Union, cast
 
 from pydantic import BaseModel
 
@@ -27,6 +27,15 @@ from fraim.core.steps.llm import LLMStep
 from fraim.core.workflows import ChunkProcessingMixin, ChunkWorkflowInput, Workflow
 from fraim.tools.tree_sitter import TreeSitterTools
 from fraim.workflows.registry import workflow
+from fraim.workflows.utils import write_json_output
+from fraim.workflows.infrastructure_discovery.workflow import (
+    InfrastructureDiscoveryWorkflow,
+    InfrastructureDiscoveryInput,
+    InfrastructureAnalysisResult,
+    ContainerConfig,
+    EnvironmentVariable,
+    ResourceLimits
+)
 
 # Comprehensive file patterns for architecture discovery
 FILE_PATTERNS = [
@@ -60,10 +69,7 @@ FILE_PATTERNS = [
     "*.component.ts", "*.service.ts", "*.module.ts",  # Angular
 ]
 
-# Load all agent prompts
-INFRASTRUCTURE_PROMPTS = PromptTemplate.from_yaml(
-    os.path.join(os.path.dirname(__file__), "infrastructure_prompts.yaml")
-)
+# Load agent prompts (excluding infrastructure prompts since we use the infrastructure_discovery workflow)
 SERVICE_DEPENDENCY_PROMPTS = PromptTemplate.from_yaml(
     os.path.join(os.path.dirname(__file__), "service_dependency_prompts.yaml")
 )
@@ -82,36 +88,7 @@ SYNTHESIS_PROMPTS = PromptTemplate.from_yaml(
 )
 
 
-# Pydantic models for Agent 1: Infrastructure Analysis
-class EnvironmentVariable(BaseModel):
-    name: str
-    value: Optional[str] = None
-    is_secret: bool
-
-
-class ResourceLimits(BaseModel):
-    cpu: Optional[str] = None
-    memory: Optional[str] = None
-    storage: Optional[str] = None
-
-
-class ContainerConfig(BaseModel):
-    container_name: str
-    base_image: str
-    exposed_ports: List[int]
-    environment_variables: List[EnvironmentVariable]
-    volume_mounts: List[str]
-    resource_limits: ResourceLimits
-    confidence: float
-
-
-class InfrastructureAnalysisResult(BaseModel):
-    container_configs: List[ContainerConfig]
-    infrastructure_components: List[Dict[str, Any]]
-    deployment_environments: List[Dict[str, Any]]
-
-
-# Pydantic models for Agent 2: Service Dependencies
+# Pydantic models for Agent 2: Service Dependencies (keeping the models that are specific to this workflow)
 class DatabaseConnection(BaseModel):
     database_name: str
     database_type: str
@@ -273,11 +250,9 @@ class ArchitectureDiscoveryWorkflow(ChunkProcessingMixin, Workflow[ArchitectureD
     def _setup_basic_agents(self) -> None:
         """Initialize agents that don't require tree sitter tools."""
 
-        # Agent 1: Infrastructure Analysis (doesn't need tree sitter)
-        infra_parser = PydanticOutputParser(InfrastructureAnalysisResult)
-        self.infrastructure_agent: LLMStep[AgentInput, InfrastructureAnalysisResult] = LLMStep(
-            self.llm, INFRASTRUCTURE_PROMPTS["system"], INFRASTRUCTURE_PROMPTS["user"], infra_parser
-        )
+        # Initialize infrastructure discovery workflow (replaces Agent 1: Infrastructure Analysis)
+        self.infrastructure_discovery_workflow: InfrastructureDiscoveryWorkflow = InfrastructureDiscoveryWorkflow(
+            self.config)
 
         # Agent 6: Architecture Synthesis (doesn't need tree sitter - works with aggregated data)
         synthesis_parser = PydanticOutputParser(ArchitectureSynthesisResult)
@@ -431,8 +406,23 @@ class ArchitectureDiscoveryWorkflow(ChunkProcessingMixin, Workflow[ArchitectureD
         for attempt in range(max_retries + 1):
             try:
                 if agent_name == "infrastructure":
-                    infrastructure_result = await self.infrastructure_agent.run(agent_input)
-                    return infrastructure_result.model_dump()
+                    # Create a CodeChunk from the current file data
+                    code_chunk = CodeChunk(
+                        file_path=agent_input.file_path,
+                        content=agent_input.content,
+                        line_number_start_inclusive=1,
+                        line_number_end_inclusive=len(
+                            agent_input.content.splitlines())
+                    )
+                    # Call infrastructure discovery workflow's chunk processor
+                    process_chunk_method = getattr(
+                        self.infrastructure_discovery_workflow, '_process_single_chunk')
+                    infrastructure_results = await process_chunk_method(code_chunk)
+                    # Return the first result if available, converted to dict
+                    if infrastructure_results:
+                        return cast(Dict[str, Any], infrastructure_results[0].model_dump())
+                    else:
+                        return None
                 elif agent_name == "services":
                     services_result = await self.service_dependency_agent.run(agent_input)
                     return services_result.model_dump()
@@ -763,14 +753,12 @@ class ArchitectureDiscoveryWorkflow(ChunkProcessingMixin, Workflow[ArchitectureD
             }
 
             # 7. Write output file if configured
-            output_dir = getattr(self.config, "output_dir", None)
-            if output_dir:
-                output_path = Path(output_dir) / \
-                    "architecture_discovery_analysis.json"
-                with open(output_path, "w") as f:
-                    json.dump(final_result, f, indent=2)
-                self.config.logger.info(
-                    f"Architecture analysis written to {output_path}")
+            write_json_output(
+                results=final_result,
+                workflow_name="architecture_discovery",
+                config=self.config,
+                custom_filename="architecture_discovery_analysis.json"
+            )
 
             return final_result
 
