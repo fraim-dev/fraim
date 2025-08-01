@@ -28,14 +28,8 @@ from fraim.core.workflows import ChunkProcessingMixin, ChunkWorkflowInput, Workf
 from fraim.tools.tree_sitter import TreeSitterTools
 from fraim.workflows.registry import workflow
 from fraim.workflows.utils import write_json_output
-from fraim.workflows.infrastructure_discovery.workflow import (
-    InfrastructureDiscoveryWorkflow,
-    InfrastructureDiscoveryInput,
-    InfrastructureAnalysisResult,
-    ContainerConfig,
-    EnvironmentVariable,
-    ResourceLimits
-)
+from fraim.workflows.infrastructure_discovery.workflow import InfrastructureDiscoveryWorkflow
+from fraim.workflows.api_interface_discovery.workflow import ApiInterfaceDiscoveryWorkflow
 
 # Comprehensive file patterns for architecture discovery
 FILE_PATTERNS = [
@@ -77,9 +71,7 @@ EXTERNAL_INTEGRATION_PROMPTS = PromptTemplate.from_yaml(
     os.path.join(os.path.dirname(__file__),
                  "external_integration_prompts.yaml")
 )
-API_INTERFACE_PROMPTS = PromptTemplate.from_yaml(
-    os.path.join(os.path.dirname(__file__), "api_interface_prompts.yaml")
-)
+# API_INTERFACE_PROMPTS now handled by api_interface_discovery workflow
 SECURITY_BOUNDARY_PROMPTS = PromptTemplate.from_yaml(
     os.path.join(os.path.dirname(__file__), "security_boundary_prompts.yaml")
 )
@@ -117,19 +109,7 @@ class ExternalIntegrationResult(BaseModel):
     saas_integrations: List[Dict[str, Any]]
 
 
-# Pydantic models for Agent 4: API Interfaces
-class RestEndpoint(BaseModel):
-    endpoint_path: str
-    http_method: str
-    handler_function: Optional[str] = None
-    confidence: float
-
-
-class ApiInterfaceResult(BaseModel):
-    rest_endpoints: List[RestEndpoint]
-    graphql_schema: List[Dict[str, Any]]
-    websocket_connections: List[Dict[str, Any]]
-    data_models: List[Dict[str, Any]]
+# API Interface models are now imported from api_interface_discovery workflow
 
 
 # Pydantic models for Agent 5: Security Boundaries
@@ -237,24 +217,22 @@ class ArchitectureDiscoveryWorkflow(ChunkProcessingMixin, Workflow[ArchitectureD
         # Initialize agents that don't need tree sitter tools immediately
         self._setup_basic_agents()
 
-        # Lazy-initialized agents that need tree sitter tools
         self._service_dependency_agent: Optional[LLMStep[AgentInput,
                                                          ServiceDependencyResult]] = None
         self._external_integration_agent: Optional[LLMStep[AgentInput,
                                                            ExternalIntegrationResult]] = None
-        self._api_interface_agent: Optional[LLMStep[AgentInput,
-                                                    ApiInterfaceResult]] = None
         self._security_boundary_agent: Optional[LLMStep[AgentInput,
                                                         SecurityBoundaryResult]] = None
 
     def _setup_basic_agents(self) -> None:
         """Initialize agents that don't require tree sitter tools."""
 
-        # Initialize infrastructure discovery workflow (replaces Agent 1: Infrastructure Analysis)
         self.infrastructure_discovery_workflow: InfrastructureDiscoveryWorkflow = InfrastructureDiscoveryWorkflow(
             self.config)
 
-        # Agent 6: Architecture Synthesis (doesn't need tree sitter - works with aggregated data)
+        self.api_interface_discovery_workflow: ApiInterfaceDiscoveryWorkflow = ApiInterfaceDiscoveryWorkflow(
+            self.config)
+
         synthesis_parser = PydanticOutputParser(ArchitectureSynthesisResult)
         self.synthesis_agent: LLMStep[SynthesisInput, ArchitectureSynthesisResult] = LLMStep(
             self.llm, SYNTHESIS_PROMPTS["system"], SYNTHESIS_PROMPTS["user"], synthesis_parser
@@ -305,27 +283,6 @@ class ArchitectureDiscoveryWorkflow(ChunkProcessingMixin, Workflow[ArchitectureD
             )
         return self._external_integration_agent
 
-    @property
-    def api_interface_agent(self) -> LLMStep[AgentInput, ApiInterfaceResult]:
-        """Lazily initialize the API interface agent with tree sitter tools."""
-        if self._api_interface_agent is None:
-            if (
-                not hasattr(self, "project")
-                or not self.project
-                or not hasattr(self.project, "project_path")
-                or self.project.project_path is None
-            ):
-                raise ValueError(
-                    "project_path must be set before accessing api_interface_agent")
-
-            tree_sitter_tools = TreeSitterTools(
-                self.project.project_path).tools
-            enhanced_llm = self.llm.with_tools(tree_sitter_tools)
-            api_parser = PydanticOutputParser(ApiInterfaceResult)
-            self._api_interface_agent = LLMStep(
-                enhanced_llm, API_INTERFACE_PROMPTS["system"], API_INTERFACE_PROMPTS["user"], api_parser
-            )
-        return self._api_interface_agent
 
     @property
     def security_boundary_agent(self) -> LLMStep[AgentInput, SecurityBoundaryResult]:
@@ -430,8 +387,28 @@ class ArchitectureDiscoveryWorkflow(ChunkProcessingMixin, Workflow[ArchitectureD
                     external_result = await self.external_integration_agent.run(agent_input)
                     return external_result.model_dump()
                 elif agent_name == "apis":
-                    api_result = await self.api_interface_agent.run(agent_input)
-                    return api_result.model_dump()
+                    # Create a CodeChunk from the current file data for API interface discovery
+                    code_chunk = CodeChunk(
+                        file_path=agent_input.file_path,
+                        content=agent_input.content,
+                        line_number_start_inclusive=1,
+                        line_number_end_inclusive=len(
+                            agent_input.content.splitlines())
+                    )
+                    # Ensure the API interface discovery workflow has the project set
+                    if not hasattr(self.api_interface_discovery_workflow, 'project') or not getattr(self.api_interface_discovery_workflow, 'project', None):
+                        setattr(self.api_interface_discovery_workflow,
+                                'project', self.project)
+
+                    # Call API interface discovery workflow's chunk processor
+                    process_chunk_method = getattr(
+                        self.api_interface_discovery_workflow, '_process_single_chunk')
+                    api_results = await process_chunk_method(code_chunk)
+                    # Return the first result if available, converted to dict
+                    if api_results:
+                        return cast(Dict[str, Any], api_results[0].model_dump())
+                    else:
+                        return None
                 elif agent_name == "security":
                     security_result = await self.security_boundary_agent.run(agent_input)
                     return security_result.model_dump()
