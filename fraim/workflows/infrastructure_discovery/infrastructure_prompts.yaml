@@ -24,66 +24,10 @@ system: |
 
   Analyze the provided configuration and extract infrastructure-specific information with high confidence.
 
+  {{ output_format }}
+
 user: |
   Please analyze the following infrastructure/deployment configuration:
-
-  **File Path:** {{file_path}}
-  **Content:**
-  ```
-  {{content}}
-  ```
-
-  Extract infrastructure information in the following JSON format:
-
-  ```json
-  {
-    "container_configs": [
-      {
-        "container_name": "string",
-        "base_image": "string",
-        "exposed_ports": [8080, 443],
-        "environment_variables": [
-          {
-            "name": "string",
-            "value": "string (if not secret)",
-            "is_secret": true
-          }
-        ],
-        "volume_mounts": ["string"],
-        "resource_limits": {
-          "cpu": "string",
-          "memory": "string",
-          "storage": "string"
-        },
-        "confidence": 0.9
-      }
-    ],
-    "infrastructure_components": [
-      {
-        "name": "string",
-        "type": "load_balancer|database|cache|queue|storage|cdn|proxy|other",
-        "provider": "aws|azure|gcp|on_premise|other",
-        "service_name": "string (e.g., RDS, Redis, S3)",
-        "configuration": "string",
-        "availability_zone": "string",
-        "backup_strategy": "string",
-        "monitoring": "string",
-        "confidence": 0.9
-      }
-    ],
-    "deployment_environments": [
-      {
-        "name": "production|staging|development|test|other",
-        "namespace": "string",
-        "resource_quotas": "string",
-        "network_policies": ["string"],
-        "secrets_management": "string",
-        "ingress_config": "string",
-        "monitoring_config": "string",
-        "confidence": 0.9
-      }
-    ]
-  }
-  ```
-
+  {{ code }}
+  
   Only include findings with high confidence (0.7+). If no infrastructure information is found, return empty arrays for each category.
