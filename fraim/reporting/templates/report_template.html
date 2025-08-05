@@ -15,18 +15,18 @@
         <h1>{{ repo_name }} Security Analysis Report</h1>
         <div class="timestamp">🕒 Generated on {{ timestamp }}</div>
     </div>
-    
+
     <div class="container">
         <div class="tabs-container">
             <div class="tabs">
                 {% for tab in tab_data %}
-                <button class="tab-button {% if loop.first %}active{% endif %}" 
+                <button class="tab-button {% if loop.first %}active{% endif %}"
                         data-tab="{{ tab.name }}" id="tab-{{ loop.index0 }}">
                     {{ tab.name }} <span class="tab-count">{{ tab.count }}</span>
                 </button>
                 {% endfor %}
             </div>
-            
+
             <div class="summary-row">
                 <div class="severity-summary">
                     {% for severity in ['error', 'warning', 'note', 'none', 'unknown'] %}
@@ -37,7 +37,7 @@
                     {% endfor %}
                 </div>
             </div>
-            
+
             <div class="filters">
                 <div class="filter-groups">
                     <div class="filter-group">
@@ -64,7 +64,7 @@
                     <button id="collapse-all-btn" class="expand-btn">Collapse All</button>
                 </div>
             </div>
-            
+
             {% for tab in tab_data %}
             <div class="tab-content {% if loop.first %}active{% endif %}" id="tab-content-{{ loop.index0 }}">
                 <table class="results-table">
@@ -80,8 +80,8 @@
                     </thead>
                     <tbody>
                         {% for result in tab.results %}
-                        <tr class="result-row clickable-row" 
-                            data-severity="{{ result.severity }}" 
+                        <tr class="result-row clickable-row"
+                            data-severity="{{ result.severity }}"
                             data-type="{{ result.type }}"
                             data-result-index="{{ result.result_index }}">
                             <td class="expand-cell">
@@ -120,11 +120,11 @@
             {% endfor %}
         </div>
     </div>
-    
+
     <script nonce="{{ script_nonce }}">
         const tabData = {{ tab_data | tojson }};
-        
+
         {% include 'report_script.js' %}
     </script>
 </body>
-</html> 
+</html>

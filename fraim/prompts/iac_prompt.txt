@@ -21,7 +21,7 @@ CRITICAL: For ALL vulnerabilities, identify ONLY the EXACT lines that contain th
 EXAMPLES OF EXACT LINE IDENTIFICATION:
 
 1. For overly permissive IAM policies:
-   - INCLUDE ONLY lines like `"Action": "*"` or `"Effect": "Allow"` 
+   - INCLUDE ONLY lines like `"Action": "*"` or `"Effect": "Allow"`
    - DO NOT include resource lines, opening/closing braces, or surrounding policy structure
 
 2. For security group issues:
@@ -95,4 +95,4 @@ Rules:
 .dockerfile: Docker
 .packer: Packer
 .nomad: Nomad
-.vagrant: Vagrant 
+.vagrant: Vagrant

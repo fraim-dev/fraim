@@ -31,11 +31,11 @@ class RetryOnErrorOutputParser(BaseOutputParser[T], Generic[T]):
     DEFAULT_RETRY_PROMPT_TEMPLATE = PromptTemplate.from_string(
         dedent("""
         There was an error parsing your previous response:
-        
+
         {{ error_explanation }}
-        
+
         Please fix your response to address this error. {{ output_prompt_instructions }}
-        
+
         Make sure your response follows the exact format requirements.
         """).strip()
     )

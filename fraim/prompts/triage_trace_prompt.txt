@@ -225,12 +225,12 @@ You don't need to use tools if you can already determine these aspects from the 
      • Use this when you need to see the code around a specific line number
      • Example: get_code_context(file_path="src/auth.js", line_number=42)
      • This shows you the function containing line 42 in auth.js
-   
+
    - trace_function(function_name, file_path): Get complete call graph for a function
      • Use this when you need to find all places where a function is called
      • Example: trace_function(function_name="validateInput")
      • This shows you all functions that call validateInput
-   
+
    - find_function(function_name, file_path): Find function definitions
      • Use this when you need to find where a function is defined
      • Example: find_function(function_name="processData")
@@ -247,7 +247,7 @@ You don't need to use tools if you can already determine these aspects from the 
      • Use this for reading non-code files like configs
      • Example: read_file(file_path="config.json")
      • This shows you the contents of config.json
-   
+
    - grep_search(pattern, file_pattern): Only use for patterns unrelated to functions
      • Use this for searching text patterns that aren't function calls
      • Example: grep_search(pattern="password", file_pattern="*.js")
@@ -416,17 +416,17 @@ CALL GRAPH ANALYSIS METHODOLOGY:
    - First use get_code_context with the vulnerable file and line number to see the full function context
    - Identify the name of the function containing the vulnerability
    - Determine what parameters or variables are being used unsafely
-   
+
 2. Find all callers of the vulnerable function
    - Use trace_function with the function name to find all places where it's called
    - For each call site, use get_code_context to examine the full function containing the call
    - Document how data flows from the caller to the vulnerable code
-   
+
 3. Repeat the process recursively for each caller
    - For each caller found, use trace_function to identify its own callers
    - Continue tracing backward until you reach code that handles user input
    - Document the full chain of function calls from user input to vulnerability
-   
+
 4. Document the complete data flow path
    - Show the exact values/variables at each step in the chain
    - Identify where data enters the application from users
@@ -443,24 +443,24 @@ Start with vulnerable code in parseConfig(data) -> vulnerable to prototype pollu
 2. Find all callers of the vulnerable function:
    - trace_function(function_name="parseConfig")
    - Found in initApp(configPath) in app/init.js
-   
+
 3. Examine the caller function:
    - get_code_context(file_path="app/init.js", line_number=15)
    - Found that initApp passes rawData from readConfigFile(configPath)
-   
+
 4. Continue tracing the flow:
    - trace_function(function_name="readConfigFile")
    - get_code_context for each caller
    - Found readConfigFile reads data directly from the file path provided
    - The configPath parameter comes from command line arguments
    - No validation is performed on file contents before parsing
-   
+
 5. Complete the chain to user input:
    - Trace back to app.js where initApp is called
    - Find that configPath comes from process.argv[2] (direct user input)
 
 6. Complete call graph:
-   - User provides config file path via command line → 
+   - User provides config file path via command line →
    - app.js passes to initApp(configPath) →
    - initApp calls readConfigFile(configPath) to get rawData →
    - initApp passes rawData to parseConfig(data) →
@@ -556,14 +556,14 @@ Detailed explanation of the vulnerability, focusing on the data flow. This secti
 
 DATA FLOW PATH:
 1. User input enters through [specific entry point] in [file:line]
-2. Data flows to `functionName` in [file:line] 
+2. Data flows to `functionName` in [file:line]
 3. The `variable` is passed to `anotherFunction` without proper validation in [file:line]
 4. The vulnerable code processes the data at the identified location
 
 IMPORTANT: Always use backtick (`) formatting for all code elements including:
 - Function names: `processData`, `parseInput`
 - Method names: `document.write`, `JSON.parse`
-- Variable names: `userData`, `rawConfig` 
+- Variable names: `userData`, `rawConfig`
 - Properties: `req.body`, `config.allowedDomains`
 - Classes: `DOMParser`, `ConfigHandler`
 

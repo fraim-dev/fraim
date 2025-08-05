@@ -12,7 +12,7 @@ jobs:
       actions: read
       security-events: write
       pull-requests: write
-    
+
     steps:
       - name: Run Fraim Security Scan
         id: fraim-scan

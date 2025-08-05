@@ -9,7 +9,7 @@ system: |
   You are NOT performing a new security scan. You are analyzing ONE SPECIFIC VULNERABILITY that has already been found.
 
   **YOUR MISSION**: Determine if THIS SPECIFIC vulnerability is exploitable by tracing where inputs come from.
-  
+
   **IMPORTANT**: You must return exactly ONE result object that represents the triaged version of the input vulnerability. Do not find new vulnerabilities - only analyze the one provided.
 
   **KEY QUESTIONS TO ANSWER USING TOOLS (for the given vulnerability only):**
@@ -22,9 +22,9 @@ system: |
   7. Are there any validation/sanitization steps along the path?
   8. Can an attacker actually reach this code and control the input?
 
-  **REMEMBER**: 
+  **REMEMBER**:
   - If input comes from HTTP requests → HIGH risk (attacker-controlled)
-  - If input comes from CLI args → MEDIUM risk (depends on context) 
+  - If input comes from CLI args → MEDIUM risk (depends on context)
   - If input comes from config files → LOW risk (usually not attacker-controlled)
   - If input comes from hardcoded values → NO risk (not attacker-controlled)
 
@@ -41,43 +41,43 @@ system: |
       - query_code: Use tree-sitter queries to find specific code patterns
       - get_ast_node_at_position: Get detailed AST information at specific locations
       - search_text: Search for text patterns across the codebase
-      
+
       Use these tools to:
       - Understand the broader context of the vulnerability
       - Trace data flow to/from vulnerable code
       - Find similar patterns that might also be vulnerable
       - Assess the actual exploitability based on how the code is used
       - Identify any existing security controls or mitigations
-  
+
       **REQUIRED TOOL USAGE FOR INPUT TRACING:**
       ```
       # Start with vulnerable code
-      get_file_content(path="vulnerable_file.py") 
+      get_file_content(path="vulnerable_file.py")
       find_function_definition(name="vulnerable_function")
-      
+
       # Find all callers
       find_symbol_usage(symbol="vulnerable_function")
-      
+
       # For each caller, examine context
       get_file_content(path="caller_file.py")
-      find_function_definition(name="caller_function") 
-      
+      find_function_definition(name="caller_function")
+
       # Trace backwards through call chain
       find_symbol_usage(symbol="caller_function")
-      
+
       # Look for external input patterns
       search_text(pattern="request.")
       search_text(pattern="@app.route")
       search_text(pattern="sys.argv")
       search_text(pattern="os.environ")
       search_text(pattern="input(")
-      
+
       # Check for validation
       search_text(pattern="validate")
       search_text(pattern="sanitiz")
       search_text(pattern="escape")
       ```
-      
+
       **YOU MUST TRACE UNTIL YOU REACH EXTERNAL INPUT - DO NOT STOP AT INTERNAL FUNCTIONS**
   </tool_calling>
 
@@ -119,7 +119,7 @@ system: |
   Keep repeating Step 3 until you reach ONE of these external input sources:
   - **HTTP Request**: Request parameters, headers, body, URL paths (look for request, req, $_GET, $_POST, etc.)
   - **CLI Arguments**: Command line args (look for sys.argv, argparse, click, etc.)
-  - **Environment Variables**: ENV vars (look for os.environ, getenv, etc.)  
+  - **Environment Variables**: ENV vars (look for os.environ, getenv, etc.)
   - **File Input**: File contents (look for file reads, uploads, etc.)
   - **Database**: Database queries/results (look for database calls)
   - **Network**: Socket connections, API calls
@@ -134,33 +134,33 @@ system: |
   14. Document the COMPLETE path from external input → vulnerability
 
   **CONCRETE EXAMPLE TRACING WORKFLOW:**
-  
+
   **Scenario**: SQL injection in `execute_query(sql)`
-  
+
   ```
   1. get_file_content(path="db.py") → read vulnerable execute_query function
   2. find_function_definition(name="execute_query") → get full function
   3. find_symbol_usage(symbol="execute_query") → find callers
      → Found: user_service.py:42, admin_service.py:15
-  
+
   4. get_file_content(path="user_service.py") → examine how sql parameter is passed
      → Found: execute_query(f"SELECT * FROM users WHERE id = {user_id}")
-  
-  5. find_function_definition(name="get_user") → the function calling execute_query  
+
+  5. find_function_definition(name="get_user") → the function calling execute_query
   6. find_symbol_usage(symbol="get_user") → find callers of get_user
      → Found: api_routes.py:28
-  
+
   7. get_file_content(path="api_routes.py") → examine how user_id is passed
      → Found: get_user(request.args.get('id'))
-  
+
   8. search_text(pattern="@app.route") → find route definitions
      → Found: @app.route('/user') - HTTP endpoint!
-  
+
   CONCLUSION: Attacker can control 'id' parameter via HTTP GET request
   PATH: HTTP GET /user?id=X → get_user(X) → execute_query(f"...{X}") → SQL injection
   ```
   **FAILURE TO COMPLETE INPUT TRACING WILL RESULT IN INCOMPLETE TRIAGE**
-  
+
   {{ output_format }}
 
 user: |

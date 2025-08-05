@@ -1,5 +1,6 @@
 import logging
 import sys
+from pathlib import Path
 
 # TODO: Consider JSON formatting, this makes it very easy to integrate dashboards, etc.
 #       We could then have a reader that renders these log events differently.
@@ -28,7 +29,9 @@ def make_logger(
 
 
 def file_handler(level: int, path: str) -> logging.FileHandler:
-    handler = logging.FileHandler(path)
+    log_path = Path(path)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    handler = logging.FileHandler(log_path)
     handler.setLevel(level)
     handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
     return handler
