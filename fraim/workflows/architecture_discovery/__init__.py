@@ -3,6 +3,6 @@
 
 """Architecture Discovery Workflow Package"""
 
-from .workflow import ArchitectureDiscoveryWorkflow
+from .workflow import ArchitectureDiscoveryOrchestrator
 
-__all__ = ["ArchitectureDiscoveryWorkflow"]
+__all__ = ["ArchitectureDiscoveryOrchestrator"]
