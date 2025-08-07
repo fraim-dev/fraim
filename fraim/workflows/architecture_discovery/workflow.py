@@ -11,7 +11,8 @@ and component relationships.
 
 import asyncio
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+from datetime import datetime
 
 from fraim.config import Config
 from fraim.core.workflows import Workflow
@@ -44,6 +45,8 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
     def __init__(self, config: Config, *args: Any, **kwargs: Any) -> None:
         self.config = config
         self.results = ComponentDiscoveryResults()
+        # Will be set when workflow starts
+        self.output_subdir: Optional[str] = None
 
         # Initialize analyzer components
         self.component_executor = ComponentDiscoveryExecutor(config)
@@ -53,12 +56,33 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
         self.diagram_generator = ArchitectureDiagramGenerator(config)
         self.synthesis_utils = SynthesisUtils(config)
 
+    def _create_output_subdirectory(self) -> None:
+        """Create a timestamped subdirectory for organized output storage."""
+        output_dir = getattr(self.config, "output_dir", None)
+        if not output_dir:
+            self.config.logger.warning("No output directory configured")
+            return
+
+        # Create timestamped subdirectory name
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        subdir_name = f"architecture_discovery_{timestamp}"
+        self.output_subdir = os.path.join(output_dir, subdir_name)
+
+        # Create the subdirectory
+        os.makedirs(self.output_subdir, exist_ok=True)
+
+        self.config.logger.info(
+            f"Created output subdirectory: {self.output_subdir}")
+
     async def workflow(self, input: ArchitectureDiscoveryInput) -> Dict[str, Any]:
         """Main orchestrator workflow executing component discovery and synthesis."""
 
         try:
             self.config.logger.info(
                 "Starting Architecture Discovery Orchestrator")
+
+            # Create organized output subdirectory
+            self._create_output_subdirectory()
 
             # Phase 1: Parallel Component Discovery
             await self._execute_component_discovery(input)
@@ -242,19 +266,18 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
     async def _write_architecture_diagram(self, diagram_format: str) -> None:
         """Write architecture diagram to file."""
         try:
-            output_dir = getattr(self.config, "output_dir", None)
-            if not output_dir:
+            if not self.output_subdir:
                 self.config.logger.warning(
-                    "No output directory configured, skipping diagram file")
+                    "Output subdirectory not created, skipping diagram file")
                 return
 
-            os.makedirs(output_dir, exist_ok=True)
+            os.makedirs(self.output_subdir, exist_ok=True)
 
             # Determine file extension based on format
             ext = {"mermaid": "mmd", "plantuml": "puml",
                    "text": "txt"}.get(diagram_format, "txt")
             filename = f"architecture_diagram.{ext}"
-            file_path = os.path.join(output_dir, filename)
+            file_path = os.path.join(self.output_subdir, filename)
 
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(self.results.architecture_diagram or "")
@@ -281,9 +304,11 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
 
             write_json_output(
                 results=data_flows_data,
-                workflow_name="architecture_discovery_data_flows",
+                workflow_name="data_flows",
                 config=self.config,
-                include_timestamp=True
+                custom_filename="data_flows.json",
+                include_timestamp=False,
+                output_dir=self.output_subdir
             )
 
         except Exception as e:
@@ -304,9 +329,11 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
 
             write_json_output(
                 results=integrations_data,
-                workflow_name="architecture_discovery_external_integrations",
+                workflow_name="external_integrations",
                 config=self.config,
-                include_timestamp=True
+                custom_filename="external_integrations.json",
+                include_timestamp=False,
+                output_dir=self.output_subdir
             )
 
         except Exception as e:
@@ -329,9 +356,11 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
 
             write_json_output(
                 results=boundaries_data,
-                workflow_name="architecture_discovery_trust_boundaries",
+                workflow_name="trust_boundaries",
                 config=self.config,
-                include_timestamp=True
+                custom_filename="trust_boundaries.json",
+                include_timestamp=False,
+                output_dir=self.output_subdir
             )
 
         except Exception as e:
@@ -356,9 +385,11 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
 
             write_json_output(
                 results=components_data,
-                workflow_name="architecture_discovery_components",
+                workflow_name="components",
                 config=self.config,
-                include_timestamp=True
+                custom_filename="components.json",
+                include_timestamp=False,
+                output_dir=self.output_subdir
             )
 
         except Exception as e:
@@ -384,9 +415,11 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
 
             write_json_output(
                 results=metadata,
-                workflow_name="architecture_discovery_metadata",
+                workflow_name="metadata",
                 config=self.config,
-                include_timestamp=True
+                custom_filename="metadata.json",
+                include_timestamp=False,
+                output_dir=self.output_subdir
             )
 
         except Exception as e:

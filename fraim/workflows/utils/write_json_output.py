@@ -21,7 +21,8 @@ def write_json_output(
     workflow_name: str,
     config: Config,
     custom_filename: Optional[str] = None,
-    include_timestamp: bool = True
+    include_timestamp: bool = True,
+    output_dir: Optional[str] = None
 ) -> Optional[str]:
     """
     Write workflow results to a JSON file with optional timestamping.
@@ -32,6 +33,7 @@ def write_json_output(
         config: Configuration object containing output_dir and project_path
         custom_filename: Optional custom filename (overrides default pattern)
         include_timestamp: Whether to include timestamp in filename (default: True)
+        output_dir: Optional output directory (overrides config.output_dir if provided)
 
     Returns:
         Path to the written file if successful, None if output_dir not configured
@@ -39,13 +41,15 @@ def write_json_output(
     Raises:
         Exception: Re-raises any exception that occurs during file writing
     """
-    output_dir = getattr(config, "output_dir", None)
-    if not output_dir:
+    # Use provided output_dir or fall back to config
+    target_output_dir = output_dir or getattr(config, "output_dir", None)
+
+    if not target_output_dir:
         return None
 
     try:
         # Create output directory if it doesn't exist
-        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(target_output_dir, exist_ok=True)
 
         # Generate filename
         if custom_filename:
@@ -62,7 +66,7 @@ def write_json_output(
             else:
                 output_filename = f"{workflow_name}_{app_name}.json"
 
-        output_path = os.path.join(output_dir, output_filename)
+        output_path = os.path.join(target_output_dir, output_filename)
 
         # Write JSON file
         with open(output_path, "w", encoding="utf-8") as f:
