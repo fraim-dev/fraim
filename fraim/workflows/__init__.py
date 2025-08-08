@@ -11,6 +11,7 @@ When imported, it discovers and registers all workflow modules.
 # Import workflow registry
 from . import registry as WorkflowRegistry
 from .api_interface_discovery import workflow as api_interface_discovery_workflow
+from .api_vulnerability import workflow as api_vulnerability_workflow
 
 # Import all workflows to trigger their registration
 from .code import workflow as code_workflow
@@ -24,5 +25,6 @@ __all__ = [
     "iac_workflow",
     "infrastructure_discovery_workflow",
     "api_interface_discovery_workflow",
+    "api_vulnerability_workflow",
     "system_analysis_workflow",
 ]
