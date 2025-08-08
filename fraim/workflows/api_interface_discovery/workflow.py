@@ -14,13 +14,14 @@ from typing import Any, Dict, List, Optional
 from fraim.config import Config
 from fraim.core.contextuals import CodeChunk
 from fraim.core.llms.litellm import LiteLLM
+from fraim.core.parsers.pydantic import PydanticOutputParser
+from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
 from fraim.core.workflows import ChunkProcessingMixin, Workflow
 from fraim.workflows.registry import workflow
 from fraim.workflows.utils import write_json_output
 
 from .file_patterns import API_INTERFACE_FILE_PATTERNS
-from .steps import create_api_interface_step
 from .types import (
     AgentInput,
     ApiInterfaceDiscoveryInput,
@@ -35,6 +36,9 @@ from .utils import (
     deduplicate_rest_endpoints,
     deduplicate_websocket_connections,
 )
+
+# Load API interface prompts
+API_INTERFACE_PROMPTS = PromptTemplate.from_yaml(str(Path(__file__).parent / "api_interface_prompts.yaml"))
 
 
 @workflow("api_interface_discovery")
@@ -57,8 +61,11 @@ class ApiInterfaceDiscoveryWorkflow(ChunkProcessingMixin, Workflow[ApiInterfaceD
         # Initialize LLM
         self.llm = LiteLLM.from_config(self.config)
 
-        # Keep step as lazy since it depends on project setup for tools
-        self._api_interface_step: Optional[LLMStep[AgentInput, ApiInterfaceResult]] = None
+        api_parser = PydanticOutputParser(ApiInterfaceResult)
+
+        self.api_interface_step: LLMStep[AgentInput, ApiInterfaceResult] = LLMStep(
+            self.llm, API_INTERFACE_PROMPTS["system"], API_INTERFACE_PROMPTS["user"], api_parser
+        )
 
         # Store project path early when it's still valid
         self._project_path: Optional[str] = None
@@ -67,13 +74,6 @@ class ApiInterfaceDiscoveryWorkflow(ChunkProcessingMixin, Workflow[ApiInterfaceD
     def file_patterns(self) -> List[str]:
         """File patterns for API interface discovery."""
         return API_INTERFACE_FILE_PATTERNS
-
-    @property
-    def api_interface_step(self) -> LLMStep[AgentInput, ApiInterfaceResult]:
-        """Lazily initialize the API interface analysis step with tools."""
-        if self._api_interface_step is None:
-            self._api_interface_step = create_api_interface_step(self.llm, self.config, self._project_path)
-        return self._api_interface_step
 
     async def _process_single_chunk(
         self,
