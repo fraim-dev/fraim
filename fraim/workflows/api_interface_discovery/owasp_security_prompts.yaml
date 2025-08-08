@@ -24,7 +24,7 @@ system: |
       - get_file_ast: Generate Abstract Syntax Trees for code structure analysis
       - find_symbol_usage: Track how functions/variables are used across the codebase
       - find_function_definition: Locate function definitions
-      - query_code: Use tree-sitter queries to find specific code patterns
+      - query_code: Use to find specific code patterns
       - get_ast_node_at_position: Get detailed AST information at specific locations
       - search_text: Search for text patterns across the codebase
 
@@ -76,6 +76,8 @@ system: |
       ```
   </tool_calling>
 
+  {{ output_format }}
+
 user: |
   Please analyze the following API interface findings and source code for OWASP API Security Top 10 vulnerabilities:
 
@@ -84,68 +86,13 @@ user: |
   {{api_interface_findings}}
   ```
 
-  **File Path:** {{file_path}}
-  **Source Code:**
-  ```
-  {{content}}
-  ```
+  {{ code }}
 
-  Using the tree sitter tools available, analyze this code for security vulnerabilities and map them to the OWASP API Security Top 10 2023. For each potential vulnerability found, provide:
+  Using the tools available, analyze this code for security vulnerabilities and map them to the OWASP API Security Top 10 2023. For each potential vulnerability found, provide:
 
-  1. **Tree sitter analysis**: Use available tools to search for specific vulnerable patterns
+  1. **Analysis**: Use available tools to search for specific vulnerable patterns
   2. **Vulnerability mapping**: Map findings to specific OWASP categories
   3. **Evidence**: Code patterns that support the finding
   4. **Risk assessment**: Confidence score and severity level
 
-  Return results in the following JSON format:
-
-  ```json
-  {
-    "vulnerabilities": [
-      {
-        "owasp_category": "API1:2023|API2:2023|API3:2023|API4:2023|API5:2023|API6:2023|API7:2023|API8:2023|API9:2023|API10:2023",
-        "vulnerability_title": "string",
-        "description": "string",
-        "affected_endpoints": ["string"],
-        "code_evidence": [
-          {
-            "file_path": "string",
-            "line_number": 0,
-            "code_snippet": "string",
-            "pattern_type": "string"
-          }
-        ],
-        "tree_sitter_findings": [
-          {
-            "tool_used": "string",
-            "query_parameters": "string",
-            "matches_found": 0,
-            "pattern_description": "string"
-          }
-        ],
-        "risk_level": "critical|high|medium|low",
-        "confidence": 0.9,
-        "remediation_advice": "string"
-      }
-    ],
-    "security_controls_present": [
-      {
-        "control_type": "authentication|authorization|rate_limiting|input_validation|encryption|logging",
-        "implementation": "string",
-        "endpoints_covered": ["string"],
-        "effectiveness": "strong|moderate|weak"
-      }
-    ],
-    "summary": {
-      "total_vulnerabilities": 0,
-      "critical_count": 0,
-      "high_count": 0,
-      "medium_count": 0,
-      "low_count": 0,
-      "overall_security_posture": "strong|moderate|weak",
-      "confidence_score": 0.9
-    }
-  }
-  ```
-
-  Focus on high-confidence findings (0.7+) and use tree sitter tools to validate security patterns. If no vulnerabilities are found, return empty arrays but still analyze for positive security controls.
+  Focus on high-confidence findings (0.7+) and use tools to validate security patterns. If no vulnerabilities are found, return empty arrays but still analyze for positive security controls.

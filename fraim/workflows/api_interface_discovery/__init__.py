@@ -3,9 +3,8 @@
 
 """API Interface Discovery Workflow"""
 
-from .workflow import (
+from .types import (
     ApiInterfaceDiscoveryInput,
-    ApiInterfaceDiscoveryWorkflow,
     ApiInterfaceResult,
     APIVersioning,
     DataFlow,
@@ -14,6 +13,7 @@ from .workflow import (
     RestEndpoint,
     WebSocketConnection,
 )
+from .workflow import ApiInterfaceDiscoveryWorkflow
 
 __all__ = [
     "ApiInterfaceDiscoveryInput",
