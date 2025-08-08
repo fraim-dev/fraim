@@ -167,21 +167,25 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
         """Main Code workflow - full control over execution with multi-step processing."""
         try:
             # 1. Setup project input using utility
-            self.project = self.setup_project_input(input)
+            project = self.setup_project_input(input)
 
-            # 2. Create a closure that captures max_concurrent_triagers
-            async def chunk_processor(chunk: CodeChunk) -> List[sarif.Result]:
-                return await self._process_single_chunk(chunk, input.max_concurrent_triagers)
+            # Use project as context manager to keep temp directories alive
+            with project:
+                self.project = project
 
-            # 3. Process chunks concurrently using utility
-            results = await self.process_chunks_concurrently(
-                project=self.project, chunk_processor=chunk_processor, max_concurrent_chunks=input.max_concurrent_chunks
-            )
+                # 2. Create a closure that captures max_concurrent_triagers
+                async def chunk_processor(chunk: CodeChunk) -> List[sarif.Result]:
+                    return await self._process_single_chunk(chunk, input.max_concurrent_triagers)
+
+                # 3. Process chunks concurrently using utility
+                results = await self.process_chunks_concurrently(
+                    project=project, chunk_processor=chunk_processor, max_concurrent_chunks=input.max_concurrent_chunks
+                )
 
             # 4. Generate reports
             write_sarif_and_html_report(
                 results=results,
-                repo_name=self.project.repo_name,
+                repo_name=project.repo_name,
                 output_dir=self.config.output_dir,
                 logger=self.config.logger,
             )

@@ -19,4 +19,8 @@ from .system_analysis import workflow as system_analysis_workflow
 
 __all__ = [
     "WorkflowRegistry",
+    "code_workflow",
+    "iac_workflow",
+    "infrastructure_discovery_workflow",
+    "system_analysis_workflow",
 ]

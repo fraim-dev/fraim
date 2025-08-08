@@ -178,6 +178,7 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
     - Business logic to understand core functionality
     """
 
+    # TODO: Give one or both of dedup / analysis steps tools
     def __init__(self, config: Config, *args: Any, **kwargs: Any) -> None:
         super().__init__(config, *args, **kwargs)
 
