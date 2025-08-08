@@ -9,7 +9,9 @@ Common utilities and helper methods for architecture synthesis operations.
 
 from datetime import datetime
 from typing import Any, Dict, List
+
 from fraim.config import Config
+
 from .types import ComponentDiscoveryResults
 
 
@@ -28,8 +30,7 @@ class SynthesisUtils:
         count = 0
 
         if results.infrastructure:
-            count += self._count_infrastructure_components(
-                results.infrastructure)
+            count += self._count_infrastructure_components(results.infrastructure)
 
         if results.api_interfaces:
             count += self._count_api_components(results.api_interfaces)
@@ -76,17 +77,14 @@ class SynthesisUtils:
         # Check for infrastructure issues
         if results.infrastructure:
             if "error" in results.infrastructure:
-                issues.append(
-                    f"Infrastructure discovery error: {results.infrastructure['error']}")
+                issues.append(f"Infrastructure discovery error: {results.infrastructure['error']}")
             elif not any(results.infrastructure.values()):
-                issues.append(
-                    "Infrastructure discovery returned empty results")
+                issues.append("Infrastructure discovery returned empty results")
 
         # Check for API issues
         if results.api_interfaces:
             if "error" in results.api_interfaces:
-                issues.append(
-                    f"API discovery error: {results.api_interfaces['error']}")
+                issues.append(f"API discovery error: {results.api_interfaces['error']}")
             elif not any(results.api_interfaces.values()):
                 issues.append("API discovery returned empty results")
 
@@ -123,8 +121,9 @@ class SynthesisUtils:
 
         return sorted(list(components))
 
-    def create_metadata_summary(self, results: ComponentDiscoveryResults,
-                                diagram_format: str = "mermaid") -> Dict[str, Any]:
+    def create_metadata_summary(
+        self, results: ComponentDiscoveryResults, diagram_format: str = "mermaid"
+    ) -> Dict[str, Any]:
         """Create comprehensive metadata summary for architecture results."""
         return {
             "analysis_timestamp": self.get_timestamp(),
@@ -133,7 +132,7 @@ class SynthesisUtils:
             "unique_components": len(self.extract_unique_components(results)),
             "discovery_status": self._get_discovery_status(results),
             "validation_issues": self.validate_discovery_results(results),
-            "data_sources": self._identify_data_sources(results)
+            "data_sources": self._identify_data_sources(results),
         }
 
     def _get_discovery_status(self, results: ComponentDiscoveryResults) -> Dict[str, str]:
@@ -179,7 +178,10 @@ class SynthesisUtils:
                 sources.append("api_endpoints")
             if "service_contracts" in results.api_interfaces and results.api_interfaces["service_contracts"]:
                 sources.append("service_contracts")
-            if "external_api_dependencies" in results.api_interfaces and results.api_interfaces["external_api_dependencies"]:
+            if (
+                "external_api_dependencies" in results.api_interfaces
+                and results.api_interfaces["external_api_dependencies"]
+            ):
                 sources.append("external_api_dependencies")
 
         return sources
@@ -194,8 +196,7 @@ class SynthesisUtils:
             if "error" in results.infrastructure:
                 lines.append(f"⚠️ Error: {results.infrastructure['error']}")
             else:
-                infra_count = self._count_infrastructure_components(
-                    results.infrastructure)
+                infra_count = self._count_infrastructure_components(results.infrastructure)
                 lines.append(f"Total infrastructure components: {infra_count}")
 
                 if "deployment_topology" in results.infrastructure:

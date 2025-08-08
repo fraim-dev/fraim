@@ -178,6 +178,7 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
     - Business logic to understand core functionality
     """
 
+    # TODO: Give one or both of dedup / analysis steps tools
     def __init__(self, config: Config, *args: Any, **kwargs: Any) -> None:
         super().__init__(config, *args, **kwargs)
 
@@ -423,11 +424,7 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
             )
 
             # 5. Write output file if output_dir is configured
-            write_json_output(
-                results=final_result,
-                workflow_name="system_analysis",
-                config=self.config
-            )
+            write_json_output(results=final_result, workflow_name="system_analysis", config=self.config)
 
             return final_result
 

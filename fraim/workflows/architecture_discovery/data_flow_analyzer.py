@@ -9,7 +9,9 @@ infrastructure and API discovery results.
 """
 
 from typing import Any, Dict, List
+
 from fraim.config import Config
+
 from .types import ComponentDiscoveryResults
 
 
@@ -26,21 +28,18 @@ class DataFlowAnalyzer:
 
             # Extract data flows from infrastructure
             if results.infrastructure:
-                infra_flows = self._extract_infrastructure_data_flows(
-                    results.infrastructure)
+                infra_flows = self._extract_infrastructure_data_flows(results.infrastructure)
                 data_flows.extend(infra_flows)
 
             # Extract data flows from API interfaces
             if results.api_interfaces:
-                api_flows = self._extract_api_data_flows(
-                    results.api_interfaces)
+                api_flows = self._extract_api_data_flows(results.api_interfaces)
                 data_flows.extend(api_flows)
 
             # Deduplicate and enrich flows
             enriched_flows = self._deduplicate_and_enrich_flows(data_flows)
 
-            self.config.logger.info(
-                f"Analyzed {len(enriched_flows)} total data flows")
+            self.config.logger.info(f"Analyzed {len(enriched_flows)} total data flows")
             return enriched_flows
 
         except Exception as e:
@@ -52,25 +51,23 @@ class DataFlowAnalyzer:
         flows = []
 
         try:
-            self.config.logger.info(
-                f"Processing infrastructure data: {type(infrastructure)}")
+            self.config.logger.info(f"Processing infrastructure data: {type(infrastructure)}")
 
             # Extract flows from container configurations
             if "container_configs" in infrastructure:
                 containers = infrastructure["container_configs"]
-                self.config.logger.info(
-                    f"Found {len(containers)} container configs")
+                self.config.logger.info(f"Found {len(containers)} container configs")
 
                 for i, container in enumerate(containers):
                     try:
-                        self.config.logger.info(
-                            f"Processing container {i}: {type(container)}")
+                        self.config.logger.info(f"Processing container {i}: {type(container)}")
 
                         if isinstance(container, dict):
                             # Extract flows from exposed ports
                             exposed_ports = container.get("exposed_ports", [])
                             self.config.logger.info(
-                                f"Container {i} exposed_ports: {type(exposed_ports)} - {exposed_ports}")
+                                f"Container {i} exposed_ports: {type(exposed_ports)} - {exposed_ports}"
+                            )
 
                             for port in exposed_ports:
                                 flow = {
@@ -87,15 +84,16 @@ class DataFlowAnalyzer:
                                     "metadata": {
                                         "container_name": container.get("container_name"),
                                         "base_image": container.get("base_image"),
-                                        "runtime": container.get("runtime", "unknown")
-                                    }
+                                        "runtime": container.get("runtime", "unknown"),
+                                    },
                                 }
                                 flows.append(flow)
 
                             # Extract flows from volume mounts
                             volume_mounts = container.get("volume_mounts", [])
                             self.config.logger.info(
-                                f"Container {i} volume_mounts: {type(volume_mounts)} - {volume_mounts}")
+                                f"Container {i} volume_mounts: {type(volume_mounts)} - {volume_mounts}"
+                            )
 
                             for volume in volume_mounts:
                                 # volume_mounts is an array of strings, not dictionaries
@@ -113,25 +111,22 @@ class DataFlowAnalyzer:
                                         "authentication": "filesystem_level",
                                         "metadata": {
                                             "mount_path": volume,
-                                            "access_mode": "ReadWrite"  # Default
-                                        }
+                                            "access_mode": "ReadWrite",  # Default
+                                        },
                                     }
                                     flows.append(flow)
                     except Exception as container_error:
-                        self.config.logger.error(
-                            f"Error processing container {i}: {str(container_error)}")
+                        self.config.logger.error(f"Error processing container {i}: {str(container_error)}")
                         continue
 
             # Extract flows from infrastructure components
             if "infrastructure_components" in infrastructure:
                 components = infrastructure["infrastructure_components"]
-                self.config.logger.info(
-                    f"Found {len(components)} infrastructure components")
+                self.config.logger.info(f"Found {len(components)} infrastructure components")
 
                 for i, component in enumerate(components):
                     try:
-                        self.config.logger.info(
-                            f"Processing component {i}: {type(component)}")
+                        self.config.logger.info(f"Processing component {i}: {type(component)}")
 
                         if isinstance(component, dict):
                             # Create flows for load balancers
@@ -140,8 +135,7 @@ class DataFlowAnalyzer:
                                 config = component.get("configuration", {})
                                 ssl_enabled = False
                                 if isinstance(config, dict):
-                                    ssl_enabled = config.get(
-                                        "ssl_enabled", False)
+                                    ssl_enabled = config.get("ssl_enabled", False)
                                 elif isinstance(config, str):
                                     ssl_enabled = "ssl" in config.lower() or "tls" in config.lower()
 
@@ -159,8 +153,8 @@ class DataFlowAnalyzer:
                                     "metadata": {
                                         "provider": component.get("provider"),
                                         "service_name": component.get("service_name"),
-                                        "environment": component.get("environment")
-                                    }
+                                        "environment": component.get("environment"),
+                                    },
                                 }
                                 flows.append(flow)
 
@@ -188,34 +182,30 @@ class DataFlowAnalyzer:
                                     "metadata": {
                                         "provider": component.get("provider"),
                                         "service_name": component.get("service_name"),
-                                        "environment": component.get("environment")
-                                    }
+                                        "environment": component.get("environment"),
+                                    },
                                 }
                                 flows.append(flow)
                     except Exception as component_error:
-                        self.config.logger.error(
-                            f"Error processing component {i}: {str(component_error)}")
+                        self.config.logger.error(f"Error processing component {i}: {str(component_error)}")
                         continue
 
             # Extract flows from deployment environments
             if "deployment_environments" in infrastructure:
                 environments = infrastructure["deployment_environments"]
-                self.config.logger.info(
-                    f"Found {len(environments)} deployment environments")
+                self.config.logger.info(f"Found {len(environments)} deployment environments")
 
                 for i, env in enumerate(environments):
                     try:
-                        self.config.logger.info(
-                            f"Processing environment {i}: {type(env)}")
+                        self.config.logger.info(f"Processing environment {i}: {type(env)}")
 
                         if isinstance(env, dict):
                             # Create flows for services within environments
                             services = env.get("services", [])
-                            self.config.logger.info(
-                                f"Environment {i} services: {type(services)} - {services}")
+                            self.config.logger.info(f"Environment {i} services: {type(services)} - {services}")
 
                             for j, service1 in enumerate(services):
-                                for service2 in services[j+1:]:
+                                for service2 in services[j + 1 :]:
                                     if isinstance(service1, dict) and isinstance(service2, dict):
                                         flow = {
                                             "source": service1.get("name", "unknown_service"),
@@ -230,23 +220,21 @@ class DataFlowAnalyzer:
                                             "authentication": "service_level",
                                             "metadata": {
                                                 "environment": env.get("name"),
-                                                "namespace": env.get("namespace")
-                                            }
+                                                "namespace": env.get("namespace"),
+                                            },
                                         }
                                         flows.append(flow)
                     except Exception as env_error:
-                        self.config.logger.error(
-                            f"Error processing environment {i}: {str(env_error)}")
+                        self.config.logger.error(f"Error processing environment {i}: {str(env_error)}")
                         continue
 
-            self.config.logger.info(
-                f"Successfully extracted {len(flows)} infrastructure data flows")
+            self.config.logger.info(f"Successfully extracted {len(flows)} infrastructure data flows")
             return flows
 
         except Exception as e:
-            self.config.logger.error(
-                f"Error extracting infrastructure data flows: {str(e)}")
+            self.config.logger.error(f"Error extracting infrastructure data flows: {str(e)}")
             import traceback
+
             self.config.logger.error(f"Traceback: {traceback.format_exc()}")
             return []
 
@@ -277,8 +265,8 @@ class DataFlowAnalyzer:
                                 "method": endpoint.get("http_method"),
                                 "path": endpoint.get("endpoint_path"),
                                 "service_name": endpoint.get("service_name"),
-                                "owasp_risks": endpoint.get("owasp_risks", [])
-                            }
+                                "owasp_risks": endpoint.get("owasp_risks", []),
+                            },
                         }
                         flows.append(flow)
 
@@ -301,8 +289,8 @@ class DataFlowAnalyzer:
                             "metadata": {
                                 "field_name": field.get("field_name"),
                                 "field_type": field.get("field_type"),
-                                "operation_type": field.get("operation_type")
-                            }
+                                "operation_type": field.get("operation_type"),
+                            },
                         }
                         flows.append(flow)
 
@@ -325,8 +313,8 @@ class DataFlowAnalyzer:
                             "metadata": {
                                 "endpoint": ws.get("endpoint"),
                                 "protocol": ws.get("protocol"),
-                                "broadcasting": ws.get("broadcasting")
-                            }
+                                "broadcasting": ws.get("broadcasting"),
+                            },
                         }
                         flows.append(flow)
 
@@ -350,8 +338,8 @@ class DataFlowAnalyzer:
                                 "flow_name": existing_flow.get("flow_name"),
                                 "data_format": existing_flow.get("data_format"),
                                 "transformation_logic": existing_flow.get("transformation_logic"),
-                                "error_handling": existing_flow.get("error_handling")
-                            }
+                                "error_handling": existing_flow.get("error_handling"),
+                            },
                         }
                         flows.append(flow)
 
@@ -359,8 +347,7 @@ class DataFlowAnalyzer:
             return flows
 
         except Exception as e:
-            self.config.logger.error(
-                f"Error extracting API data flows: {str(e)}")
+            self.config.logger.error(f"Error extracting API data flows: {str(e)}")
             return []
 
     def _classify_endpoint_data(self, endpoint: Dict[str, Any]) -> str:
@@ -422,8 +409,7 @@ class DataFlowAnalyzer:
                 enriched_flow = self._enrich_flow(flow)
                 enriched_flows.append(enriched_flow)
 
-            self.config.logger.info(
-                f"Deduplicated to {len(enriched_flows)} unique flows")
+            self.config.logger.info(f"Deduplicated to {len(enriched_flows)} unique flows")
             return enriched_flows
 
         except Exception as e:

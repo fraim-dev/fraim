@@ -4,12 +4,14 @@
 """
 External Integration Analyzer
 
-Handles identification, categorization, and analysis of external system 
+Handles identification, categorization, and analysis of external system
 integrations from infrastructure and API discovery results.
 """
 
 from typing import Any, Dict, List
+
 from fraim.config import Config
+
 from .types import ComponentDiscoveryResults, ExternalIntegration
 
 
@@ -26,27 +28,22 @@ class ExternalIntegrationAnalyzer:
 
             # Extract external integrations from infrastructure
             if results.infrastructure:
-                infra_externals = self._extract_infrastructure_externals(
-                    results.infrastructure)
+                infra_externals = self._extract_infrastructure_externals(results.infrastructure)
                 external_integrations.extend(infra_externals)
 
             # Extract external integrations from APIs
             if results.api_interfaces:
-                api_externals = self._extract_api_externals(
-                    results.api_interfaces)
+                api_externals = self._extract_api_externals(results.api_interfaces)
                 external_integrations.extend(api_externals)
 
             # Deduplicate and categorize
-            categorized_integrations = self._deduplicate_external_integrations(
-                external_integrations)
+            categorized_integrations = self._deduplicate_external_integrations(external_integrations)
 
-            self.config.logger.info(
-                f"Analyzed {len(categorized_integrations)} external integrations")
+            self.config.logger.info(f"Analyzed {len(categorized_integrations)} external integrations")
             return categorized_integrations
 
         except Exception as e:
-            self.config.logger.error(
-                f"External integration analysis failed: {str(e)}")
+            self.config.logger.error(f"External integration analysis failed: {str(e)}")
             return []
 
     def _extract_infrastructure_externals(self, infrastructure: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -72,8 +69,8 @@ class ExternalIntegrationAnalyzer:
                                 "provider": component.get("provider"),
                                 "service_name": component.get("service_name"),
                                 "environment": component.get("environment"),
-                                "configuration": component.get("configuration", {})
-                            }
+                                "configuration": component.get("configuration", {}),
+                            },
                         }
                         externals.append(external)
 
@@ -101,18 +98,16 @@ class ExternalIntegrationAnalyzer:
                                     "criticality": "high",
                                     "metadata": {
                                         "registry_type": self._classify_registry(registry),
-                                        "images_used": [container.get("base_image")]
-                                    }
+                                        "images_used": [container.get("base_image")],
+                                    },
                                 }
                                 externals.append(external)
 
-            self.config.logger.info(
-                f"Extracted {len(externals)} infrastructure external integrations")
+            self.config.logger.info(f"Extracted {len(externals)} infrastructure external integrations")
             return externals
 
         except Exception as e:
-            self.config.logger.error(
-                f"Error extracting infrastructure externals: {str(e)}")
+            self.config.logger.error(f"Error extracting infrastructure externals: {str(e)}")
             return []
 
     def _extract_api_externals(self, api_interfaces: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -148,8 +143,8 @@ class ExternalIntegrationAnalyzer:
                                         "http_method": endpoint.get("http_method"),
                                         "service_name": service_name,
                                         "owasp_risks": endpoint.get("owasp_risks", []),
-                                        "requires_auth": endpoint.get("requires_auth", False)
-                                    }
+                                        "requires_auth": endpoint.get("requires_auth", False),
+                                    },
                                 }
                                 externals.append(external)
 
@@ -171,8 +166,8 @@ class ExternalIntegrationAnalyzer:
                                 "flow_name": flow.get("flow_name"),
                                 "data_format": flow.get("data_format"),
                                 "transformation_logic": flow.get("transformation_logic"),
-                                "error_handling": flow.get("error_handling")
-                            }
+                                "error_handling": flow.get("error_handling"),
+                            },
                         }
                         externals.append(external)
 
@@ -199,18 +194,16 @@ class ExternalIntegrationAnalyzer:
                                     "metadata": {
                                         "vulnerability_count": 1,
                                         "risk_level": vuln.get("risk_level"),
-                                        "owasp_category": vuln.get("owasp_category")
-                                    }
+                                        "owasp_category": vuln.get("owasp_category"),
+                                    },
                                 }
                                 externals.append(external)
 
-            self.config.logger.info(
-                f"Extracted {len(externals)} API external integrations")
+            self.config.logger.info(f"Extracted {len(externals)} API external integrations")
             return externals
 
         except Exception as e:
-            self.config.logger.error(
-                f"Error extracting API externals: {str(e)}")
+            self.config.logger.error(f"Error extracting API externals: {str(e)}")
             return []
 
     def _deduplicate_external_integrations(self, integrations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -240,18 +233,18 @@ class ExternalIntegrationAnalyzer:
 
             # Sort by risk and criticality
             enriched_integrations.sort(
-                key=lambda x: (self._risk_priority(x.get("risk_level", "medium")),
-                               self._criticality_priority(x.get("criticality", "medium"))),
-                reverse=True
+                key=lambda x: (
+                    self._risk_priority(x.get("risk_level", "medium")),
+                    self._criticality_priority(x.get("criticality", "medium")),
+                ),
+                reverse=True,
             )
 
-            self.config.logger.info(
-                f"Deduplicated to {len(enriched_integrations)} unique integrations")
+            self.config.logger.info(f"Deduplicated to {len(enriched_integrations)} unique integrations")
             return enriched_integrations
 
         except Exception as e:
-            self.config.logger.error(
-                f"Error deduplicating integrations: {str(e)}")
+            self.config.logger.error(f"Error deduplicating integrations: {str(e)}")
             return integrations
 
     def _create_integration_key(self, integration: Dict[str, Any]) -> str:
@@ -279,7 +272,9 @@ class ExternalIntegrationAnalyzer:
             merged["data_classification"] = int2["data_classification"]
 
         # Use higher criticality
-        if self._criticality_priority(int2.get("criticality", "medium")) > self._criticality_priority(int1.get("criticality", "medium")):
+        if self._criticality_priority(int2.get("criticality", "medium")) > self._criticality_priority(
+            int1.get("criticality", "medium")
+        ):
             merged["criticality"] = int2["criticality"]
 
         return merged
@@ -292,12 +287,10 @@ class ExternalIntegrationAnalyzer:
         enriched["risk_level"] = self._assess_integration_risk(integration)
 
         # Add security posture
-        enriched["security_posture"] = self._assess_security_posture(
-            integration)
+        enriched["security_posture"] = self._assess_security_posture(integration)
 
         # Add compliance considerations
-        enriched["compliance_impact"] = self._assess_compliance_impact(
-            integration)
+        enriched["compliance_impact"] = self._assess_compliance_impact(integration)
 
         return enriched
 
@@ -382,10 +375,10 @@ class ExternalIntegrationAnalyzer:
         service_name = component.get("service_name", "").lower()
 
         # Common cloud providers and external services
-        external_providers = ["aws", "azure",
-                              "gcp", "cloudflare", "mongodb", "redis"]
-        return any(provider in provider.lower() for provider in external_providers) or \
-            any(service in service_name for service in ["atlas", "cloud"])
+        external_providers = ["aws", "azure", "gcp", "cloudflare", "mongodb", "redis"]
+        return any(provider in provider.lower() for provider in external_providers) or any(
+            service in service_name for service in ["atlas", "cloud"]
+        )
 
     def _is_external_image(self, image: str) -> bool:
         """Check if a container image is from an external registry."""
@@ -397,8 +390,7 @@ class ExternalIntegrationAnalyzer:
             return True
 
         # Common external registries
-        external_registries = ["docker.io", "quay.io",
-                               "gcr.io", "registry.hub.docker.com"]
+        external_registries = ["docker.io", "quay.io", "gcr.io", "registry.hub.docker.com"]
         return any(registry in image for registry in external_registries)
 
     def _extract_registry(self, image: str) -> str:
@@ -432,8 +424,7 @@ class ExternalIntegrationAnalyzer:
         service_name = endpoint.get("service_name", "").lower()
 
         # Look for indicators of external API calls
-        external_indicators = ["api.", "service.",
-                               "webhook", "callback", "oauth", "payment"]
+        external_indicators = ["api.", "service.", "webhook", "callback", "oauth", "payment"]
         return any(indicator in path or indicator in service_name for indicator in external_indicators)
 
     def _is_external_flow(self, flow: Dict[str, Any]) -> bool:
@@ -442,8 +433,7 @@ class ExternalIntegrationAnalyzer:
         source = flow.get("source", "").lower()
 
         # Check for external destinations
-        external_indicators = ["api", "service",
-                               "external", "third-party", "webhook"]
+        external_indicators = ["api", "service", "external", "third-party", "webhook"]
         return any(indicator in destination or indicator in source for indicator in external_indicators)
 
     def _is_third_party_library(self, component: str) -> bool:

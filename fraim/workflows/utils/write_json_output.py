@@ -22,7 +22,7 @@ def write_json_output(
     config: Config,
     custom_filename: Optional[str] = None,
     include_timestamp: bool = True,
-    output_dir: Optional[str] = None
+    output_dir: Optional[str] = None,
 ) -> Optional[str]:
     """
     Write workflow results to a JSON file with optional timestamping.
@@ -57,8 +57,7 @@ def write_json_output(
         else:
             # Extract app name from project path
             app_name = getattr(config, "project_path", "application")
-            app_name = os.path.basename(
-                app_name.rstrip(os.sep)) or "application"
+            app_name = os.path.basename(app_name.rstrip(os.sep)) or "application"
 
             if include_timestamp:
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -72,11 +71,9 @@ def write_json_output(
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(results, f, indent=2)
 
-        config.logger.info(
-            f"{workflow_name.replace('_', ' ').title()} results written to {output_path}")
+        config.logger.info(f"{workflow_name.replace('_', ' ').title()} results written to {output_path}")
         return output_path
 
     except Exception as write_exc:
-        config.logger.error(
-            f"Failed to write {workflow_name} results: {write_exc}")
+        config.logger.error(f"Failed to write {workflow_name} results: {write_exc}")
         raise

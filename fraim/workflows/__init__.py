@@ -10,16 +10,14 @@ When imported, it discovers and registers all workflow modules.
 
 # Import workflow registry
 from . import registry as WorkflowRegistry
+from .api_interface_discovery import workflow as api_interface_discovery_workflow
+from .architecture_discovery import workflow as architecture_discovery_workflow
 
 # Import all workflows to trigger their registration
 from .code import workflow as code_workflow
 from .iac import workflow as iac_workflow
 from .infrastructure_discovery import workflow as infrastructure_discovery_workflow
-from .api_interface_discovery import workflow as api_interface_discovery_workflow
-from .architecture_discovery import workflow as architecture_discovery_workflow
 from .system_analysis import workflow as system_analysis_workflow
-from .architecture_discovery import workflow as architecture_discovery_workflow
-from .infrastructure_discovery import workflow as infrastructure_discovery_workflow
 
 __all__ = [
     "WorkflowRegistry",

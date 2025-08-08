@@ -9,7 +9,9 @@ from infrastructure and API discovery results.
 """
 
 from typing import Any, Dict, List
+
 from fraim.config import Config
+
 from .types import ComponentDiscoveryResults, TrustBoundary
 
 
@@ -26,42 +28,33 @@ class TrustBoundaryAnalyzer:
             trust_boundaries = []
 
             # Debug: Log what data we have
-            self.config.logger.info(
-                f"Infrastructure data available: {results.infrastructure is not None}")
-            self.config.logger.info(
-                f"API interfaces data available: {results.api_interfaces is not None}")
+            self.config.logger.info(f"Infrastructure data available: {results.infrastructure is not None}")
+            self.config.logger.info(f"API interfaces data available: {results.api_interfaces is not None}")
 
             # Identify network-level trust boundaries from infrastructure
             if results.infrastructure:
-                self.config.logger.info(
-                    "Processing infrastructure trust boundaries")
-                network_boundaries = self._identify_network_trust_boundaries(
-                    results.infrastructure)
+                self.config.logger.info("Processing infrastructure trust boundaries")
+                network_boundaries = self._identify_network_trust_boundaries(results.infrastructure)
                 trust_boundaries.extend(network_boundaries)
-                self.config.logger.info(
-                    f"Found {len(network_boundaries)} infrastructure trust boundaries")
+                self.config.logger.info(f"Found {len(network_boundaries)} infrastructure trust boundaries")
 
             # Identify application-level trust boundaries from APIs
             if results.api_interfaces:
                 self.config.logger.info("Processing API trust boundaries")
-                api_boundaries = self._identify_api_trust_boundaries(
-                    results.api_interfaces)
+                api_boundaries = self._identify_api_trust_boundaries(results.api_interfaces)
                 trust_boundaries.extend(api_boundaries)
-                self.config.logger.info(
-                    f"Found {len(api_boundaries)} API trust boundaries")
+                self.config.logger.info(f"Found {len(api_boundaries)} API trust boundaries")
 
             # Analyze and prioritize boundaries
-            analyzed_boundaries = self._analyze_trust_boundaries(
-                trust_boundaries)
+            analyzed_boundaries = self._analyze_trust_boundaries(trust_boundaries)
 
-            self.config.logger.info(
-                f"Analyzed {len(analyzed_boundaries)} trust boundaries")
+            self.config.logger.info(f"Analyzed {len(analyzed_boundaries)} trust boundaries")
             return analyzed_boundaries
 
         except Exception as e:
-            self.config.logger.error(
-                f"Trust boundary analysis failed: {str(e)}")
+            self.config.logger.error(f"Trust boundary analysis failed: {str(e)}")
             import traceback
+
             self.config.logger.error(f"Traceback: {traceback.format_exc()}")
             return []
 
@@ -77,7 +70,7 @@ class TrustBoundaryAnalyzer:
 
                 # Create boundaries for database components
                 for component in components:
-                    if isinstance(component, dict) and component.get('type') == 'database':
+                    if isinstance(component, dict) and component.get("type") == "database":
                         boundary = {
                             "name": f"Database_{component.get('name', 'unknown')}",
                             "type": "data_boundary",
@@ -88,12 +81,12 @@ class TrustBoundaryAnalyzer:
                             "description": f"Database boundary protecting {component.get('service_name', 'data')}",
                             "metadata": {
                                 "provider": component.get("provider"),
-                                "service_name": component.get("service_name")
-                            }
+                                "service_name": component.get("service_name"),
+                            },
                         }
                         boundaries.append(boundary)
 
-                    elif isinstance(component, dict) and component.get('type') == 'load_balancer':
+                    elif isinstance(component, dict) and component.get("type") == "load_balancer":
                         boundary = {
                             "name": f"LoadBalancer_{component.get('name', 'unknown')}",
                             "type": "dmz_boundary",
@@ -104,8 +97,8 @@ class TrustBoundaryAnalyzer:
                             "description": f"Load balancer boundary exposing internal services",
                             "metadata": {
                                 "provider": component.get("provider"),
-                                "service_name": component.get("service_name")
-                            }
+                                "service_name": component.get("service_name"),
+                            },
                         }
                         boundaries.append(boundary)
 
@@ -130,8 +123,8 @@ class TrustBoundaryAnalyzer:
                                     "load_balancer_type": lb.get("type"),
                                     "ssl_termination": lb.get("ssl_enabled", False),
                                     "health_checks": lb.get("health_check", {}),
-                                    "target_count": len(lb.get("target_group", []))
-                                }
+                                    "target_count": len(lb.get("target_group", [])),
+                                },
                             }
                             boundaries.append(boundary)
 
@@ -153,18 +146,16 @@ class TrustBoundaryAnalyzer:
                                     "encrypted": db.get("encrypted", False),
                                     "backup_enabled": db.get("backup_enabled", False),
                                     "multi_az": db.get("multi_az", False),
-                                    "publicly_accessible": db.get("publicly_accessible", False)
-                                }
+                                    "publicly_accessible": db.get("publicly_accessible", False),
+                                },
                             }
                             boundaries.append(boundary)
 
-            self.config.logger.info(
-                f"Identified {len(boundaries)} network trust boundaries")
+            self.config.logger.info(f"Identified {len(boundaries)} network trust boundaries")
             return boundaries
 
         except Exception as e:
-            self.config.logger.error(
-                f"Error identifying network trust boundaries: {str(e)}")
+            self.config.logger.error(f"Error identifying network trust boundaries: {str(e)}")
             return []
 
     def _identify_api_trust_boundaries(self, api_interfaces: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -181,18 +172,15 @@ class TrustBoundaryAnalyzer:
                 service_groups: Dict[str, List[Dict[str, Any]]] = {}
                 for endpoint in endpoints:
                     if isinstance(endpoint, dict):
-                        service = endpoint.get(
-                            "handler_function", "unknown_service")
+                        service = endpoint.get("handler_function", "unknown_service")
                         if service not in service_groups:
                             service_groups[service] = []
                         service_groups[service].append(endpoint)
 
                 # Create boundaries for each service
                 for service, service_endpoints in service_groups.items():
-                    paths = [ep.get("endpoint_path", "unknown")
-                             for ep in service_endpoints]
-                    methods = list(set(ep.get("http_method", "GET")
-                                   for ep in service_endpoints))
+                    paths = [ep.get("endpoint_path", "unknown") for ep in service_endpoints]
+                    methods = list(set(ep.get("http_method", "GET") for ep in service_endpoints))
 
                     boundary = {
                         "name": f"RestService_{service}",
@@ -200,14 +188,16 @@ class TrustBoundaryAnalyzer:
                         "category": "api",
                         "components": paths,
                         "security_controls": ["REST API Security"],
-                        "threat_level": "high" if any(ep.get("endpoint_path", "").startswith("/admin") for ep in service_endpoints) else "medium",
+                        "threat_level": "high"
+                        if any(ep.get("endpoint_path", "").startswith("/admin") for ep in service_endpoints)
+                        else "medium",
                         "description": f"REST API service boundary for {service}",
                         "metadata": {
                             "service_name": service,
                             "endpoint_count": len(service_endpoints),
                             "http_methods": methods,
-                            "rate_limiting": any(ep.get("rate_limiting") for ep in service_endpoints)
-                        }
+                            "rate_limiting": any(ep.get("rate_limiting") for ep in service_endpoints),
+                        },
                     }
                     boundaries.append(boundary)
 
@@ -236,8 +226,10 @@ class TrustBoundaryAnalyzer:
                             "service_count": len(services),
                             "communication_patterns": len(communications),
                             "encrypted_channels": sum(1 for c in communications if c.get("encryption", False)),
-                            "authentication_enabled": sum(1 for c in communications if c.get("authentication") != "none")
-                        }
+                            "authentication_enabled": sum(
+                                1 for c in communications if c.get("authentication") != "none"
+                            ),
+                        },
                     }
                     boundaries.append(boundary)
 
@@ -258,23 +250,20 @@ class TrustBoundaryAnalyzer:
                                 "provider": dep.get("provider"),
                                 "data_classification": dep.get("data_classification", "unknown"),
                                 "rate_limited": dep.get("rate_limit") is not None,
-                                "sla": dep.get("sla")
-                            }
+                                "sla": dep.get("sla"),
+                            },
                         }
                         boundaries.append(boundary)
 
             # Authentication boundaries
-            auth_boundaries = self._identify_authentication_boundaries(
-                api_interfaces)
+            auth_boundaries = self._identify_authentication_boundaries(api_interfaces)
             boundaries.extend(auth_boundaries)
 
-            self.config.logger.info(
-                f"Identified {len(boundaries)} API trust boundaries")
+            self.config.logger.info(f"Identified {len(boundaries)} API trust boundaries")
             return boundaries
 
         except Exception as e:
-            self.config.logger.error(
-                f"Error identifying API trust boundaries: {str(e)}")
+            self.config.logger.error(f"Error identifying API trust boundaries: {str(e)}")
             return []
 
     def _analyze_trust_boundaries(self, boundaries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -292,29 +281,23 @@ class TrustBoundaryAnalyzer:
                 analyzed["priority"] = self._determine_priority(boundary)
 
                 # Add recommended controls
-                analyzed["recommended_controls"] = self._recommend_security_controls(
-                    boundary)
+                analyzed["recommended_controls"] = self._recommend_security_controls(boundary)
 
                 # Add threat vectors
-                analyzed["threat_vectors"] = self._identify_threat_vectors(
-                    boundary)
+                analyzed["threat_vectors"] = self._identify_threat_vectors(boundary)
 
                 analyzed_boundaries.append(analyzed)
 
             # Sort by risk score and priority
             analyzed_boundaries.sort(
-                key=lambda x: (x.get("risk_score", 0), self._priority_weight(
-                    x.get("priority", "medium"))),
-                reverse=True
+                key=lambda x: (x.get("risk_score", 0), self._priority_weight(x.get("priority", "medium"))), reverse=True
             )
 
-            self.config.logger.info(
-                f"Analyzed and prioritized {len(analyzed_boundaries)} trust boundaries")
+            self.config.logger.info(f"Analyzed and prioritized {len(analyzed_boundaries)} trust boundaries")
             return analyzed_boundaries
 
         except Exception as e:
-            self.config.logger.error(
-                f"Error analyzing trust boundaries: {str(e)}")
+            self.config.logger.error(f"Error analyzing trust boundaries: {str(e)}")
             return boundaries
 
     def _calculate_risk_score(self, boundary: Dict[str, Any]) -> int:
@@ -368,40 +351,42 @@ class TrustBoundaryAnalyzer:
         boundary_type = boundary.get("type", "")
 
         if "public" in boundary_type or "dmz" in boundary_type:
-            recommendations.extend([
-                "Web Application Firewall (WAF)",
-                "DDoS Protection",
-                "Rate Limiting",
-                "SSL/TLS Termination",
-                "Input Validation"
-            ])
+            recommendations.extend(
+                [
+                    "Web Application Firewall (WAF)",
+                    "DDoS Protection",
+                    "Rate Limiting",
+                    "SSL/TLS Termination",
+                    "Input Validation",
+                ]
+            )
 
         if "api" in boundary_type:
-            recommendations.extend([
-                "API Authentication",
-                "Rate Limiting",
-                "Request/Response Validation",
-                "API Gateway Logging",
-                "Circuit Breaker Pattern"
-            ])
+            recommendations.extend(
+                [
+                    "API Authentication",
+                    "Rate Limiting",
+                    "Request/Response Validation",
+                    "API Gateway Logging",
+                    "Circuit Breaker Pattern",
+                ]
+            )
 
         if "data" in boundary_type:
-            recommendations.extend([
-                "Database Encryption",
-                "Access Control Lists",
-                "Database Activity Monitoring",
-                "Backup Encryption",
-                "Network Isolation"
-            ])
+            recommendations.extend(
+                [
+                    "Database Encryption",
+                    "Access Control Lists",
+                    "Database Activity Monitoring",
+                    "Backup Encryption",
+                    "Network Isolation",
+                ]
+            )
 
         if "network" in boundary_type:
-            recommendations.extend([
-                "Security Groups",
-                "Network ACLs",
-                "VPC Flow Logs",
-                "Network Segmentation",
-                "Intrusion Detection"
-            ])
+            recommendations.extend(
+                ["Security Groups", "Network ACLs", "VPC Flow Logs", "Network Segmentation", "Intrusion Detection"]
+            )
 
         return recommendations
 
@@ -411,31 +396,25 @@ class TrustBoundaryAnalyzer:
         boundary_type = boundary.get("type", "")
 
         if "public" in boundary_type or "external" in boundary_type:
-            threats.extend([
-                "External Attackers",
-                "DDoS Attacks",
-                "Web Application Attacks",
-                "Data Exfiltration",
-                "Man-in-the-Middle"
-            ])
+            threats.extend(
+                [
+                    "External Attackers",
+                    "DDoS Attacks",
+                    "Web Application Attacks",
+                    "Data Exfiltration",
+                    "Man-in-the-Middle",
+                ]
+            )
 
         if "api" in boundary_type:
-            threats.extend([
-                "API Abuse",
-                "Injection Attacks",
-                "Broken Authentication",
-                "Rate Limit Bypass",
-                "Data Exposure"
-            ])
+            threats.extend(
+                ["API Abuse", "Injection Attacks", "Broken Authentication", "Rate Limit Bypass", "Data Exposure"]
+            )
 
         if "data" in boundary_type:
-            threats.extend([
-                "Data Breaches",
-                "SQL Injection",
-                "Privilege Escalation",
-                "Backup Theft",
-                "Insider Threats"
-            ])
+            threats.extend(
+                ["Data Breaches", "SQL Injection", "Privilege Escalation", "Backup Theft", "Insider Threats"]
+            )
 
         return threats
 
@@ -454,8 +433,7 @@ class TrustBoundaryAnalyzer:
             subnets = infrastructure["network_architecture"]["subnets"]
             for subnet in subnets:
                 if isinstance(subnet, dict) and subnet.get("vpc_id") == vpc_id:
-                    components.append(subnet.get(
-                        "name", subnet.get("id", "unknown_subnet")))
+                    components.append(subnet.get("name", subnet.get("id", "unknown_subnet")))
 
         return components
 
@@ -485,8 +463,7 @@ class TrustBoundaryAnalyzer:
             if "compute_instances" in topology:
                 for instance in topology["compute_instances"]:
                     if isinstance(instance, dict) and instance.get("subnet_id") == subnet_id:
-                        components.append(instance.get(
-                            "name", instance.get("id", "unknown_instance")))
+                        components.append(instance.get("name", instance.get("id", "unknown_instance")))
 
         return components
 
@@ -602,8 +579,8 @@ class TrustBoundaryAnalyzer:
                         "metadata": {
                             "authentication_method": auth_method,
                             "endpoint_count": len(auth_endpoints),
-                            "public_endpoints": sum(1 for ep in auth_endpoints if ep.get("public", False))
-                        }
+                            "public_endpoints": sum(1 for ep in auth_endpoints if ep.get("public", False)),
+                        },
                     }
                     boundaries.append(boundary)
 

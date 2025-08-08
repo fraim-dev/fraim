@@ -18,23 +18,16 @@ class ArchitectureDiscoveryInput(ChunkWorkflowInput):
     """Input for the Architecture Discovery orchestrator workflow."""
 
     # Architecture-specific configuration options
-    include_data_flows: Annotated[
-        bool, {"help": "Generate detailed data flow analysis"}
-    ] = True
+    include_data_flows: Annotated[bool, {"help": "Generate detailed data flow analysis"}] = True
 
-    include_trust_boundaries: Annotated[
-        bool, {"help": "Identify and map trust boundaries"}
-    ] = True
+    include_trust_boundaries: Annotated[bool, {"help": "Identify and map trust boundaries"}] = True
 
-    diagram_format: Annotated[
-        str, {
-            "help": "Output format for architecture diagrams (mermaid, plantuml, text)"}
-    ] = "mermaid"
+    diagram_format: Annotated[str, {"help": "Output format for architecture diagrams (mermaid, plantuml, text)"}] = (
+        "mermaid"
+    )
 
     # Rate limiting configuration
-    api_delay_seconds: Annotated[
-        float, {"help": "Delay between API calls to respect rate limits"}
-    ] = 0.5
+    api_delay_seconds: Annotated[float, {"help": "Delay between API calls to respect rate limits"}] = 0.5
 
     reduce_concurrency_on_rate_limit: Annotated[
         bool, {"help": "Automatically reduce concurrency when rate limits are hit"}
