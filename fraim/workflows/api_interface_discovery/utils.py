@@ -15,8 +15,6 @@ from .types import (
     DataModel,
     GraphQLField,
     RestEndpoint,
-    SecurityControl,
-    Vulnerability,
     WebSocketConnection,
 )
 
@@ -99,30 +97,7 @@ def deduplicate_data_flows(flows: List[DataFlow]) -> List[DataFlow]:
     return unique
 
 
-def deduplicate_vulnerabilities(vulnerabilities: List[Vulnerability]) -> List[Vulnerability]:
-    """Remove duplicate vulnerabilities."""
-    seen = set()
-    unique = []
-    for vuln in vulnerabilities:
-        # Use OWASP category and title as deduplication key
-        key = f"{vuln.owasp_category}:{vuln.vulnerability_title}"
-        if key not in seen:
-            seen.add(key)
-            unique.append(vuln)
-    return unique
 
-
-def deduplicate_security_controls(controls: List[SecurityControl]) -> List[SecurityControl]:
-    """Remove duplicate security controls."""
-    seen = set()
-    unique = []
-    for control in controls:
-        # Use control type and implementation as deduplication key
-        key = f"{control.control_type}:{control.implementation}"
-        if key not in seen:
-            seen.add(key)
-            unique.append(control)
-    return unique
 
 
 def create_api_summary(
@@ -148,34 +123,3 @@ def create_api_summary(
         summary_parts.append(f"Found {len(data_models)} data models")
 
     return " ".join(summary_parts)
-
-
-def create_security_summary(vulnerabilities: List[Vulnerability]) -> Dict[str, Any]:
-    """Create security analysis summary."""
-    critical_count = sum(1 for v in vulnerabilities if v.risk_level.lower() == "critical")
-    high_count = sum(1 for v in vulnerabilities if v.risk_level.lower() == "high")
-    medium_count = sum(1 for v in vulnerabilities if v.risk_level.lower() == "medium")
-    low_count = sum(1 for v in vulnerabilities if v.risk_level.lower() == "low")
-
-    total_vulnerabilities = len(vulnerabilities)
-
-    # Determine overall security posture
-    if critical_count > 0 or high_count > 2:
-        overall_posture = "weak"
-    elif high_count > 0 or medium_count > 3:
-        overall_posture = "moderate"
-    else:
-        overall_posture = "strong"
-
-    # Calculate average confidence
-    avg_confidence = sum(v.confidence for v in vulnerabilities) / len(vulnerabilities) if vulnerabilities else 0.0
-
-    return {
-        "total_vulnerabilities": total_vulnerabilities,
-        "critical_count": critical_count,
-        "high_count": high_count,
-        "medium_count": medium_count,
-        "low_count": low_count,
-        "overall_security_posture": overall_posture,
-        "confidence_score": avg_confidence,
-    }

@@ -92,55 +92,7 @@ class ApiInterfaceResult(BaseModel):
     data_flows: Optional[List[DataFlow]] = None
 
 
-# Pydantic models for OWASP API Security Analysis
-class CodeEvidence(BaseModel):
-    file_path: str
-    line_number: int
-    code_snippet: str
-    pattern_type: str
 
-
-class Vulnerability(BaseModel):
-    owasp_category: str  # API1:2023 through API10:2023
-    vulnerability_title: str
-    description: str
-    affected_endpoints: List[str]
-    code_evidence: List[CodeEvidence]
-    risk_level: str  # critical|high|medium|low
-    confidence: float
-    remediation_advice: str
-
-
-class SecurityControl(BaseModel):
-    # authentication|authorization|rate_limiting|input_validation|encryption|logging
-    control_type: str
-    implementation: str
-    endpoints_covered: List[str]
-    effectiveness: str  # strong|moderate|weak
-
-
-class SecuritySummary(BaseModel):
-    total_vulnerabilities: int
-    critical_count: int
-    high_count: int
-    medium_count: int
-    low_count: int
-    overall_security_posture: str  # strong|moderate|weak
-    confidence_score: float
-
-
-class OwaspMappingResult(BaseModel):
-    vulnerabilities: List[Vulnerability]
-    security_controls_present: List[SecurityControl]
-    summary: SecuritySummary
-
-
-class CombinedApiSecurityResult(BaseModel):
-    """Combined result containing both API interface findings and OWASP security analysis."""
-
-    api_interface: ApiInterfaceResult
-    security_analysis: OwaspMappingResult
-    file_path: str
 
 
 @dataclass
@@ -161,13 +113,4 @@ class AgentInput:
     """Input for analyzing a single API interface chunk."""
 
     code: CodeChunk
-    config: Config
-
-
-@dataclass
-class OwaspMappingInput:
-    """Input for analyzing API interface findings for OWASP vulnerabilities."""
-
-    code: CodeChunk
-    api_interface_findings: str  # JSON string of ApiInterfaceResult
     config: Config
