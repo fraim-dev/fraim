@@ -10,6 +10,8 @@ Data classes and type definitions for the Architecture Discovery workflow.
 from dataclasses import dataclass
 from typing import Annotated, Any, Dict, List, Optional
 
+from pydantic import BaseModel
+
 from fraim.core.workflows import ChunkWorkflowInput
 
 
@@ -22,9 +24,9 @@ class ArchitectureDiscoveryInput(ChunkWorkflowInput):
 
     include_trust_boundaries: Annotated[bool, {"help": "Identify and map trust boundaries"}] = True
 
-    diagram_format: Annotated[str, {"help": "Output format for architecture diagrams (mermaid, plantuml, text)"}] = (
-        "mermaid"
-    )
+    diagram_format: Annotated[
+        str, {"help": "Output format for architecture diagrams (currently only mermaid supported)"}
+    ] = "mermaid"
 
     # Rate limiting configuration
     api_delay_seconds: Annotated[float, {"help": "Delay between API calls to respect rate limits"}] = 0.5
@@ -95,3 +97,403 @@ class TrustBoundary:
     threat_level: str = "medium"
     description: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
+
+
+# Pydantic Models for Agent Outputs
+
+
+# Config Analysis Models
+class ServiceDependency(BaseModel):
+    service_name: str
+    dependency_type: str
+    connection_details: Dict[str, Any]
+    trust_boundary: str
+    confidence: float
+
+
+class ExternalIntegrationInfo(BaseModel):
+    integration_name: str
+    integration_type: str
+    provider: str
+    service_name: str
+    endpoints: List[str]
+    data_sensitivity: str
+    confidence: float
+
+
+class NetworkConfig(BaseModel):
+    component: str
+    config_type: str
+    listen_ports: List[int]
+    upstream_services: List[str]
+    security_features: List[str]
+    confidence: float
+
+
+class InfrastructureComponent(BaseModel):
+    component_name: str
+    component_type: str
+    deployment_environment: str
+    scaling_config: Optional[str] = None
+    resource_limits: Optional[str] = None
+    confidence: float
+
+
+class TrustBoundaryInfo(BaseModel):
+    boundary_name: str
+    internal_components: List[str]
+    external_components: List[str]
+    security_controls: List[str]
+    data_flows: List[str]
+    confidence: float
+
+
+class ConfigAnalysisResult(BaseModel):
+    service_dependencies: List[ServiceDependency] = []
+    external_integrations: List[ExternalIntegrationInfo] = []
+    network_config: List[NetworkConfig] = []
+    infrastructure_components: List[InfrastructureComponent] = []
+    trust_boundaries: List[TrustBoundaryInfo] = []
+
+
+# Service Dependency Models
+class InternalService(BaseModel):
+    service_name: str
+    service_type: str
+    communication_protocol: str
+    endpoints: List[str]
+    dependencies: List[str]
+    health_check_endpoint: Optional[str] = None
+    service_discovery_method: Optional[str] = None
+    confidence: float
+
+
+class DatabaseConnection(BaseModel):
+    database_name: str
+    database_type: str
+    connection_details: Dict[str, Any]
+    access_patterns: List[str]
+    data_models: List[str]
+    migration_strategy: Optional[str] = None
+    backup_frequency: Optional[str] = None
+    confidence: float
+
+
+class MessageQueue(BaseModel):
+    queue_name: str
+    queue_type: str
+    topics_channels: List[str]
+    producers: List[str]
+    consumers: List[str]
+    message_patterns: List[str]
+    dead_letter_queue: Optional[str] = None
+    retention_policy: Optional[str] = None
+    confidence: float
+
+
+class CachingLayer(BaseModel):
+    cache_name: str
+    cache_type: str
+    cache_strategy: str
+    ttl_policy: Optional[str] = None
+    eviction_policy: Optional[str] = None
+    data_types_cached: List[str]
+    cache_hit_ratio_target: Optional[str] = None
+    confidence: float
+
+
+class NetworkConfigService(BaseModel):
+    component: str
+    network_type: str
+    routing_rules: List[str]
+    upstream_services: List[str]
+    downstream_services: List[str]
+    traffic_policies: List[str]
+    circuit_breaker: Optional[str] = None
+    retry_policies: Optional[str] = None
+    confidence: float
+
+
+class ServiceDependencyResult(BaseModel):
+    internal_services: List[InternalService] = []
+    database_connections: List[DatabaseConnection] = []
+    message_queues: List[MessageQueue] = []
+    caching_layers: List[CachingLayer] = []
+    network_config: List[NetworkConfigService] = []
+
+
+# External Integration Models
+class CloudService(BaseModel):
+    provider: str
+    service_name: str
+    service_type: str
+    region: Optional[str] = None
+    configuration: Optional[str] = None
+    data_classification: Optional[str] = None
+    cost_implications: Optional[str] = None
+    vendor_lock_in_risk: Optional[str] = None
+    confidence: float
+
+
+class ThirdPartyAPI(BaseModel):
+    api_name: str
+    provider: str
+    api_type: str
+    base_url: Optional[str] = None
+    endpoints_used: List[str]
+    authentication_method: Optional[str] = None
+    rate_limits: Optional[str] = None
+    data_exchanged: List[str]
+    business_purpose: Optional[str] = None
+    sla_requirements: Optional[str] = None
+    confidence: float
+
+
+class SaaSIntegration(BaseModel):
+    service_name: str
+    vendor: str
+    integration_type: str
+    data_sync_pattern: Optional[str] = None
+    data_flow_direction: Optional[str] = None
+    business_function: Optional[str] = None
+    compliance_requirements: List[str]
+    data_residency: Optional[str] = None
+    confidence: float
+
+
+class PaymentIntegration(BaseModel):
+    provider: str
+    integration_method: str
+    payment_methods: List[str]
+    currencies_supported: List[str]
+    pci_compliance_level: Optional[str] = None
+    fraud_detection: Optional[str] = None
+    webhook_endpoints: List[str]
+    confidence: float
+
+
+class ExternalDataSource(BaseModel):
+    source_name: str
+    data_type: str
+    access_method: str
+    update_frequency: Optional[str] = None
+    data_format: Optional[str] = None
+    data_volume: Optional[str] = None
+    reliability_requirements: Optional[str] = None
+    backup_strategy: Optional[str] = None
+    confidence: float
+
+
+class ExternalIntegrationResult(BaseModel):
+    cloud_services: List[CloudService] = []
+    third_party_apis: List[ThirdPartyAPI] = []
+    saas_integrations: List[SaaSIntegration] = []
+    payment_integrations: List[PaymentIntegration] = []
+    external_data_sources: List[ExternalDataSource] = []
+
+
+# Security Boundary Models
+class TokenManagement(BaseModel):
+    token_type: str
+    expiration_time: Optional[str] = None
+    refresh_strategy: Optional[str] = None
+    revocation_mechanism: Optional[str] = None
+
+
+class MultiFactor(BaseModel):
+    enabled: bool
+    factors: List[str]
+
+
+class AuthenticationMechanism(BaseModel):
+    auth_type: str
+    implementation: Optional[str] = None
+    identity_provider: Optional[str] = None
+    token_management: Optional[TokenManagement] = None
+    multi_factor: Optional[MultiFactor] = None
+    session_management: Optional[str] = None
+    confidence: float
+
+
+class RolePermission(BaseModel):
+    role_name: str
+    permissions: List[str]
+    resource_access: List[str]
+    inheritance: Optional[str] = None
+
+
+class AuthorizationModel(BaseModel):
+    model_type: str
+    roles_permissions: List[RolePermission]
+    policy_engine: Optional[str] = None
+    access_control_lists: List[str]
+    attribute_sources: List[str]
+    enforcement_points: List[str]
+    confidence: float
+
+
+class TrustBoundaryAnalysis(BaseModel):
+    boundary_name: str
+    boundary_type: str
+    internal_components: List[str]
+    external_components: List[str]
+    crossing_mechanisms: List[str]
+    security_controls: List[str]
+    data_classification_levels: List[str]
+    threat_vectors: List[str]
+    monitoring_controls: List[str]
+    confidence: float
+
+
+class NetworkSecurity(BaseModel):
+    control_type: str
+    implementation: Optional[str] = None
+    rules_policies: List[str]
+    protected_resources: List[str]
+    allowed_traffic: List[str]
+    blocked_traffic: List[str]
+    logging_monitoring: Optional[str] = None
+    incident_response: Optional[str] = None
+    confidence: float
+
+
+class KeyManagement(BaseModel):
+    key_storage: str
+    key_rotation: Optional[str] = None
+    key_escrow: Optional[str] = None
+    access_controls: List[str]
+
+
+class EncryptionControl(BaseModel):
+    encryption_scope: str
+    algorithm: str
+    key_size: Optional[str] = None
+    key_management: Optional[KeyManagement] = None
+    implementation_details: Optional[str] = None
+    compliance_standards: List[str]
+    confidence: float
+
+
+class AuditLog(BaseModel):
+    log_type: str
+    log_format: str
+    logged_events: List[str]
+    retention_policy: Optional[str] = None
+    log_aggregation: Optional[str] = None
+    monitoring_alerting: Optional[str] = None
+    compliance_reporting: Optional[str] = None
+    confidence: float
+
+
+class SecurityBoundaryResult(BaseModel):
+    authentication_mechanisms: List[AuthenticationMechanism] = []
+    authorization_models: List[AuthorizationModel] = []
+    trust_boundaries: List[TrustBoundaryAnalysis] = []
+    network_security: List[NetworkSecurity] = []
+    encryption_controls: List[EncryptionControl] = []
+    audit_logging: List[AuditLog] = []
+
+
+# Synthesis Models
+class ArchitectureOverview(BaseModel):
+    system_type: str
+    deployment_model: str
+    architecture_pattern: str
+    primary_technologies: List[str]
+    description: str
+
+
+class Interface(BaseModel):
+    interface_type: str
+    protocol: str
+    authentication: str
+    encryption: str
+
+
+class Component(BaseModel):
+    component_name: str
+    component_type: str
+    responsibilities: List[str]
+    technologies: List[str]
+    interfaces: List[Interface]
+    trust_zone: str
+
+
+class DataFlowInfo(BaseModel):
+    flow_id: str
+    source: str
+    destination: str
+    data_type: str
+    protocol: str
+    encryption: str
+    authentication: str
+    trust_boundary_crossing: bool
+    security_implications: List[str]
+
+
+class DataFlowDiagram(BaseModel):
+    description: str
+    flows: List[DataFlowInfo]
+
+
+class ExternalIntegrationSynthesis(BaseModel):
+    integration_name: str
+    provider: str
+    service_type: str
+    data_exchanged: List[str]
+    trust_level: str
+    security_controls: List[str]
+    attack_vectors: List[str]
+
+
+class TrustBoundarySynthesis(BaseModel):
+    boundary_name: str
+    description: str
+    internal_zone: str
+    external_zone: str
+    crossing_points: List[str]
+    security_controls: List[str]
+    data_classifications: List[str]
+    threats: List[str]
+
+
+class EntryPoint(BaseModel):
+    entry_point: str
+    access_method: str
+    authentication: str
+    authorization: str
+    network_exposure: str
+    attack_vectors: List[str]
+
+
+class DataStore(BaseModel):
+    store_name: str
+    store_type: str
+    data_sensitivity: str
+    access_controls: List[str]
+    encryption: str
+    backup_strategy: str
+    threats: List[str]
+
+
+class AttackSurface(BaseModel):
+    entry_points: List[EntryPoint]
+    data_stores: List[DataStore]
+
+
+class SecurityAssessment(BaseModel):
+    overall_risk: str
+    key_concerns: List[str]
+    recommendations: List[str]
+    compliance_implications: List[str]
+
+
+class SynthesisResult(BaseModel):
+    architecture_overview: ArchitectureOverview
+    component_map: List[Component]
+    data_flow_diagram: DataFlowDiagram
+    external_integrations: List[ExternalIntegrationSynthesis]
+    trust_boundaries: List[TrustBoundarySynthesis]
+    attack_surface: AttackSurface
+    security_assessment: SecurityAssessment
+    architecture_diagram_description: str

@@ -4,8 +4,9 @@
 """
 Architecture Diagram Generator
 
-Handles generation of architecture diagrams in various formats
-(Mermaid, PlantUML, Text) from component discovery results.
+Handles generation of architecture diagrams in Mermaid format from component
+discovery results. The architecture is designed to be extensible for future
+diagram formats.
 """
 
 from typing import Any, Dict, List
@@ -16,13 +17,20 @@ from .types import ComponentDiscoveryResults
 
 
 class ArchitectureDiagramGenerator:
-    """Generates architecture diagrams from component discovery results."""
+    """Generates architecture diagrams from component discovery results.
+
+    Currently supports Mermaid format. The architecture is designed to be
+    extensible - future formats can be added by:
+    1. Adding a format parameter to generate_diagram()
+    2. Adding format-specific generation methods (e.g., _generate_plantuml_diagram)
+    3. Adding conditional logic in generate_diagram() to call the appropriate method
+    """
 
     def __init__(self, config: Config):
         self.config = config
 
-    async def generate_diagram(self, results: ComponentDiscoveryResults, format: str = "mermaid") -> str:
-        """Generate architecture diagram in the specified format."""
+    async def generate_diagram(self, results: ComponentDiscoveryResults) -> str:
+        """Generate architecture diagram in Mermaid format."""
         try:
             # Extract components from both discoveries
             infra_components = self._extract_infrastructure_components(results)
@@ -43,15 +51,10 @@ class ArchitectureDiagramGenerator:
                     'Empty --> Note["Check logs for component discovery errors"]'
                 )
 
-            # Generate diagram based on format preference
-            if format.lower() == "mermaid":
-                diagram = self._generate_mermaid_diagram(infra_components, api_components)
-            elif format.lower() == "plantuml":
-                diagram = self._generate_plantuml_diagram(infra_components, api_components)
-            else:
-                diagram = self._generate_text_diagram(infra_components, api_components)
+            # Generate Mermaid diagram
+            diagram = self._generate_mermaid_diagram(infra_components, api_components)
 
-            self.config.logger.info(f"Generated {format} architecture diagram")
+            self.config.logger.info("Generated Mermaid architecture diagram")
             return diagram
 
         except Exception as e:
@@ -443,112 +446,6 @@ class ArchitectureDiagramGenerator:
         lines.append("    classDef internal fill:#99ccff")
         lines.append("    classDef database fill:#ccffcc")
         lines.append("    classDef api fill:#ccffff")
-
-        return "\n".join(lines)
-
-    def _generate_plantuml_diagram(self, infra_components: List[Dict], api_components: List[Dict]) -> str:
-        """Generate PlantUML format architecture diagram."""
-        lines = ["@startuml", "!theme plain", ""]
-
-        # Add infrastructure components
-        for component in infra_components:
-            node_id = self._sanitize_node_id(component["name"])
-            node_type = component["type"]
-            is_external = component.get("external", False)
-
-            if node_type == "load_balancer":
-                if is_external:
-                    lines.append(f'cloud "{component["name"]}" as {node_id}')
-                else:
-                    lines.append(f'component "{component["name"]}" as {node_id}')
-            elif node_type == "database":
-                lines.append(f'database "{component["name"]}" as {node_id}')
-            elif node_type == "storage":
-                lines.append(f'storage "{component["name"]}" as {node_id}')
-            else:
-                lines.append(f'rectangle "{component["name"]}" as {node_id}')
-
-        # Add API components
-        for component in api_components:
-            node_id = self._sanitize_node_id(component["name"])
-            is_external = component.get("external", False)
-
-            if is_external:
-                lines.append(f'cloud "{component["name"]}" as {node_id}')
-            else:
-                lines.append(f'interface "{component["name"]}" as {node_id}')
-
-        lines.append("")
-
-        # Add connections
-        connections = self._infer_connections(infra_components, api_components)
-        for source, target, label in connections:
-            source_id = self._sanitize_node_id(source)
-            target_id = self._sanitize_node_id(target)
-            if label:
-                lines.append(f"{source_id} --> {target_id} : {label}")
-            else:
-                lines.append(f"{source_id} --> {target_id}")
-
-        lines.append("@enduml")
-        return "\n".join(lines)
-
-    def _generate_text_diagram(self, infra_components: List[Dict], api_components: List[Dict]) -> str:
-        """Generate text-based architecture diagram."""
-        lines = ["# System Architecture", ""]
-
-        if infra_components:
-            lines.append("## Infrastructure Components:")
-            lines.append("")
-
-            # Group by type
-            component_types: Dict[str, List[Dict[str, Any]]] = {}
-            for component in infra_components:
-                comp_type = component["type"]
-                if comp_type not in component_types:
-                    component_types[comp_type] = []
-                component_types[comp_type].append(component)
-
-            for comp_type, components in component_types.items():
-                lines.append(f"### {comp_type.title().replace('_', ' ')}:")
-                for component in components:
-                    external_marker = " (External)" if component.get("external") else ""
-                    lines.append(f"- {component['name']}{external_marker}")
-
-                    # Add properties if available
-                    props = component.get("properties", {})
-                    if props:
-                        for key, value in props.items():
-                            if key not in ["name", "type"] and value:
-                                lines.append(f"  - {key}: {value}")
-                lines.append("")
-
-        if api_components:
-            lines.append("## API Components:")
-            lines.append("")
-
-            for component in api_components:
-                external_marker = " (External)" if component.get("external") else ""
-                lines.append(f"- {component['name']}{external_marker}")
-
-                # Add properties
-                props = component.get("properties", {})
-                if props:
-                    for key, value in props.items():
-                        if value:
-                            lines.append(f"  - {key}: {value}")
-            lines.append("")
-
-        # Add data flows if available
-        connections = self._infer_connections(infra_components, api_components)
-        if connections:
-            lines.append("## Component Relationships:")
-            lines.append("")
-            for source, target, label in connections:
-                if label:
-                    lines.append(f"- {source} → {target} ({label})")
-                else:
-                    lines.append(f"- {source} → {target}")
 
         return "\n".join(lines)
 

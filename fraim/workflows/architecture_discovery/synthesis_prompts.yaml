@@ -19,6 +19,8 @@ system: |
 
   Synthesize this information into a coherent architecture analysis suitable for threat modeling and security assessment.
 
+  {{ output_format }}
+
 user: |
   Please synthesize the following architecture analysis results into a comprehensive architecture overview:
 
@@ -49,105 +51,5 @@ user: |
 
   **Files Analyzed:** {{files_analyzed}}
   **Analysis Summary:** {{analysis_summary}}
-
-  Create a comprehensive architecture analysis in the following JSON format:
-
-  ```json
-  {
-    "architecture_overview": {
-      "system_type": "web_application|microservices|monolith|mobile_app|desktop_app|api_service|data_pipeline|other",
-      "deployment_model": "cloud|on_premise|hybrid|serverless|container|vm",
-      "architecture_pattern": "mvc|layered|microservices|event_driven|service_mesh|serverless|other",
-      "primary_technologies": ["string"],
-      "description": "string"
-    },
-    "component_map": [
-      {
-        "component_name": "string",
-        "component_type": "frontend|backend|database|cache|queue|proxy|gateway|auth|monitoring|storage|other",
-        "responsibilities": ["string"],
-        "technologies": ["string"],
-        "interfaces": [
-          {
-            "interface_type": "api|ui|database|queue|file|network",
-            "protocol": "string",
-            "authentication": "string",
-            "encryption": "string"
-          }
-        ],
-        "trust_zone": "public|dmz|internal|restricted|admin"
-      }
-    ],
-    "data_flow_diagram": {
-      "description": "High-level description of data flows",
-      "flows": [
-        {
-          "flow_id": "string",
-          "source": "string",
-          "destination": "string",
-          "data_type": "user_input|user_data|system_data|credentials|logs|files|other",
-          "protocol": "string",
-          "encryption": "encrypted|unencrypted|unknown",
-          "authentication": "required|optional|none",
-          "trust_boundary_crossing": true,
-          "security_implications": ["string"]
-        }
-      ]
-    },
-    "external_integrations": [
-      {
-        "integration_name": "string",
-        "provider": "string",
-        "service_type": "database|api|auth|payment|storage|cdn|monitoring|analytics|other",
-        "data_exchanged": ["string"],
-        "trust_level": "trusted|semi_trusted|untrusted",
-        "security_controls": ["string"],
-        "attack_vectors": ["string"]
-      }
-    ],
-    "trust_boundaries": [
-      {
-        "boundary_name": "string",
-        "description": "string",
-        "internal_zone": "string",
-        "external_zone": "string",
-        "crossing_points": ["string"],
-        "security_controls": ["string"],
-        "data_classifications": ["public|internal|confidential|restricted"],
-        "threats": ["string"]
-      }
-    ],
-    "attack_surface": {
-      "entry_points": [
-        {
-          "entry_point": "string",
-          "access_method": "web|api|mobile|desktop|admin|ssh|database|other",
-          "authentication": "required|optional|none",
-          "authorization": "rbac|abac|none|other",
-          "network_exposure": "public|internal|vpn|private",
-          "attack_vectors": ["string"]
-        }
-      ],
-      "data_stores": [
-        {
-          "store_name": "string",
-          "store_type": "database|file_system|cache|queue|logs|other",
-          "data_sensitivity": "high|medium|low",
-          "access_controls": ["string"],
-          "encryption": "encrypted|unencrypted|unknown",
-          "backup_strategy": "string",
-          "threats": ["string"]
-        }
-      ]
-    },
-    "security_assessment": {
-      "overall_risk": "high|medium|low",
-      "key_concerns": ["string"],
-      "recommendations": ["string"],
-      "compliance_implications": ["string"]
-    },
-    "architecture_diagram_description": "Detailed textual description of the system architecture suitable for creating architecture diagrams, including component relationships, data flows, and trust boundaries."
-  }
-  ```
 
   Focus on providing actionable security insights and clear architectural understanding suitable for threat modeling activities.

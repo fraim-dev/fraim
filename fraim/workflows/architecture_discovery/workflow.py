@@ -145,9 +145,7 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
 
         try:
             # Use the diagram generator
-            self.results.architecture_diagram = await self.diagram_generator.generate_diagram(
-                self.results, input.diagram_format
-            )
+            self.results.architecture_diagram = await self.diagram_generator.generate_diagram(self.results)
 
             self.config.logger.info("Architecture diagram synthesis completed")
 

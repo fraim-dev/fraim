@@ -23,75 +23,11 @@ system: |
 
   Analyze the provided configuration content and extract architecture-relevant information with high confidence scores.
 
+  {{ output_format }}
+
 user: |
   Please analyze the following configuration file content and extract architecture information:
 
-  **File Path:** {{file_path}}
-  **Content:**
-  ```
-  {{content}}
-  ```
-
-  Extract architecture information in the following JSON format:
-
-  ```json
-  {
-    "service_dependencies": [
-      {
-        "service_name": "string",
-        "dependency_type": "database|api|queue|cache|storage|auth|monitoring|other",
-        "connection_details": {
-          "host": "string (if available)",
-          "port": "number (if available)",
-          "protocol": "string (if available)",
-          "authentication_method": "string (if available)"
-        },
-        "trust_boundary": "internal|external|unknown",
-        "confidence": 0.9
-      }
-    ],
-    "external_integrations": [
-      {
-        "integration_name": "string",
-        "integration_type": "third_party_api|cloud_service|saas|payment|auth|analytics|other",
-        "provider": "string (e.g., AWS, Stripe, Google, etc.)",
-        "service_name": "string (specific service like S3, RDS, etc.)",
-        "endpoints": ["string"],
-        "data_sensitivity": "high|medium|low|unknown",
-        "confidence": 0.9
-      }
-    ],
-    "network_config": [
-      {
-        "component": "string",
-        "config_type": "load_balancer|proxy|firewall|dns|cdn|other",
-        "listen_ports": [80, 443],
-        "upstream_services": ["string"],
-        "security_features": ["string"],
-        "confidence": 0.9
-      }
-    ],
-    "infrastructure_components": [
-      {
-        "component_name": "string",
-        "component_type": "container|vm|serverless|database|cache|queue|storage|other",
-        "deployment_environment": "production|staging|development|unknown",
-        "scaling_config": "string (if available)",
-        "resource_limits": "string (if available)",
-        "confidence": 0.9
-      }
-    ],
-    "trust_boundaries": [
-      {
-        "boundary_name": "string",
-        "internal_components": ["string"],
-        "external_components": ["string"],
-        "security_controls": ["string"],
-        "data_flows": ["string"],
-        "confidence": 0.9
-      }
-    ]
-  }
-  ```
+  {{ code }}
 
   Only include findings with high confidence (0.7+). If no architecture information is found, return empty arrays for each category.
