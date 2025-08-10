@@ -96,7 +96,7 @@ class IaCWorkflow(ChunkProcessingMixin, Workflow[IaCInput, List[sarif.Result]]):
         """Process a single chunk with error handling."""
         try:
             # 1. Scan the code for vulnerabilities.
-            self.config.logger.info(f"Scanning code for vulnerabilities: {Path(chunk.file_path)}")
+            self.config.logger.info(f"Scanning code for vulnerabilities: {Path(chunk)}")
             iac_input = IaCCodeChunkInput(code=chunk, config=self.config)
             vulns = await self.scanner_step.run(iac_input)
 
@@ -107,7 +107,7 @@ class IaCWorkflow(ChunkProcessingMixin, Workflow[IaCInput, List[sarif.Result]]):
             return high_confidence_vulns
         except Exception as e:
             self.config.logger.error(
-                f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {str(e)}. "
+                f"Failed to process chunk {chunk}: {str(e)}. "
                 "Skipping this chunk and continuing with scan."
             )
             return []

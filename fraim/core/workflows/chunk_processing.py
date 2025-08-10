@@ -46,6 +46,21 @@ class ChunkWorkflowInput(WorkflowInput):
         },
     ] = False
 
+    chunking_method: Annotated[
+        str, {
+            "help": "Method to use for chunking code files",
+            "choices": ["project", "file", "module", "fixed", "ast"],
+        }
+    ] = "fixed"
+
+    no_op: Annotated[
+        bool,
+        {
+            "name": "no-op",
+            "help": "Do not run workflow. Useful for debugging.",
+        },
+    ] = False
+
 
 class ChunkProcessingMixin:
     """
@@ -82,21 +97,33 @@ class ChunkProcessingMixin:
         """
         effective_globs = input.globs if input.globs is not None else self.file_patterns
         kwargs = SimpleNamespace(
-            location=input.location,
-            globs=effective_globs,
-            limit=input.limit,
-            chunk_size=input.chunk_size,
-            head=input.head,
-            base=input.base,
-            diff=input.diff,
+                 << << << < HEAD
+        location = input.location,
+        globs = effective_globs,
+        limit = input.limit,
+        chunk_size = input.chunk_size,
+        head = input.head,
+        base = input.base,
+        diff = input.diff,
+        == == == =
+        location = input.location, globs = effective_globs, limit = input.limit, chunk_size = input.chunk_size,
+        chunking_method = input.chunking_method, no_op = input.no_op,
+        >> >> >> > 23
+        c3743(Initial
+        work
+        relating
+        to
+        alterate
+        chunking
+        strategies and testing)
         )
         return ProjectInput(config=self.config, kwargs=kwargs)
 
     async def process_chunks_concurrently(
-        self,
-        project: ProjectInput,
-        chunk_processor: Callable[[CodeChunk], Awaitable[List[T]]],
-        max_concurrent_chunks: int = 5,
+            self,
+            project: ProjectInput,
+            chunk_processor: Callable[[CodeChunk], Awaitable[List[T]]],
+            max_concurrent_chunks: int = 5,
     ) -> List[T]:
         """
         Process chunks concurrently using the provided processor function.
@@ -123,6 +150,10 @@ class ChunkProcessingMixin:
         active_tasks: Set[asyncio.Task] = set()
 
         for chunk in project:
+            self.config.logger.debug("Processing chunk '''\n%s\n'''", chunk)
+            if project.no_op:
+                continue
+
             # Create task for this chunk and add to active tasks
             task = asyncio.create_task(process_chunk_with_semaphore(chunk))
             active_tasks.add(task)

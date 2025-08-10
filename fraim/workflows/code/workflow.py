@@ -63,6 +63,11 @@ class CodeInput(ChunkWorkflowInput):
     ] = 3
 
 
+    no_triage: Annotated[
+        bool, {"help": "Skip triage step and only return raw scanner results"}
+    ] = False
+
+
 @dataclass
 class SASTInput:
     """Input for the SAST scanner step."""
@@ -106,6 +111,14 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
     @property
     def triager_step(self) -> LLMStep[TriagerInput, sarif.Result]:
         """Lazily initialize the triager step."""
+        if self._triager_step is None:
+            if (
+                    not hasattr(self, "project")
+                    or not self.project
+                    or not hasattr(self.project, "project_path")
+                    or self.project.project_path is None
+            ):
+                raise ValueError("project_path must be set before accessing triager_step")
 
         # No locking required if step already exists
         step = self._triager_step
@@ -146,6 +159,9 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
             self.config.logger.debug("Filtering vulnerabilities by confidence")
             high_confidence_vulns = filter_results_by_confidence(potential_vulns.results, self.config.confidence)
 
+            if self.no_triage:
+                return high_confidence_vulns
+
             # 3. Triage the high-confidence vulns with limited concurrency.
             self.config.logger.debug("Triaging high-confidence vulns with limited concurrency")
 
@@ -172,7 +188,7 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
 
         except Exception as e:
             self.config.logger.error(
-                f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {str(e)}. "
+                f"Failed to process chunk {str(chunk)}: {str(e)}. "
                 "Skipping this chunk and continuing with scan."
             )
             return []
@@ -182,6 +198,7 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
         try:
             # 1. Setup project input using utility
             self.project = self.setup_project_input(input)
+            self.no_triage = input.no_triage
 
             # 2. Create a closure that captures max_concurrent_triagers
             async def chunk_processor(chunk: CodeChunk) -> List[sarif.Result]:
@@ -203,5 +220,5 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
             return results
 
         except Exception as e:
-            self.config.logger.error(f"Error during code scan: {str(e)}")
+            self.config.logger.exception(f"Error during code scan: {str(e)}")
             raise e

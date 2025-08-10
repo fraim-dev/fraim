@@ -211,7 +211,7 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
     ) -> List[SystemAnalysisResult]:
         """Process a single chunk using two-step analysis: assessment then analysis."""
         try:
-            self.config.logger.debug(f"Processing chunk: {Path(chunk.file_path)}")
+            self.config.logger.debug(f"Processing chunk: {chunk}")
 
             chunk_input = SystemAnalysisChunkInput(
                 code=chunk,
@@ -225,7 +225,7 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
             assessment = await self.assessment_step.run(chunk_input)
 
             self.config.logger.debug(
-                f"Assessment for {chunk.file_path}: confidence={assessment.confidence_score:.2f}, "
+                f"Assessment for {chunk}: confidence={assessment.confidence_score:.2f}, "
                 f"type='{assessment.document_type}', reasoning='{assessment.reasoning[:100]}...'"
             )
 
@@ -233,19 +233,19 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
             # Lowered threshold to 0.5 and made document type matching case-insensitive
             if assessment.confidence_score < 0.5 or "SYSTEM" not in assessment.document_type.upper():
                 self.config.logger.debug(
-                    f"Skipping chunk {chunk.file_path} - confidence: {assessment.confidence_score:.2f}, "
+                    f"Skipping chunk {chunk} - confidence: {assessment.confidence_score:.2f}, "
                     f"type: '{assessment.document_type}'"
                 )
                 return []
 
             # Step 2: System analysis and deduplication
-            self.config.logger.debug(f"Analyzing chunk: {Path(chunk.file_path)}")
+            self.config.logger.debug(f"Analyzing chunk: {chunk}")
             result = await self.analysis_step.run(chunk_input)
             return [result]
 
         except Exception as e:
             self.config.logger.error(
-                f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {str(e)}"
+                f"Failed to process chunk {chunk}: {str(e)}"
             )
             return []
 

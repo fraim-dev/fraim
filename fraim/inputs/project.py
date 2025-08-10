@@ -1,11 +1,15 @@
 import os
 from pathlib import Path
-from typing import Any, Generator, Iterator, Type
+from typing import Any, Iterator, Type, Literal, List
+
+from langchain_text_splitters import TextSplitter
 
 from fraim.config.config import Config
 from fraim.core.contextuals.code import CodeChunk
 from fraim.inputs.chunks import chunk_input
 from fraim.inputs.file import BufferedFile
+from fraim.inputs.chunkers import ProjectInputChunker, FileChunker, ProjectChunker
+from fraim.inputs.chunkers.base import Chunker
 from fraim.inputs.git import GitRemote
 from fraim.inputs.git_diff import GitDiff
 from fraim.inputs.input import Input
@@ -18,7 +22,9 @@ class ProjectInput:
     chunk_size: int
     project_path: str
     repo_name: str
-    chunker: Type["ProjectInputFileChunker"]
+    chunker: ProjectInputChunker | FileChunker | ProjectChunker
+    chunking_method: Literal["project", "file", "module", "fixed", "ast"] = "fixed"
+    no_op: bool = False
 
     def __init__(self, config: Config, kwargs: Any) -> None:
         self.config = config
@@ -29,7 +35,7 @@ class ProjectInput:
         self.base = kwargs.base
         self.head = kwargs.head
         self.diff = kwargs.diff
-        self.chunker = ProjectInputFileChunker
+        self.chunking_method = kwargs.chunking_method
 
         if path_or_url is None:
             raise ValueError("Location is required")
@@ -51,14 +57,23 @@ class ProjectInput:
                 self.input = Local(self.config, self.project_path, globs=globs, limit=limit)
 
     def __iter__(self) -> Iterator[CodeChunk]:
-        yield from self.input
+        chunker_class: Type[Chunker]
+        if self.chunking_method == "fixed":
+            chunker_class = ProjectInputChunker
+        elif self.chunking_method == "file":
+            chunker_class = FileChunker
+        elif self.chunking_method == "project":
+            chunker_class: Type[ProjectInputChunker] = ProjectChunker
+        else:
+            raise ValueError(f"Unsupported chunking method: {self.chunking_method}")
+
+        self.chunker = chunker_class(
+            files=self.files,
+            project_path=self.project_path,
+            chunk_size=self.chunk_size,
+            config=self.config,
+        )
 
 
-class ProjectInputFileChunker:
-    def __init__(self, file: BufferedFile, project_path: str, chunk_size: int) -> None:
-        self.file = file
-        self.project_path = project_path
-        self.chunk_size = chunk_size
-
-    def __iter__(self) -> Iterator[CodeChunk]:
-        return chunk_input(self.file, self.chunk_size)
+def __iter__(self) -> Iterator[CodeChunk]:
+    return iter(self.chunker)
