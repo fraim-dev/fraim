@@ -3,7 +3,6 @@
 
 from fraim.core.contextuals.contextual import Contextual
 
-
 class CodeChunk(Contextual[str]):
     """Concrete implementation of Contextual for code snippets"""
 
@@ -23,3 +22,12 @@ class CodeChunk(Contextual[str]):
 
     def __str__(self) -> str:
         return f'<code_chunk file_path="{self.file_path}" line_number_start_inclusive="{self.line_number_start_inclusive}" line_number_end_inclusive="{self.line_number_end_inclusive}">\n{self.content}\n</code_chunk>'
+
+class CodeChunks(list[CodeChunk]):
+    def __init__(self, *all_files: CodeChunk, description: str):
+        self.description = description
+        super().__init__(list(all_files))
+
+    def __str__(self) -> str:
+        return f"<files description=\"{self.description}\">\n" + "\n".join(str(chunk) for chunk in self) + "\n</files>"
+

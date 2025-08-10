@@ -35,6 +35,20 @@ class ChunkWorkflowInput(WorkflowInput):
     ] = None
     max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
 
+    chunking_method: Annotated[
+        str, {
+            "help": "Method to use for chunking code files",
+            "choices": ["project", "file", "module", "fixed", "ast"],
+        }
+    ] = "fixed"
+
+    no_op: Annotated[
+        bool,
+        {
+            "name": "no-op",
+            "help": "Do not run workflow. Useful for debugging.",
+        },
+    ] = False
 
 class ChunkProcessingMixin:
     """
@@ -71,7 +85,8 @@ class ChunkProcessingMixin:
         """
         effective_globs = input.globs if input.globs is not None else self.file_patterns
         kwargs = SimpleNamespace(
-            location=input.location, globs=effective_globs, limit=input.limit, chunk_size=input.chunk_size
+            location=input.location, globs=effective_globs, limit=input.limit, chunk_size=input.chunk_size,
+            chunking_method=input.chunking_method, no_op=input.no_op,
         )
         return ProjectInput(config=self.config, kwargs=kwargs)
 
@@ -106,6 +121,10 @@ class ChunkProcessingMixin:
         active_tasks: Set[asyncio.Task] = set()
 
         for chunk in project:
+            self.config.logger.debug("Processing chunk '''\n%s\n'''", chunk)
+            if project.no_op:
+                continue
+
             # Create task for this chunk and add to active tasks
             task = asyncio.create_task(process_chunk_with_semaphore(chunk))
             active_tasks.add(task)

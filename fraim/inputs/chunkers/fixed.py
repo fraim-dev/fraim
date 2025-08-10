@@ -1,11 +1,27 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
-
+import logging
 import os
-from typing import List
+from typing import List, Iterator
 
 from fraim.core.contextuals.code import CodeChunk
-from fraim.inputs.files import File
+from fraim.inputs.chunkers.base import Chunker
+from fraim.inputs.files import File, Files
+
+
+class ProjectInputChunker(Chunker):
+    def __init__(self, files: List[Files], project_path: str, chunk_size: int, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.files = files
+        self.chunk_size = chunk_size
+        self.project_path = project_path
+
+    def __iter__(self) -> Iterator[CodeChunk]:
+        with self.files as files:
+            for file in files:
+                self.logger.info(f"Generating chunks for file: {file.path}")
+                for chunk in chunk_input(file, self.project_path, self.chunk_size):
+                    yield chunk
 
 
 # TODO: generator
