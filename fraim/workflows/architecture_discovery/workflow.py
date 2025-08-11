@@ -126,9 +126,8 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
 
         self.config.logger.info("Starting Phase 2: Architecture Synthesis")
 
-        # Synthesize component results using analyzer classes
+        # Synthesize component results using analyzer classes (excluding diagram generation)
         synthesis_tasks = [
-            self._synthesize_architecture_diagram(input),
             self._synthesize_data_flows(input),
             self._synthesize_external_integrations(input),
             self._synthesize_trust_boundaries(input),
@@ -222,6 +221,11 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
         self.config.logger.info("Starting file writing for analyzed categories")
 
         try:
+            # Phase 3a: Generate architecture diagram (after all synthesis is complete)
+            self.config.logger.info("Generating architecture diagram with complete synthesis results")
+            await self._synthesize_architecture_diagram(input)
+
+            # Phase 3b: Write category files
             # Write architecture diagram (text file)
             if self.results.architecture_diagram:
                 await self._write_architecture_diagram(input.diagram_format)
