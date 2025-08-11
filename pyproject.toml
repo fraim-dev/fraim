@@ -51,6 +51,9 @@ test = [
 langfuse = [
     "langfuse>=2.0.0,<3.0.0",
 ]
+benchmark = [
+    "refraim>=0.1.1",
+]
 
 [project.scripts]
 fraim = "fraim.cli:cli"
@@ -60,6 +63,10 @@ dev-dependencies = [
     "pytest>=7.0.0",
     "mypy>=1.0.0",
 ]
+
+[tool.uv.sources]
+refraim = { path = "../refraim", editable = true }
+mcp-server-tree-sitter = { git = "https://github.com/RyanJarv/mcp-server-tree-sitter.git" }
 
 [tool.mypy]
 python_version = "3.12"

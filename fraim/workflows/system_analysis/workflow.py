@@ -16,7 +16,7 @@ from typing import Annotated, Any, Dict, List, Optional
 from pydantic import BaseModel
 
 from fraim.config import Config
-from fraim.core.contextuals import CodeChunk
+from fraim.core.contextuals import CodeChunk, Contextual
 from fraim.core.llms.litellm import LiteLLM
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
@@ -148,7 +148,7 @@ class FinalAnalysisResult(BaseModel):
 class SystemAnalysisChunkInput:
     """Input for analyzing a single chunk."""
 
-    code: CodeChunk
+    code: Contextual[str]
     config: Config
     business_context: str = ""
     focus_areas: Optional[List[str]] = None
@@ -207,7 +207,7 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
         return FILE_PATTERNS
 
     async def _process_single_chunk(
-        self, chunk: CodeChunk, business_context: str = "", focus_areas: Optional[List[str]] = None
+        self, chunk: Contextual[str], business_context: str = "", focus_areas: Optional[List[str]] = None
     ) -> List[SystemAnalysisResult]:
         """Process a single chunk using two-step analysis: assessment then analysis."""
         try:
@@ -405,7 +405,7 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
             project = self.setup_project_input(input)
 
             # 2. Create a closure that captures business_context and focus_areas
-            async def chunk_processor(chunk: CodeChunk) -> List[SystemAnalysisResult]:
+            async def chunk_processor(chunk: Contextual[str]) -> List[SystemAnalysisResult]:
                 return await self._process_single_chunk(chunk, input.business_context, input.focus_areas)
 
             # 3. Process chunks concurrently using mixin utility

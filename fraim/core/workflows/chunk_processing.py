@@ -12,7 +12,7 @@ from types import SimpleNamespace
 from typing import Annotated, Any, Awaitable, Callable, List, Optional, Set, TypeVar
 
 from fraim.config import Config
-from fraim.core.contextuals import CodeChunk
+from fraim.core.contextuals import Contextual
 from fraim.inputs.project import ProjectInput
 
 from .workflow import WorkflowInput
@@ -97,32 +97,21 @@ class ChunkProcessingMixin:
         """
         effective_globs = input.globs if input.globs is not None else self.file_patterns
         kwargs = SimpleNamespace(
-                 << << << < HEAD
-        location = input.location,
-        globs = effective_globs,
-        limit = input.limit,
-        chunk_size = input.chunk_size,
-        head = input.head,
-        base = input.base,
-        diff = input.diff,
-        == == == =
-        location = input.location, globs = effective_globs, limit = input.limit, chunk_size = input.chunk_size,
-        chunking_method = input.chunking_method, no_op = input.no_op,
-        >> >> >> > 23
-        c3743(Initial
-        work
-        relating
-        to
-        alterate
-        chunking
-        strategies and testing)
+            base=input.base,
+            diff=input.diff,
+            location=input.location,
+            globs=effective_globs,
+            limit=input.limit,
+            chunk_size=input.chunk_size,
+            chunking_method=input.chunking_method,
+            no_op=input.no_op,
         )
         return ProjectInput(config=self.config, kwargs=kwargs)
 
     async def process_chunks_concurrently(
             self,
             project: ProjectInput,
-            chunk_processor: Callable[[CodeChunk], Awaitable[List[T]]],
+            chunk_processor: Callable[[Contextual[str]], Awaitable[List[T]]],
             max_concurrent_chunks: int = 5,
     ) -> List[T]:
         """
@@ -141,7 +130,7 @@ class ChunkProcessingMixin:
         # Create semaphore to limit concurrent chunk processing
         semaphore = asyncio.Semaphore(max_concurrent_chunks)
 
-        async def process_chunk_with_semaphore(chunk: CodeChunk) -> List[T]:
+        async def process_chunk_with_semaphore(chunk: Contextual[str]) -> List[T]:
             """Process a chunk with semaphore to limit concurrency."""
             async with semaphore:
                 return await chunk_processor(chunk)

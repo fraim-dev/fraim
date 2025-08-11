@@ -8,7 +8,7 @@ from fraim.core.contextuals.code import CodeChunk
 from fraim.inputs.chunkers.base import Chunker
 
 
-class ProjectInputChunker(Chunker):
+class FixedChunker(Chunker):
     def __init__(self, files: List[BufferedFile], project_path: str, chunk_size: int, **kwargs) -> None:
         super().__init__(**kwargs)
         self.files = files
