@@ -9,7 +9,7 @@ from fraim.inputs.chunkers.base import Chunker
 from fraim.inputs.files import File, Files
 
 
-class ProjectInputChunker(Chunker):
+class FixedChunker(Chunker):
     def __init__(self, files: List[Files], project_path: str, chunk_size: int, **kwargs) -> None:
         super().__init__(**kwargs)
         self.files = files

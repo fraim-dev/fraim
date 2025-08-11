@@ -12,7 +12,7 @@ from types import SimpleNamespace
 from typing import Annotated, Any, Awaitable, Callable, List, Optional, Set, TypeVar
 
 from fraim.config import Config
-from fraim.core.contextuals import CodeChunk
+from fraim.core.contextuals import Contextual
 from fraim.inputs.project import ProjectInput
 
 from .workflow import WorkflowInput
@@ -93,7 +93,7 @@ class ChunkProcessingMixin:
     async def process_chunks_concurrently(
         self,
         project: ProjectInput,
-        chunk_processor: Callable[[CodeChunk], Awaitable[List[T]]],
+        chunk_processor: Callable[[Contextual[str]], Awaitable[List[T]]],
         max_concurrent_chunks: int = 5,
     ) -> List[T]:
         """
@@ -112,7 +112,7 @@ class ChunkProcessingMixin:
         # Create semaphore to limit concurrent chunk processing
         semaphore = asyncio.Semaphore(max_concurrent_chunks)
 
-        async def process_chunk_with_semaphore(chunk: CodeChunk) -> List[T]:
+        async def process_chunk_with_semaphore(chunk: Contextual[str]) -> List[T]:
             """Process a chunk with semaphore to limit concurrency."""
             async with semaphore:
                 return await chunk_processor(chunk)
