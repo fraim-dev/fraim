@@ -8,9 +8,9 @@ from tempfile import TemporaryDirectory
 from typing import Iterator, List, Optional, Type
 
 from fraim.config.config import Config
-from fraim.inputs.file import File
-from fraim.inputs.local import Local
+from fraim.core.contextuals import CodeChunk
 from fraim.inputs.input import Input
+from fraim.inputs.local import Local
 
 class GitRemote(Input):
     def __init__(
@@ -26,10 +26,10 @@ class GitRemote(Input):
         self.globs = globs
         self.limit = limit
         self.tempdir = TemporaryDirectory(prefix=prefix)
-        self.path = Path(self.tempdir.name)
+        self.path = self.tempdir.name
 
     def root_path(self) -> str:
-        return str(self.path.absolute())
+        return Path(self.path).absolute().name
 
     def __enter__(self) -> "GitRemote":
         return self
@@ -39,22 +39,22 @@ class GitRemote(Input):
     ) -> None:
         self.tempdir.cleanup()
 
-    def __iter__(self) -> Iterator[File]:
+    def __iter__(self) -> Iterator[CodeChunk]:
         self.config.logger.debug("Starting git repository input iterator")
 
         # Clone remote repository to a local directory, delegate to file iterator.
         self._clone_to_path()
-        for file in Local(self.config, self.path, self.globs, self.limit):
-            yield file
+        for chunk in Local(self.config, self.path, self.globs, self.limit):
+            yield chunk
 
     def _clone_to_path(self) -> None:
-        if not _is_directory_empty(str(self.path)):
-            self.config.logger.debug(f"Target directory {str(self.path)} not empty, skipping git clone")
+        if not _is_directory_empty(self.path):
+            self.config.logger.debug(f"Target directory {self.path} not empty, skipping git clone")
             return
 
         self.config.logger.info(f"Cloning repository: {self.url}")
         result = subprocess.run(
-            args=["git", "clone", "--depth", "1", self.url, str(self.path)], check=False, capture_output=True, text=True
+            args=["git", "clone", "--depth", "1", self.url, self.path], check=False, capture_output=True, text=True
         )
 
         if result.returncode != 0:

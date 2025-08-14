@@ -25,8 +25,6 @@ class Config:
         prompt: Optional[str] = None,
         confidence: int = 7,
         project_path: str = "",
-        git_base: str = "",
-        git_head: str = "",
     ):
         """
         Initialize configuration.
@@ -60,9 +58,6 @@ class Config:
         self.confidence = confidence
         self.project_path = project_path
         self.logger = logger
-
-        self.git_base = git_base
-        self.git_head = git_head
 
     def _get_provider_from_model(self, model: str) -> str:
         """Extract the provider from the model name."""

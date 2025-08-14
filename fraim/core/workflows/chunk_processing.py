@@ -24,8 +24,10 @@ T = TypeVar("T")
 @dataclass
 class ChunkWorkflowInput(WorkflowInput):
     """Base input for chunk-based workflows."""
-
     config: Config
+    diff: Annotated[bool, {"help": "Whether to use git diff input"}]
+    head: Annotated[str, {"help": "Git head commit for diff input"}]
+    base: Annotated[str, {"help": "Git base commit for diff input"}]
     location: Annotated[str, {"help": "Repository URL or path to scan"}]
     chunk_size: Annotated[Optional[int], {"help": "Number of lines per chunk"}] = 500
     limit: Annotated[Optional[int], {"help": "Limit the number of files to scan"}] = None
@@ -71,7 +73,13 @@ class ChunkProcessingMixin:
         """
         effective_globs = input.globs if input.globs is not None else self.file_patterns
         kwargs = SimpleNamespace(
-            location=input.location, globs=effective_globs, limit=input.limit, chunk_size=input.chunk_size
+            location=input.location,
+            globs=effective_globs,
+            limit=input.limit,
+            chunk_size=input.chunk_size,
+            head=input.head,
+            base=input.base,
+            diff=input.diff,
         )
         return ProjectInput(config=self.config, kwargs=kwargs)
 
