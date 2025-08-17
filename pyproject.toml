@@ -67,7 +67,7 @@ dev-dependencies = [
 ]
 
 [tool.uv.sources]
-refraim = { git = "https://github.com/fraim-dev/refraim.git", editable = true }
+refraim = { git = "https://github.com/fraim-dev/refraim.git" }
 
 [tool.mypy]
 python_version = "3.12"
