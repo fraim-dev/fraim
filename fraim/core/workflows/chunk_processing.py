@@ -13,7 +13,7 @@ from typing import Annotated, Any, Awaitable, Callable, List, Optional, Set, Typ
 
 from fraim.config import Config
 from fraim.core.contextuals import Contextual
-from fraim.inputs.project import ProjectInput
+from fraim.inputs.project import ProjectInput, CHUNKING_METHODS
 
 from .workflow import WorkflowInput
 
@@ -27,7 +27,8 @@ class ChunkWorkflowInput(WorkflowInput):
 
     config: Config
     location: Annotated[str, {"help": "Repository URL or path to scan"}]
-    chunk_size: Annotated[Optional[int], {"help": "Number of lines per chunk"}] = 500
+    chunk_size: Annotated[Optional[int], {"help": "Number of characters per chunk"}] = 10_000
+    chunk_overlap: Annotated[Optional[int], {"help": "Number of characters of overlap per chunk"}] = 1000
     limit: Annotated[Optional[int], {"help": "Limit the number of files to scan"}] = None
     globs: Annotated[
         Optional[List[str]],
@@ -38,17 +39,10 @@ class ChunkWorkflowInput(WorkflowInput):
     chunking_method: Annotated[
         str, {
             "help": "Method to use for chunking code files",
-            "choices": ["project", "file", "module", "fixed", "ast"],
+            "choices": CHUNKING_METHODS.keys(),
         }
     ] = "fixed"
 
-    no_op: Annotated[
-        bool,
-        {
-            "name": "no-op",
-            "help": "Do not run workflow. Useful for debugging.",
-        },
-    ] = False
 
 class ChunkProcessingMixin:
     """
@@ -85,7 +79,8 @@ class ChunkProcessingMixin:
         """
         effective_globs = input.globs if input.globs is not None else self.file_patterns
         kwargs = SimpleNamespace(
-            location=input.location, globs=effective_globs, limit=input.limit, chunk_size=input.chunk_size,
+            location=input.location, globs=effective_globs, limit=input.limit,
+            chunk_size=input.chunk_size, chunk_overlap=input.chunk_overlap,
             chunking_method=input.chunking_method, no_op=input.no_op,
         )
         return ProjectInput(config=self.config, kwargs=kwargs)
@@ -121,10 +116,6 @@ class ChunkProcessingMixin:
         active_tasks: Set[asyncio.Task] = set()
 
         for chunk in project:
-            self.config.logger.debug("Processing chunk '''\n%s\n'''", chunk)
-            if project.no_op:
-                continue
-
             # Create task for this chunk and add to active tasks
             task = asyncio.create_task(process_chunk_with_semaphore(chunk))
             active_tasks.add(task)
