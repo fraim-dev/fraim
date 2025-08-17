@@ -23,6 +23,8 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
+    "langchain-community>=0.3.27",
+    "langchain-text-splitters>=0.3.9",
     "litellm>=1.72.7",
     "mcp-server-tree-sitter>=0.5.1",
     "packaging>=21.0",
@@ -65,8 +67,7 @@ dev-dependencies = [
 ]
 
 [tool.uv.sources]
-refraim = { path = "../refraim", editable = true }
-mcp-server-tree-sitter = { git = "https://github.com/RyanJarv/mcp-server-tree-sitter.git" }
+refraim = { git = "https://github.com/fraim-dev/refraim.git", editable = true }
 
 [tool.mypy]
 python_version = "3.12"

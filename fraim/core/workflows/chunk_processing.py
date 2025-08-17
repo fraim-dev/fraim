@@ -29,22 +29,14 @@ class ChunkWorkflowInput(WorkflowInput):
     head: Annotated[str, {"help": "Git head commit for diff input"}]
     base: Annotated[str, {"help": "Git base commit for diff input"}]
     location: Annotated[str, {"help": "Repository URL or path to scan"}]
-    chunk_size: Annotated[Optional[int], {"help": "Number of lines per chunk"}] = 500
+    chunk_size: Annotated[Optional[int], {"help": "Number of characters per chunk"}] = 10_000
+    chunk_overlap: Annotated[Optional[int], {"help": "Number of characters of overlap per chunk"}] = 1000
     limit: Annotated[Optional[int], {"help": "Limit the number of files to scan"}] = None
     globs: Annotated[
         Optional[List[str]],
         {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
     ] = None
     max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
-
-    diff: Annotated[
-        bool,
-        {
-            "help": (
-                "Whether to use git diff input. If --head and --base are not specified, the working tree is scanned."
-            )
-        },
-    ] = False
 
     chunking_method: Annotated[
         str, {
@@ -60,7 +52,6 @@ class ChunkWorkflowInput(WorkflowInput):
             "help": "Do not run workflow. Useful for debugging.",
         },
     ] = False
-
 
 class ChunkProcessingMixin:
     """
@@ -97,22 +88,16 @@ class ChunkProcessingMixin:
         """
         effective_globs = input.globs if input.globs is not None else self.file_patterns
         kwargs = SimpleNamespace(
-            base=input.base,
-            diff=input.diff,
-            location=input.location,
-            globs=effective_globs,
-            limit=input.limit,
-            chunk_size=input.chunk_size,
-            chunking_method=input.chunking_method,
-            no_op=input.no_op,
+            location=input.location, globs=effective_globs, limit=input.limit, chunk_size=input.chunk_size,
+            chunking_method=input.chunking_method, no_op=input.no_op,
         )
         return ProjectInput(config=self.config, kwargs=kwargs)
 
     async def process_chunks_concurrently(
-            self,
-            project: ProjectInput,
-            chunk_processor: Callable[[Contextual[str]], Awaitable[List[T]]],
-            max_concurrent_chunks: int = 5,
+        self,
+        project: ProjectInput,
+        chunk_processor: Callable[[Contextual[str]], Awaitable[List[T]]],
+        max_concurrent_chunks: int = 5,
     ) -> List[T]:
         """
         Process chunks concurrently using the provided processor function.

@@ -1,18 +1,15 @@
-import contextlib
-from typing import Iterator
-
-import pytest
+from pathlib import Path
 
 from fraim.inputs.chunkers.file import FileChunker
-from fraim.inputs.chunkers.tests.lib import mock_files
+from fraim.inputs.chunkers.tests.lib import InMemory
 from fraim.inputs.files import File
 
 
 def test_file_chunker():
     """Test that NoneChunker yields the whole project as a single chunk."""
-    files = mock_files(File(path="file1.py", body="print('Hello, World!')"))
+    files = InMemory(File(path=Path("file1.py"), body="print('Hello, World!')"), root_path="/project")
 
-    chunker = FileChunker(files=files, project_path="/project", chunk_size=100, logger=None)
+    chunker = FileChunker(files=files, chunk_size=100, logger=None)
 
     chunks = list(chunker)
 
