@@ -109,6 +109,14 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
         return FILE_PATTERNS
 
     @property
+    def exclude_file_patterns(self) -> List[str]:
+        """Code file patterns."""
+        return [
+            "*.min.js",
+            "*.min.css",
+        ]
+
+    @property
     def triager_step(self) -> LLMStep[TriagerInput, sarif.Result]:
         """Lazily initialize the triager step."""
         if self._triager_step is None:

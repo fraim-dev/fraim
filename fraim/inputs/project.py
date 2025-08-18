@@ -38,6 +38,7 @@ class ProjectInput:
         self.config = config
         path_or_url = kwargs.location or None
         globs = kwargs.globs
+        exclude_globs = kwargs.exclude_globs
         limit = kwargs.limit
         self.chunk_size = kwargs.chunk_size
         self.chunk_overlap = kwargs.chunk_overlap
@@ -52,7 +53,7 @@ class ProjectInput:
         if path_or_url.startswith("http://") or path_or_url.startswith("https://") or path_or_url.startswith("git@"):
             self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
             # TODO: git diff here?
-            self.input = GitRemote(self.config, url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_")
+            self.input = GitRemote(self.config, url=path_or_url, globs=globs, exclude_globs=exclude_globs,  limit=limit, prefix="fraim_scan_")
             self.project_path = self.input.root_path()
         else:
             # Fully resolve the path to the project
@@ -60,7 +61,7 @@ class ProjectInput:
             self.repo_name = os.path.basename(self.project_path)
             if self.diff:
                 self.input = GitDiff(
-                    self.config, self.project_path, head=self.head, base=self.base, globs=globs, limit=limit
+                    self.config, self.project_path, head=self.head, base=self.base, globs=globs, exclude_globs=exclude_globs, limit=limit
                 )
             else:
                 self.input = Local(self.config, self.project_path, globs=globs, limit=limit)
@@ -68,7 +69,7 @@ class ProjectInput:
         chunker_class = get_chunking_class(self.chunking_method)
 
         self.chunker = chunker_class(
-            files=self.files,
+            files=self.input,
             project_path=self.project_path,
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,

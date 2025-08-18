@@ -56,6 +56,11 @@ class Local(Input):
                 # Skip file if not a file
                 if not path.is_file():
                     continue
+
+                if any(path.match(exclude) for exclude in self.exclude_globs):
+                    self.config.logger.debug(f"Skipping excluded file: {path}")
+                    continue
+
                 # Skip file if already seen
                 if path in seen:
                     continue
