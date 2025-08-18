@@ -7,12 +7,14 @@ from fraim.core.contextuals.code import CodeChunk, CodeChunks
 from fraim.inputs.chunkers import FileChunker, ProjectChunker
 from fraim.inputs.chunkers.base import Chunker
 from fraim.inputs.chunkers.fixed import FixedChunker
+from fraim.inputs.chunkers.syntactic import SyntacticChunker
 from fraim.inputs.chunkers.packed_fixed import PackingFixedChunker
 from fraim.inputs.files import Files
 from fraim.inputs.git import GitRemote
 from fraim.inputs.local import Local
 
 CHUNKING_METHODS = {
+    "syntactic": SyntacticChunker,
     "fixed": FixedChunker,
     "packed_fixed": PackingFixedChunker,
     "file": FileChunker,
@@ -38,7 +40,6 @@ class ProjectInput:
         self.chunk_size = kwargs.chunk_size
         self.chunk_overlap = kwargs.chunk_overlap
         self.chunking_method = kwargs.chunking_method
-        self.no_op = kwargs.no_op
 
         if path_or_url is None:
             raise ValueError("Location is required")

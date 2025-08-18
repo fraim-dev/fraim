@@ -33,19 +33,20 @@ class FixedChunker(Chunker):
     def __iter__(self) -> Iterator[CodeChunk]:
         with self.files as files:
             for file in files:
-                file: File
-                line_starts = [0] + [match.start() + 1 for match in re.finditer('\n', file.body)]
+                yield from self.split_file(file)
 
-                for doc in self.splitter.create_documents([file.body]):
-                    start_index = doc.metadata["start_index"]
-                    end_index = start_index + len(doc.page_content)
+    def split_file(self, file: File) -> Iterator[CodeChunk]:
+        line_starts = [0] + [match.start() + 1 for match in re.finditer('\n', file.body)]
+        for doc in self.splitter.create_documents([file.body]):
+            start_index = doc.metadata["start_index"]
+            end_index = start_index + len(doc.page_content)
 
-                    start_line = bisect_right(line_starts, start_index)
-                    end_line = bisect_right(line_starts, end_index)
+            start_line = bisect_right(line_starts, start_index)
+            end_line = bisect_right(line_starts, end_index)
 
-                    yield CodeChunk(
-                        content=doc.page_content,
-                        file_path=str(file.path),
-                        line_number_start_inclusive=start_line,  # Line numbers are already prepended
-                        line_number_end_inclusive=end_line,
-                    )
+            yield CodeChunk(
+                content=doc.page_content,
+                file_path=str(file.path),
+                line_number_start_inclusive=start_line,  # Line numbers are already prepended
+                line_number_end_inclusive=end_line,
+            )
