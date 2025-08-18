@@ -27,6 +27,7 @@ dependencies = [
     "mcp-server-tree-sitter>=0.5.1",
     "packaging>=21.0",
     "pydantic>=2.11.1",
+    "openai==1.99.9",
 ]
 
 [dependency-groups]
