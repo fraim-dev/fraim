@@ -27,4 +27,4 @@ def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[s
     try:
         execute_workflow(workflow_to_run, config, args.workflow_args)
     except Exception as e:
-        config.logger.error(f"Error running {workflow_to_run}: {str(e)}")
+        config.logger.exception(f"Error running {workflow_to_run}: {str(e)}")
