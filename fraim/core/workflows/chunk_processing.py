@@ -34,6 +34,10 @@ class ChunkWorkflowInput(WorkflowInput):
         Optional[List[str]],
         {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
     ] = None
+    exclude_globs: Annotated[
+        Optional[List[str]],
+        {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
+    ] = None
     max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
 
     chunking_method: Annotated[
@@ -67,6 +71,14 @@ class ChunkProcessingMixin:
         """File patterns for this workflow (e.g., ['*.py', '*.js'])."""
         pass
 
+    @property
+    def exclude_file_patterns(self) -> List[str]:
+        """File patterns for this workflow (e.g., ['*.py', '*.js'])."""
+        return [
+            '*.min.js',
+            '*.min.css',
+        ]
+
     def setup_project_input(self, input: ChunkWorkflowInput) -> ProjectInput:
         """
         Set up ProjectInput from workflow input.
@@ -78,8 +90,10 @@ class ChunkProcessingMixin:
             Configured ProjectInput instance
         """
         effective_globs = input.globs if input.globs is not None else self.file_patterns
+        exclude_effective_globs = input.exclude_globs if input.exclude_globs is not None else self.exclude_file_patterns
+
         kwargs = SimpleNamespace(
-            location=input.location, globs=effective_globs, limit=input.limit,
+            location=input.location, globs=effective_globs, exclude_globs=exclude_effective_globs, limit=input.limit,
             chunk_size=input.chunk_size, chunk_overlap=input.chunk_overlap,
             chunking_method=input.chunking_method,
         )

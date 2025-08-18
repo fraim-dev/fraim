@@ -13,7 +13,7 @@ from fraim.inputs.files import File, Files
 
 
 class Local(Files):
-    def __init__(self, config: Config, path: Path, globs: Optional[List[str]] = None, limit: Optional[int] = None):
+    def __init__(self, config: Config, path: Path, globs: Optional[List[str]] = None, exclude_globs: Optional[List[str]] = None, limit: Optional[int] = None):
         self.config = config
         self.path = path
         # TODO: remove hardcoded globs
@@ -39,6 +39,9 @@ class Local(Files):
                 "*.jsx",
             ]
         )
+        self.exclude_globs = (
+            exclude_globs if exclude_globs else ['*.min.js', '*.min.css']
+        )
         self.limit = limit
 
     def root_path(self) -> str:
@@ -55,6 +58,10 @@ class Local(Files):
         seen = set()
         for glob_pattern in self.globs:
             for path in self.path.rglob(glob_pattern):
+                if any(path.match(exclude) for exclude in self.exclude_globs):
+                    self.config.logger.debug(f"Skipping excluded file: {path}")
+                    continue
+
                 if path.is_file() and path not in seen:
                     seen.add(path)
                     self.config.logger.info(f"Reading file: {path}")

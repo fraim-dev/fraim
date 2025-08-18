@@ -14,7 +14,7 @@ class File:
 
     @property
     def language(self) -> str|None:
-        return LANGUAGE_EXTENSIONS.get(str(self.path), None)
+        return LANGUAGE_EXTENSIONS.get(str(self.path.suffix), None)
 
 
 @runtime_checkable
