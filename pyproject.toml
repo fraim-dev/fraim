@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fraim"
-version = "0.2.0"
+version = "0.2.1"
 description = "A CLI app that runs AI-powered security workflows"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -27,6 +27,7 @@ dependencies = [
     "mcp-server-tree-sitter>=0.5.1",
     "packaging>=21.0",
     "pydantic>=2.11.1",
+    "openai==1.99.9",
 ]
 
 [dependency-groups]
