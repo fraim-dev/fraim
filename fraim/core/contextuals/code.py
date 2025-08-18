@@ -30,13 +30,18 @@ class CodeChunk(Contextual[str]):
 
 
 class CodeChunks(list[CodeChunk], Contextual[str]):
-    def __init__(self, *all_files: CodeChunk):
-        super().__init__(list(all_files))
-
-    def __str__(self) -> str:
-        return f"<files>\n" + "\n".join(str(chunk) for chunk in self) + "\n</files>"
+    def __init__(self, all_files: list[CodeChunk] = None):
+        all_files = all_files or []
+        super().__init__(all_files)
 
 
     @property
     def file_paths(self) -> list[str]:
         return list(set([c.file_path for c in self]))
+
+    def __str__(self) -> str:
+        return f"<files asdf>{"\n".join(str(chunk) for chunk in self)}</files>"
+
+
+    def __repr__(self):
+        return str(self)

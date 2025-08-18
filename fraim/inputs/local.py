@@ -42,6 +42,9 @@ class Local(Input):
                 "*.jsx",
             ]
         )
+        self.exclude_globs = (
+            exclude_globs if exclude_globs else ['*.min.js', '*.min.css']
+        )
         self.limit = limit
 
     def root_path(self) -> str:
@@ -50,6 +53,7 @@ class Local(Input):
     def __iter__(self) -> Iterator[CodeChunk]:
         self.config.logger.info(f"Scanning local files: {self.path}, with globs: {self.globs}")
 
+    def _files(self) -> Iterator[File]:
         seen = set()
         for glob_pattern in self.globs:
             for path in Path(self.path).rglob(glob_pattern):
