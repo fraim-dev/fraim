@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from typing import Annotated, Any, List, Optional
 
 from fraim.config import Config
-from fraim.core.contextuals import CodeChunk
+from fraim.core.contextuals import CodeChunk, Contextual
 from fraim.core.llms.litellm import LiteLLM
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
@@ -62,11 +62,16 @@ class CodeInput(ChunkWorkflowInput):
     ] = 3
 
 
+    no_triage: Annotated[
+        bool, {"help": "Skip triage step and only return raw scanner results"}
+    ] = False
+
+
 @dataclass
 class SASTInput:
     """Input for the SAST scanner step."""
 
-    code: CodeChunk
+    code: Contextual[str]
     config: Config
 
 
@@ -75,7 +80,7 @@ class TriagerInput:
     """Input for the triage step."""
 
     vulnerability: str
-    code: CodeChunk
+    code: Contextual[str]
     config: Config
 
 
@@ -121,7 +126,7 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
             )
         return self._triager_step
 
-    async def _process_single_chunk(self, chunk: CodeChunk, max_concurrent_triagers: int) -> List[sarif.Result]:
+    async def _process_single_chunk(self, chunk: Contextual[str], max_concurrent_triagers: int) -> List[sarif.Result]:
         """Process a single chunk with multi-step processing and error handling."""
         try:
             # 1. Scan the code for potential vulnerabilities.
@@ -131,6 +136,9 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
             # 2. Filter vulnerabilities by confidence.
             self.config.logger.debug("Filtering vulnerabilities by confidence")
             high_confidence_vulns = filter_results_by_confidence(potential_vulns.results, self.config.confidence)
+
+            if self.no_triage:
+                return high_confidence_vulns
 
             # 3. Triage the high-confidence vulns with limited concurrency.
             self.config.logger.debug("Triaging high-confidence vulns with limited concurrency")
@@ -157,8 +165,8 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
             return high_confidence_triaged_vulns
 
         except Exception as e:
-            self.config.logger.error(
-                f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {str(e)}. "
+            self.config.logger.exception(
+                f"Failed to process chunk {str(chunk)}: {str(e)}. "
                 "Skipping this chunk and continuing with scan."
             )
             return []
@@ -168,9 +176,10 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
         try:
             # 1. Setup project input using utility
             self.project = self.setup_project_input(input)
+            self.no_triage = input.no_triage
 
             # 2. Create a closure that captures max_concurrent_triagers
-            async def chunk_processor(chunk: CodeChunk) -> List[sarif.Result]:
+            async def chunk_processor(chunk: Contextual[str]) -> List[sarif.Result]:
                 return await self._process_single_chunk(chunk, input.max_concurrent_triagers)
 
             # 3. Process chunks concurrently using utility
@@ -189,5 +198,5 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
             return results
 
         except Exception as e:
-            self.config.logger.error(f"Error during code scan: {str(e)}")
+            self.config.logger.exception(f"Error during code scan: {str(e)}")
             raise e

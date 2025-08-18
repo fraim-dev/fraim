@@ -7,7 +7,7 @@ import logging
 import multiprocessing as mp
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Type, Union, get_args, get_origin, get_type_hints
+from importlib.metadata import version
 
 from fraim.config.config import Config
 from fraim.observability import ObservabilityManager, ObservabilityRegistry
@@ -136,7 +136,6 @@ def setup_workflow_subparsers(parser: argparse.ArgumentParser) -> None:
             arg_name = arg_config_copy.pop("name")
             workflow_parser.add_argument(arg_name, **arg_config_copy)
 
-
 def cli() -> int:
     """Main entry point for the script."""
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
@@ -175,6 +174,7 @@ def cli() -> int:
     )
 
     parser.add_argument("--show-logs", type=bool, default=True, help="Prints logs to standard error output")
+    parser.add_argument("--version", action="version", version=version('fraim'), help="Show the version number and exit")
 
     parsed_args = parser.parse_args()
 

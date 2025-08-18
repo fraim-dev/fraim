@@ -12,8 +12,8 @@ from types import SimpleNamespace
 from typing import Annotated, Any, Awaitable, Callable, List, Optional, Set, TypeVar
 
 from fraim.config import Config
-from fraim.core.contextuals import CodeChunk
-from fraim.inputs.project import ProjectInput
+from fraim.core.contextuals import Contextual
+from fraim.inputs.project import ProjectInput, CHUNKING_METHODS
 
 from .workflow import WorkflowInput
 
@@ -27,13 +27,21 @@ class ChunkWorkflowInput(WorkflowInput):
 
     config: Config
     location: Annotated[str, {"help": "Repository URL or path to scan"}]
-    chunk_size: Annotated[Optional[int], {"help": "Number of lines per chunk"}] = 500
+    chunk_size: Annotated[Optional[int], {"help": "Number of characters per chunk"}] = 10_000
+    chunk_overlap: Annotated[Optional[int], {"help": "Number of characters of overlap per chunk"}] = 1000
     limit: Annotated[Optional[int], {"help": "Limit the number of files to scan"}] = None
     globs: Annotated[
         Optional[List[str]],
         {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
     ] = None
     max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
+
+    chunking_method: Annotated[
+        str, {
+            "help": "Method to use for chunking code files",
+            "choices": CHUNKING_METHODS.keys(),
+        }
+    ] = "fixed"
 
 
 class ChunkProcessingMixin:
@@ -71,14 +79,16 @@ class ChunkProcessingMixin:
         """
         effective_globs = input.globs if input.globs is not None else self.file_patterns
         kwargs = SimpleNamespace(
-            location=input.location, globs=effective_globs, limit=input.limit, chunk_size=input.chunk_size
+            location=input.location, globs=effective_globs, limit=input.limit,
+            chunk_size=input.chunk_size, chunk_overlap=input.chunk_overlap,
+            chunking_method=input.chunking_method,
         )
         return ProjectInput(config=self.config, kwargs=kwargs)
 
     async def process_chunks_concurrently(
         self,
         project: ProjectInput,
-        chunk_processor: Callable[[CodeChunk], Awaitable[List[T]]],
+        chunk_processor: Callable[[Contextual[str]], Awaitable[List[T]]],
         max_concurrent_chunks: int = 5,
     ) -> List[T]:
         """
@@ -97,7 +107,7 @@ class ChunkProcessingMixin:
         # Create semaphore to limit concurrent chunk processing
         semaphore = asyncio.Semaphore(max_concurrent_chunks)
 
-        async def process_chunk_with_semaphore(chunk: CodeChunk) -> List[T]:
+        async def process_chunk_with_semaphore(chunk: Contextual[str]) -> List[T]:
             """Process a chunk with semaphore to limit concurrency."""
             async with semaphore:
                 return await chunk_processor(chunk)
