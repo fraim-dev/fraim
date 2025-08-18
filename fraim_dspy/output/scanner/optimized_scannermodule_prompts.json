@@ -1,0 +1,65 @@
+{
+  "signature_instructions": "You are a security code analyzer.\n\nYour job is to analyze code for potential security vulnerabilities.\n\n<vulnerability_types>\n  Valid vulnerability types (use EXACTLY as shown):\n\n  - SQL Injection\n  - XSS\n  - CSRF\n  - Path Traversal\n  - Command Injection\n  - Insecure Deserialization\n  - XXE\n  - SSRF\n  - Open Redirect\n  - IDOR\n  - Sensitive Data Exposure\n  - Broken Authentication\n  - Broken Access Control\n  - Security Misconfiguration\n  - Insufficient Logging\n</vulnerability_types>\n\n{{ output_format }}\n",
+  "few_shot_examples": [
+    {
+      "demo_index": 0,
+      "demo_content": {
+        "input": "<?php\necho $_GET['message'];\n?>\nFile: display.php\nLanguage: php",
+        "expected_output": "[{\"rule_id\": \"reflected-xss\", \"message\": \"Reflected XSS: GET parameter directly echoed to output\", \"level\": \"error\", \"vulnerability_type\": \"XSS\", \"start_line\": 2, \"confidence\": 0.9}]"
+      }
+    },
+    {
+      "demo_index": 1,
+      "demo_content": {
+        "input": "function makeRequest(url) {\n    fetch(url)\n        .then(response => response.text())\n        .then(data => console.log(data));\n}\nFile: api.js\nLanguage: javascript",
+        "expected_output": "[{\"rule_id\": \"ssrf-potential\", \"message\": \"Potential SSRF: URL parameter used in fetch request\", \"level\": \"warning\", \"vulnerability_type\": \"SSRF\", \"start_line\": 2, \"confidence\": 0.6}]"
+      }
+    },
+    {
+      "demo_index": 2,
+      "demo_content": {
+        "input": "@app.route('/download')\ndef download_file():\n    filename = request.args.get('file')\n    return send_file(f'/uploads/{filename}')\nFile: app.py\nLanguage: python",
+        "expected_output": "[{\"rule_id\": \"path-traversal\", \"message\": \"Path traversal vulnerability: unvalidated file path\", \"level\": \"error\", \"vulnerability_type\": \"Path Traversal\", \"start_line\": 4, \"confidence\": 0.8}]"
+      }
+    },
+    {
+      "demo_index": 3,
+      "demo_content": {
+        "input": "const token = localStorage.getItem('authToken');\nfetch('/api/data', {\n    method: 'POST',\n    headers: { 'X-Auth-Token': token }\n});\nFile: auth.js\nLanguage: javascript",
+        "expected_output": "[{\"rule_id\": \"token-exposure\", \"message\": \"Sensitive token stored in localStorage without encryption\", \"level\": \"warning\", \"vulnerability_type\": \"Sensitive Data Exposure\", \"start_line\": 1, \"confidence\": 0.7}]"
+      }
+    },
+    {
+      "demo_index": 4,
+      "demo_content": {
+        "input": "def deserialize_data(data):\n    import pickle\n    return pickle.loads(data)\nFile: utils.py\nLanguage: python",
+        "expected_output": "[{\"rule_id\": \"unsafe-deserialization\", \"message\": \"Unsafe deserialization using pickle.loads\", \"level\": \"error\", \"vulnerability_type\": \"Insecure Deserialization\", \"start_line\": 3, \"confidence\": 0.95}]"
+      }
+    },
+    {
+      "demo_index": 5,
+      "demo_content": {
+        "input": "public void executeCommand(String cmd) {\n    Runtime.getRuntime().exec(cmd);\n}\nFile: CommandExecutor.java\nLanguage: java",
+        "expected_output": "[{\"rule_id\": \"command-injection\", \"message\": \"Command injection: user input passed to system command execution\", \"level\": \"error\", \"vulnerability_type\": \"Command Injection\", \"start_line\": 2, \"confidence\": 0.9}]"
+      }
+    },
+    {
+      "demo_index": 6,
+      "demo_content": {
+        "input": "function render_user_input(userInput) {\n    document.getElementById('output').innerHTML = userInput;\n}\nFile: frontend/utils.js\nLanguage: javascript",
+        "expected_output": "[{\"rule_id\": \"xss-dom\", \"message\": \"DOM-based XSS: user input directly inserted into innerHTML\", \"level\": \"error\", \"vulnerability_type\": \"XSS\", \"start_line\": 2, \"confidence\": 0.85}]"
+      }
+    },
+    {
+      "demo_index": 7,
+      "demo_content": {
+        "input": "def execute_query(sql):\n    cursor.execute(sql)\n    return cursor.fetchall()\nFile: src/database.py\nLanguage: python",
+        "expected_output": "[{\"rule_id\": \"sql-injection\", \"message\": \"SQL injection vulnerability: user input directly passed to SQL query\", \"level\": \"error\", \"vulnerability_type\": \"SQL Injection\", \"start_line\": 2, \"confidence\": 0.9}]"
+      }
+    }
+  ],
+  "predictor_info": {
+    "type": "Predict",
+    "has_demos": true
+  }
+}

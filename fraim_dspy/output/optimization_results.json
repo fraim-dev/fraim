@@ -1,0 +1,34 @@
+{
+  "workflow": "scanner",
+  "training_data_stats": {
+    "total_examples": 10,
+    "input_distribution": {
+      "def execute_query(sql):\n    cursor.execute(sql)\n    return cursor.fetchall()\nFile: src/database.py\nLanguage: python": 1,
+      "function render_user_input(userInput) {\n    document.getElementById('output').innerHTML = userInput;\n}\nFile: frontend/utils.js\nLanguage: javascript": 1,
+      "@app.route('/download')\ndef download_file():\n    filename = request.args.get('file')\n    return send_file(f'/uploads/{filename}')\nFile: app.py\nLanguage: python": 1,
+      "public void executeCommand(String cmd) {\n    Runtime.getRuntime().exec(cmd);\n}\nFile: CommandExecutor.java\nLanguage: java": 1,
+      "const token = localStorage.getItem('authToken');\nfetch('/api/data', {\n    method: 'POST',\n    headers: { 'X-Auth-Token': token }\n});\nFile: auth.js\nLanguage: javascript": 1,
+      "def deserialize_data(data):\n    import pickle\n    return pickle.loads(data)\nFile: utils.py\nLanguage: python": 1,
+      "function makeRequest(url) {\n    fetch(url)\n        .then(response => response.text())\n        .then(data => console.log(data));\n}\nFile: api.js\nLanguage: javascript": 1,
+      "<?php\necho $_GET['message'];\n?>\nFile: display.php\nLanguage: php": 1,
+      "def validate_user(username, password):\n    if username == 'admin' and password == 'password123':\n        return True\n    return False\nFile: auth.py\nLanguage: python": 1,
+      "function calculateHash(input) {\n    return crypto.createHash('md5').update(input).digest('hex');\n}\nFile: crypto.js\nLanguage: javascript": 1
+    },
+    "expected_output_distribution": {
+      "[{\"rule_id\": \"sql-injection\", \"message\": \"SQL injection vulnerability: user input directly passed to SQL query\", \"level\": \"error\", \"vulnerability_type\": \"SQL Injection\", \"start_line\": 2, \"confidence\": 0.9}]": 1,
+      "[{\"rule_id\": \"xss-dom\", \"message\": \"DOM-based XSS: user input directly inserted into innerHTML\", \"level\": \"error\", \"vulnerability_type\": \"XSS\", \"start_line\": 2, \"confidence\": 0.85}]": 1,
+      "[{\"rule_id\": \"path-traversal\", \"message\": \"Path traversal vulnerability: unvalidated file path\", \"level\": \"error\", \"vulnerability_type\": \"Path Traversal\", \"start_line\": 4, \"confidence\": 0.8}]": 1,
+      "[{\"rule_id\": \"command-injection\", \"message\": \"Command injection: user input passed to system command execution\", \"level\": \"error\", \"vulnerability_type\": \"Command Injection\", \"start_line\": 2, \"confidence\": 0.9}]": 1,
+      "[{\"rule_id\": \"token-exposure\", \"message\": \"Sensitive token stored in localStorage without encryption\", \"level\": \"warning\", \"vulnerability_type\": \"Sensitive Data Exposure\", \"start_line\": 1, \"confidence\": 0.7}]": 1,
+      "[{\"rule_id\": \"unsafe-deserialization\", \"message\": \"Unsafe deserialization using pickle.loads\", \"level\": \"error\", \"vulnerability_type\": \"Insecure Deserialization\", \"start_line\": 3, \"confidence\": 0.95}]": 1,
+      "[{\"rule_id\": \"ssrf-potential\", \"message\": \"Potential SSRF: URL parameter used in fetch request\", \"level\": \"warning\", \"vulnerability_type\": \"SSRF\", \"start_line\": 2, \"confidence\": 0.6}]": 1,
+      "[{\"rule_id\": \"reflected-xss\", \"message\": \"Reflected XSS: GET parameter directly echoed to output\", \"level\": \"error\", \"vulnerability_type\": \"XSS\", \"start_line\": 2, \"confidence\": 0.9}]": 1,
+      "[{\"rule_id\": \"hardcoded-credentials\", \"message\": \"Hardcoded credentials found in authentication logic\", \"level\": \"error\", \"vulnerability_type\": \"Broken Authentication\", \"start_line\": 2, \"confidence\": 0.95}]": 1,
+      "[{\"rule_id\": \"weak-hash\", \"message\": \"Weak cryptographic hash algorithm (MD5) used\", \"level\": \"warning\", \"vulnerability_type\": \"Security Misconfiguration\", \"start_line\": 2, \"confidence\": 0.8}]": 1
+    }
+  },
+  "optimization_method": "bootstrap",
+  "model_name": "gpt-4",
+  "status": "success",
+  "save_prompts": "success"
+}

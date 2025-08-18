@@ -1,0 +1,89 @@
+{
+  "scanner": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "augmented": true,
+        "code_chunk": "def execute_query(sql):\\n    cursor.execute(sql)\\n    return cursor.fetchall()",
+        "file_path": "src\/database.py",
+        "language": "python",
+        "vulnerabilities": "[{\"rule_id\": \"sql-injection\", \"message\": \"Potential SQL Injection: raw SQL query execution without parameterization\", \"level\": \"error\", \"vulnerability_type\": \"SQL Injection\", \"start_line\": 2, \"confidence\": 0.9}]"
+      },
+      {
+        "augmented": true,
+        "code_chunk": "function render_user_input(userInput) {\\n    document.getElementById('output').innerHTML = userInput;\\n}",
+        "file_path": "frontend\/utils.js",
+        "language": "javascript",
+        "vulnerabilities": "[{\"rule_id\": \"xss-vulnerability\", \"message\": \"Potential XSS vulnerability: user input directly inserted into HTML\", \"level\": \"error\", \"vulnerability_type\": \"XSS\", \"start_line\": 2, \"confidence\": 0.85}]"
+      },
+      {
+        "augmented": true,
+        "code_chunk": "public void executeCommand(String cmd) {\\n    Runtime.getRuntime().exec(cmd);\\n}",
+        "file_path": "CommandExecutor.java",
+        "language": "java",
+        "vulnerabilities": "[{\"rule_id\": \"command-injection\", \"message\": \"Command injection vulnerability: user input directly passed to exec\", \"level\": \"error\", \"vulnerability_type\": \"Command Injection\", \"start_line\": 2, \"confidence\": 0.9}]"
+      },
+      {
+        "augmented": true,
+        "code_chunk": "const token = localStorage.getItem('authToken');\\nfetch('\/api\/data', {\\n    method: 'POST',\\n    headers: { 'X-Auth-Token': token }\\n});",
+        "file_path": "auth.js",
+        "language": "javascript",
+        "vulnerabilities": "[{\"rule_id\": \"sensitive-data-exposure\", \"message\": \"Sensitive data exposure: authToken stored in localStorage\", \"level\": \"warning\", \"vulnerability_type\": \"Sensitive Data Exposure\", \"start_line\": 1, \"confidence\": 0.7}]"
+      },
+      {
+        "code_chunk": "<?php\\necho $_GET['message'];\\n?>",
+        "file_path": "display.php",
+        "language": "php",
+        "vulnerabilities": "[{\"rule_id\": \"reflected-xss\", \"message\": \"Reflected XSS: GET parameter directly echoed to output\", \"level\": \"error\", \"vulnerability_type\": \"XSS\", \"start_line\": 2, \"confidence\": 0.9}]"
+      },
+      {
+        "code_chunk": "@app.route('\/download')\\ndef download_file():\\n    filename = request.args.get('file')\\n    return send_file(f'\/uploads\/{filename}')",
+        "file_path": "app.py",
+        "language": "python",
+        "vulnerabilities": "[{\"rule_id\": \"path-traversal\", \"message\": \"Path traversal vulnerability: unvalidated file path\", \"level\": \"error\", \"vulnerability_type\": \"Path Traversal\", \"start_line\": 4, \"confidence\": 0.8}]"
+      },
+      {
+        "code_chunk": "function makeRequest(url) {\\n    fetch(url)\\n        .then(response => response.text())\\n        .then(data => console.log(data));\\n}",
+        "file_path": "api.js",
+        "language": "javascript",
+        "vulnerabilities": "[{\"rule_id\": \"ssrf-potential\", \"message\": \"Potential SSRF: URL parameter used in fetch request\", \"level\": \"warning\", \"vulnerability_type\": \"SSRF\", \"start_line\": 2, \"confidence\": 0.6}]"
+      },
+      {
+        "code_chunk": "def deserialize_data(data):\\n    import pickle\\n    return pickle.loads(data)",
+        "file_path": "utils.py",
+        "language": "python",
+        "vulnerabilities": "[{\"rule_id\": \"unsafe-deserialization\", \"message\": \"Unsafe deserialization using pickle.loads\", \"level\": \"error\", \"vulnerability_type\": \"Insecure Deserialization\", \"start_line\": 3, \"confidence\": 0.95}]"
+      }
+    ],
+    "signature": {
+      "instructions": "You are a security code analyzer.\n\nYour job is to analyze code for potential security vulnerabilities.\n\nValid vulnerability types (use EXACTLY as shown):\n- SQL Injection\n- XSS\n- CSRF\n- Path Traversal\n- Command Injection\n- Insecure Deserialization\n- XXE\n- SSRF\n- Open Redirect\n- IDOR\n- Sensitive Data Exposure\n- Broken Authentication\n- Broken Access Control\n- Security Misconfiguration\n- Insufficient Logging\n\nAnalyze the following code for security vulnerabilities and report them in the exact output format.",
+      "fields": [
+        {
+          "prefix": "Code Chunk:",
+          "description": "Source code to analyze for security vulnerabilities"
+        },
+        {
+          "prefix": "File Path:",
+          "description": "Path to the file containing the code chunk"
+        },
+        {
+          "prefix": "Language:",
+          "description": "Programming language of the code (e.g., python, javascript, java)"
+        },
+        {
+          "prefix": "Vulnerabilities:",
+          "description": "JSON array of vulnerability results found in the code, formatted as a list of VulnerabilityResult objects. Valid vulnerability types: SQL Injection, XSS, CSRF, Path Traversal, Command Injection, Insecure Deserialization, XXE, SSRF, Open Redirect, IDOR, Sensitive Data Exposure, Broken Authentication, Broken Access Control, Security Misconfiguration, Insufficient Logging. Return empty array [] if no vulnerabilities found."
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.12",
+      "dspy": "3.0.0b4",
+      "cloudpickle": "3.1"
+    }
+  }
+}

@@ -33,6 +33,7 @@ dependencies = [
 dev = [
     "pytest>=7.0.0",
     "mypy>=1.0.0",
+    "types-requests>=2.25.0",
     {include-group = "lint"},
     {include-group = "test"},
 ]
@@ -46,6 +47,14 @@ test = [
 ]
 langfuse = [
     "langfuse>=2.0.0,<3.0.0",
+]
+dspy = [
+    "dspy==3.0.0b4",
+    "pandas>=2.0.0",  # for CSV handling
+    "scikit-learn>=1.0.0",  # for evaluation metrics
+    "requests>=2.25.0",  # for CVE API calls
+    "PyYAML>=6.0",  # for YAML output
+    "pymongo>=4.0.0",  # for MongoDB
 ]
 
 [project.scripts]

@@ -1,0 +1,57 @@
+input,expected_output
+"def execute_query(sql):
+    cursor.execute(sql)
+    return cursor.fetchall()
+File: src/database.py
+Language: python","[{""rule_id"": ""sql-injection"", ""message"": ""SQL injection vulnerability: user input directly passed to SQL query"", ""level"": ""error"", ""vulnerability_type"": ""SQL Injection"", ""start_line"": 2, ""confidence"": 0.9}]"
+"function render_user_input(userInput) {
+    document.getElementById('output').innerHTML = userInput;
+}
+File: frontend/utils.js
+Language: javascript","[{""rule_id"": ""xss-dom"", ""message"": ""DOM-based XSS: user input directly inserted into innerHTML"", ""level"": ""error"", ""vulnerability_type"": ""XSS"", ""start_line"": 2, ""confidence"": 0.85}]"
+"@app.route('/download')
+def download_file():
+    filename = request.args.get('file')
+    return send_file(f'/uploads/{filename}')
+File: app.py
+Language: python","[{""rule_id"": ""path-traversal"", ""message"": ""Path traversal vulnerability: unvalidated file path"", ""level"": ""error"", ""vulnerability_type"": ""Path Traversal"", ""start_line"": 4, ""confidence"": 0.8}]"
+"public void executeCommand(String cmd) {
+    Runtime.getRuntime().exec(cmd);
+}
+File: CommandExecutor.java
+Language: java","[{""rule_id"": ""command-injection"", ""message"": ""Command injection: user input passed to system command execution"", ""level"": ""error"", ""vulnerability_type"": ""Command Injection"", ""start_line"": 2, ""confidence"": 0.9}]"
+"const token = localStorage.getItem('authToken');
+fetch('/api/data', {
+    method: 'POST',
+    headers: { 'X-Auth-Token': token }
+});
+File: auth.js
+Language: javascript","[{""rule_id"": ""token-exposure"", ""message"": ""Sensitive token stored in localStorage without encryption"", ""level"": ""warning"", ""vulnerability_type"": ""Sensitive Data Exposure"", ""start_line"": 1, ""confidence"": 0.7}]"
+"def deserialize_data(data):
+    import pickle
+    return pickle.loads(data)
+File: utils.py
+Language: python","[{""rule_id"": ""unsafe-deserialization"", ""message"": ""Unsafe deserialization using pickle.loads"", ""level"": ""error"", ""vulnerability_type"": ""Insecure Deserialization"", ""start_line"": 3, ""confidence"": 0.95}]"
+"function makeRequest(url) {
+    fetch(url)
+        .then(response => response.text())
+        .then(data => console.log(data));
+}
+File: api.js
+Language: javascript","[{""rule_id"": ""ssrf-potential"", ""message"": ""Potential SSRF: URL parameter used in fetch request"", ""level"": ""warning"", ""vulnerability_type"": ""SSRF"", ""start_line"": 2, ""confidence"": 0.6}]"
+"<?php
+echo $_GET['message'];
+?>
+File: display.php
+Language: php","[{""rule_id"": ""reflected-xss"", ""message"": ""Reflected XSS: GET parameter directly echoed to output"", ""level"": ""error"", ""vulnerability_type"": ""XSS"", ""start_line"": 2, ""confidence"": 0.9}]"
+"def validate_user(username, password):
+    if username == 'admin' and password == 'password123':
+        return True
+    return False
+File: auth.py
+Language: python","[{""rule_id"": ""hardcoded-credentials"", ""message"": ""Hardcoded credentials found in authentication logic"", ""level"": ""error"", ""vulnerability_type"": ""Broken Authentication"", ""start_line"": 2, ""confidence"": 0.95}]"
+"function calculateHash(input) {
+    return crypto.createHash('md5').update(input).digest('hex');
+}
+File: crypto.js
+Language: javascript","[{""rule_id"": ""weak-hash"", ""message"": ""Weak cryptographic hash algorithm (MD5) used"", ""level"": ""warning"", ""vulnerability_type"": ""Security Misconfiguration"", ""start_line"": 2, ""confidence"": 0.8}]"

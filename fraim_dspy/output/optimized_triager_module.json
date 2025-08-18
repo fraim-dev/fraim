@@ -1,0 +1,94 @@
+{
+  "triager": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "augmented": true,
+        "vulnerability": "{\"rule_id\": \"sql-injection\", \"message\": \"SQL injection vulnerability\", \"level\": \"error\", \"vulnerability_type\": \"SQL Injection\", \"start_line\": 2, \"confidence\": 0.9}",
+        "code_chunk": "def execute_query(sql):\n    cursor.execute(sql)\n    return cursor.fetchall()",
+        "file_path": "src\/database.py",
+        "project_context": "Flask web application with user authentication and data management",
+        "triaged_result": "{\"rule_id\": \"sql-injection\", \"message\": \"SQL injection vulnerability confirmed: user input directly passed to SQL execution without parameterization or sanitization. Attackers can manipulate queries to access or modify database data.\", \"level\": \"error\", \"vulnerability_type\": \"SQL Injection\", \"start_line\": 2, \"confidence\": 0.95, \"exploitability\": \"HIGH\", \"impact_analysis\": \"Data leakage, unauthorized data manipulation, potential for privilege escalation, complete database compromise\", \"attack_vectors\": \"User input in SQL queries via HTTP parameters, form submissions, or API calls\", \"remediation\": \"Use parameterized queries or ORM frameworks, validate and sanitize user inputs, implement least privilege access controls on database\", \"data_flow_trace\": \"HTTP request -> Flask route handler -> execute_query() -> cursor.execute()\", \"external_input_source\": \"HTTP\"}"
+      },
+      {
+        "augmented": true,
+        "vulnerability": "{\"rule_id\": \"xss-dom\", \"message\": \"DOM-based XSS vulnerability\", \"level\": \"error\", \"vulnerability_type\": \"XSS\", \"start_line\": 2, \"confidence\": 0.85}",
+        "code_chunk": "function render_user_input(userInput) {\n    document.getElementById('output').innerHTML = userInput;\n}",
+        "file_path": "frontend\/utils.js",
+        "project_context": "Client-side JavaScript application for user content rendering",
+        "triaged_result": "{\"rule_id\": \"xss-dom\", \"message\": \"DOM-based XSS vulnerability confirmed: user input is directly inserted into the DOM without sanitization, allowing attackers to execute arbitrary JavaScript in the context of the user’s session.\", \"level\": \"error\", \"vulnerability_type\": \"XSS\", \"start_line\": 2, \"confidence\": 0.9, \"exploitability\": \"HIGH\", \"impact_analysis\": \"Session hijacking, data theft, defacement of the web application, potential spread of malware\", \"attack_vectors\": \"Malicious user input via URL parameters, form submissions, or any user-generated content\", \"remediation\": \"Sanitize user input using libraries like DOMPurify, escape HTML entities, avoid using innerHTML for rendering user content\", \"data_flow_trace\": \"User input -> render_user_input() -> document.getElementById('output').innerHTML\", \"external_input_source\": \"HTTP\"}"
+      },
+      {
+        "augmented": true,
+        "vulnerability": "{\"rule_id\": \"path-traversal\", \"message\": \"Path traversal vulnerability\", \"level\": \"error\", \"vulnerability_type\": \"Path Traversal\", \"start_line\": 4, \"confidence\": 0.8}",
+        "code_chunk": "@app.route('\/download')\ndef download_file():\n    filename = request.args.get('file')\n    return send_file(f'\/uploads\/{filename}')",
+        "file_path": "app.py",
+        "project_context": "Python Flask web application with file download functionality",
+        "triaged_result": "{\"rule_id\": \"path-traversal\", \"message\": \"Path traversal vulnerability confirmed: user-controlled input directly used in file path without validation. Attackers can access arbitrary files on the server.\", \"level\": \"error\", \"vulnerability_type\": \"Path Traversal\", \"start_line\": 4, \"confidence\": 0.85, \"exploitability\": \"HIGH\", \"impact_analysis\": \"Unauthorized access to sensitive files, potential data leakage, server-side file manipulation\", \"attack_vectors\": \"HTTP GET requests with parameters like '?file=..\/..\/etc\/passwd'\", \"remediation\": \"Implement input validation to restrict file names, use a whitelist of allowed files, avoid direct user input in file paths\", \"data_flow_trace\": \"HTTP request -> Flask route handler -> download_file() -> send_file()\", \"external_input_source\": \"HTTP\"}"
+      },
+      {
+        "augmented": true,
+        "vulnerability": "{\"rule_id\": \"command-injection\", \"message\": \"Command injection vulnerability\", \"level\": \"error\", \"vulnerability_type\": \"Command Injection\", \"start_line\": 2, \"confidence\": 0.9}",
+        "code_chunk": "public void executeCommand(String cmd) {\n    Runtime.getRuntime().exec(cmd);\n}",
+        "file_path": "CommandExecutor.java",
+        "project_context": "Java enterprise application with system integration features",
+        "triaged_result": "{\"rule_id\": \"command-injection\", \"message\": \"Command injection vulnerability confirmed: user-controlled input directly passed to Runtime.exec() without validation or sanitization. Attackers can execute arbitrary commands on the server.\", \"level\": \"error\", \"vulnerability_type\": \"Command Injection\", \"start_line\": 2, \"confidence\": 0.95, \"exploitability\": \"HIGH\", \"impact_analysis\": \"Remote code execution, complete system compromise, data breach, service disruption\", \"attack_vectors\": \"HTTP parameters, form inputs, or any user-controlled input that reaches this method\", \"remediation\": \"Avoid using Runtime.exec() with user input. Use a safe command execution library or implement strict input validation and sanitization.\", \"data_flow_trace\": \"HTTP request -> application logic -> executeCommand() -> Runtime.getRuntime().exec()\", \"external_input_source\": \"HTTP\"}"
+      },
+      {
+        "vulnerability": "{\"rule_id\": \"ssrf-potential\", \"message\": \"Potential SSRF vulnerability\", \"level\": \"warning\", \"vulnerability_type\": \"SSRF\", \"start_line\": 2, \"confidence\": 0.6}",
+        "code_chunk": "function makeRequest(url) {\n    fetch(url)\n        .then(response => response.text())\n        .then(data => console.log(data));\n}",
+        "file_path": "api.js",
+        "project_context": "Node.js backend service making external API calls",
+        "triaged_result": "{\"rule_id\": \"ssrf-potential\", \"message\": \"SSRF vulnerability confirmed: URL parameter used directly in fetch request without validation. Attackers can make requests to internal services or external systems.\", \"level\": \"error\", \"vulnerability_type\": \"SSRF\", \"start_line\": 2, \"confidence\": 0.8, \"exploitability\": \"HIGH\", \"impact_analysis\": \"Access to internal services, cloud metadata endpoints, port scanning, potential RCE via internal services\", \"attack_vectors\": \"URLs pointing to internal services (192.168.x.x, 127.0.0.1), cloud metadata endpoints, file:\/\/ protocol\", \"remediation\": \"Implement URL validation, use allowlist of permitted domains, disable dangerous protocols\", \"data_flow_trace\": \"HTTP request parameter -> makeRequest() -> fetch(url)\", \"external_input_source\": \"HTTP\"}"
+      },
+      {
+        "vulnerability": "{\"rule_id\": \"unsafe-deserialization\", \"message\": \"Unsafe pickle deserialization\", \"level\": \"error\", \"vulnerability_type\": \"Insecure Deserialization\", \"start_line\": 3, \"confidence\": 0.95}",
+        "code_chunk": "def deserialize_data(data):\n    import pickle\n    return pickle.loads(data)",
+        "file_path": "utils.py",
+        "project_context": "Python data processing service handling serialized objects",
+        "triaged_result": "{\"rule_id\": \"unsafe-deserialization\", \"message\": \"Insecure deserialization confirmed: pickle.loads() can execute arbitrary code when deserializing malicious objects. Extremely dangerous if data comes from untrusted sources.\", \"level\": \"error\", \"vulnerability_type\": \"Insecure Deserialization\", \"start_line\": 3, \"confidence\": 0.98, \"exploitability\": \"HIGH\", \"impact_analysis\": \"Remote code execution, complete system compromise, data breach, service disruption\", \"attack_vectors\": \"Malicious pickle objects via HTTP requests, file uploads, message queues\", \"remediation\": \"Use safe serialization formats like JSON, implement object validation, use restricted unpicklers\", \"data_flow_trace\": \"HTTP request body -> request handler -> deserialize_data() -> pickle.loads()\", \"external_input_source\": \"HTTP\"}"
+      },
+      {
+        "vulnerability": "{\"rule_id\": \"token-exposure\", \"message\": \"Sensitive token in localStorage\", \"level\": \"warning\", \"vulnerability_type\": \"Sensitive Data Exposure\", \"start_line\": 1, \"confidence\": 0.7}",
+        "code_chunk": "const token = localStorage.getItem('authToken');\nfetch('\/api\/data', {\n    method: 'POST',\n    headers: { 'X-Auth-Token': token }\n});",
+        "file_path": "auth.js",
+        "project_context": "Single-page application with token-based authentication",
+        "triaged_result": "{\"rule_id\": \"token-exposure\", \"message\": \"Sensitive data exposure confirmed: authentication tokens stored in localStorage are accessible to malicious scripts and browser extensions. Not directly exploitable via network but increases attack surface.\", \"level\": \"warning\", \"vulnerability_type\": \"Sensitive Data Exposure\", \"start_line\": 1, \"confidence\": 0.8, \"exploitability\": \"MEDIUM\", \"impact_analysis\": \"Token theft via XSS, malicious browser extensions, or local access leading to session hijacking\", \"attack_vectors\": \"XSS attacks, malicious browser extensions, local file system access\", \"remediation\": \"Use httpOnly cookies for token storage, implement token encryption, use secure storage mechanisms\", \"data_flow_trace\": \"Application login -> localStorage.setItem() -> localStorage.getItem() -> HTTP headers\", \"external_input_source\": \"NONE\"}"
+      }
+    ],
+    "signature": {
+      "instructions": "You are a senior security expert specializing in vulnerability triage and exploitation analysis.\n\nYour job is to take high-confidence security findings and perform deep analysis to determine their true exploitability, potential impact, and provide actionable recommendations.\n\nYou are NOT performing a new security scan. You are analyzing ONE SPECIFIC VULNERABILITY that has already been found.\n\nYOUR MISSION: Determine if THIS SPECIFIC vulnerability is exploitable by analyzing the context and data flow.\n\nIMPORTANT: You must return exactly ONE result object that represents the triaged version of the input vulnerability. Do not find new vulnerabilities - only analyze the one provided.\n\nKEY QUESTIONS TO ANSWER:\n1. What function contains this vulnerability?\n2. What parameter(s) or variable(s) could be attacker-controlled?\n3. Where is this vulnerable function called from?\n4. How are the parameters passed in?\n5. Where do the inputs originate from?\n6. Are there validation\/sanitization steps?\n7. Can an attacker actually reach this code and control the input?\n\nREMEMBER:\n- If input comes from HTTP requests → HIGH risk (attacker-controlled)\n- If input comes from CLI args → MEDIUM risk (depends on context)\n- If input comes from config files → LOW risk (usually not attacker-controlled)\n- If input comes from hardcoded values → NO risk (not attacker-controlled)\n\nFor each vulnerability, you should:\n1. Analyze the exploitability in the given context\n2. Assess the potential impact if exploited\n3. Determine if there are any mitigating factors\n4. Provide detailed technical analysis and recommendations\n\nEnhance the vulnerability result with:\n- Detailed exploitability assessment\n- Impact analysis (confidentiality, integrity, availability)\n- Attack complexity evaluation\n- Potential attack vectors\n- Recommended remediation steps",
+      "fields": [
+        {
+          "prefix": "Vulnerability:",
+          "description": "JSON representation of the vulnerability to triage"
+        },
+        {
+          "prefix": "Code Chunk:",
+          "description": "Source code containing the vulnerability"
+        },
+        {
+          "prefix": "File Path:",
+          "description": "Path to the file containing the vulnerable code"
+        },
+        {
+          "prefix": "Project Context:",
+          "description": "Additional project context and file structure information"
+        },
+        {
+          "prefix": "Triaged Result:",
+          "description": "JSON representation of the triaged vulnerability with enhanced analysis including exploitability assessment, impact analysis, data flow tracing, attack vectors, and remediation steps. Must trace data flow from external input sources (HTTP, CLI, FILE, ENV, CONFIG) to the vulnerability."
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.12",
+      "dspy": "3.0.0b4",
+      "cloudpickle": "3.1"
+    }
+  }
+}

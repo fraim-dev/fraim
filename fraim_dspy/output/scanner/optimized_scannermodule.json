@@ -1,0 +1,39 @@
+{
+  "predictor.predict": {
+    "traces": [],
+    "train": [],
+    "demos": [],
+    "signature": {
+      "instructions": "You are a security code analyzer.\n\nYour job is to analyze code for potential security vulnerabilities.\n\n<vulnerability_types>\n  Valid vulnerability types (use EXACTLY as shown):\n\n  - SQL Injection\n  - XSS\n  - CSRF\n  - Path Traversal\n  - Command Injection\n  - Insecure Deserialization\n  - XXE\n  - SSRF\n  - Open Redirect\n  - IDOR\n  - Sensitive Data Exposure\n  - Broken Authentication\n  - Broken Access Control\n  - Security Misconfiguration\n  - Insufficient Logging\n<\/vulnerability_types>\n\n{{ output_format }}",
+      "fields": [
+        {
+          "prefix": "Reasoning: Let's think step by step in order to",
+          "description": "${reasoning}"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "optimized_predictor.predict": {
+    "traces": [],
+    "train": [],
+    "demos": [],
+    "signature": {
+      "instructions": "You are a security code analyzer.\n\nYour job is to analyze code for potential security vulnerabilities.\n\n<vulnerability_types>\n  Valid vulnerability types (use EXACTLY as shown):\n\n  - SQL Injection\n  - XSS\n  - CSRF\n  - Path Traversal\n  - Command Injection\n  - Insecure Deserialization\n  - XXE\n  - SSRF\n  - Open Redirect\n  - IDOR\n  - Sensitive Data Exposure\n  - Broken Authentication\n  - Broken Access Control\n  - Security Misconfiguration\n  - Insufficient Logging\n<\/vulnerability_types>\n\n{{ output_format }}",
+      "fields": [
+        {
+          "prefix": "Reasoning: Let's think step by step in order to",
+          "description": "${reasoning}"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.12",
+      "dspy": "3.0.0b4",
+      "cloudpickle": "3.1"
+    }
+  }
+}

@@ -1,0 +1,88 @@
+input,expected_output
+"Vulnerability: {""rule_id"": ""sql-injection"", ""message"": ""SQL injection vulnerability"", ""level"": ""error"", ""vulnerability_type"": ""SQL Injection"", ""start_line"": 2, ""confidence"": 0.9}
+
+Code:
+def execute_query(sql):
+    cursor.execute(sql)
+    return cursor.fetchall()
+
+File: src/database.py
+Context: Flask web application with user authentication and data management","{""rule_id"": ""sql-injection"", ""message"": ""SQL injection vulnerability confirmed: user input from HTTP requests directly passed to SQL query without sanitization. Database queries can be manipulated by attackers."", ""level"": ""error"", ""vulnerability_type"": ""SQL Injection"", ""start_line"": 2, ""confidence"": 0.95, ""exploitability"": ""HIGH"", ""impact_analysis"": ""Attackers can read, modify, or delete database contents, potentially leading to data breach and system compromise"", ""attack_vectors"": ""HTTP parameters, form inputs, URL paths that flow to this function"", ""remediation"": ""Use parameterized queries or prepared statements. Implement input validation and sanitization."", ""data_flow_trace"": ""HTTP request -> Flask route handler -> execute_query() -> cursor.execute()"", ""external_input_source"": ""HTTP""}"
+"Vulnerability: {""rule_id"": ""xss-dom"", ""message"": ""DOM-based XSS vulnerability"", ""level"": ""error"", ""vulnerability_type"": ""XSS"", ""start_line"": 2, ""confidence"": 0.85}
+
+Code:
+function render_user_input(userInput) {
+    document.getElementById('output').innerHTML = userInput;
+}
+
+File: frontend/utils.js
+Context: Client-side JavaScript application for user content rendering","{""rule_id"": ""xss-dom"", ""message"": ""DOM-based XSS confirmed: user input directly inserted into innerHTML without encoding. Attackers can execute arbitrary JavaScript in user browsers."", ""level"": ""error"", ""vulnerability_type"": ""XSS"", ""start_line"": 2, ""confidence"": 0.9, ""exploitability"": ""HIGH"", ""impact_analysis"": ""Session hijacking, credential theft, malicious actions on behalf of users, defacement"", ""attack_vectors"": ""URL fragments, POST data, WebSocket messages that reach this function"", ""remediation"": ""Use textContent instead of innerHTML, implement HTML encoding, use Content Security Policy"", ""data_flow_trace"": ""URL parameters/form data -> JavaScript event handler -> render_user_input() -> innerHTML"", ""external_input_source"": ""HTTP""}"
+"Vulnerability: {""rule_id"": ""path-traversal"", ""message"": ""Path traversal vulnerability"", ""level"": ""error"", ""vulnerability_type"": ""Path Traversal"", ""start_line"": 4, ""confidence"": 0.8}
+
+Code:
+@app.route('/download')
+def download_file():
+    filename = request.args.get('file')
+    return send_file(f'/uploads/{filename}')
+
+File: app.py
+Context: Python Flask web application with file download functionality","{""rule_id"": ""path-traversal"", ""message"": ""Path traversal vulnerability confirmed: file parameter from HTTP request used directly in file path construction. Attackers can access files outside intended directory."", ""level"": ""error"", ""vulnerability_type"": ""Path Traversal"", ""start_line"": 4, ""confidence"": 0.9, ""exploitability"": ""HIGH"", ""impact_analysis"": ""Unauthorized file system access, reading of sensitive files like /etc/passwd, configuration files, source code"", ""attack_vectors"": ""GET parameter 'file' with values like '../../../etc/passwd'"", ""remediation"": ""Validate and sanitize file paths, use allowlist of permitted files, implement proper access controls"", ""data_flow_trace"": ""HTTP GET request -> Flask route -> request.args.get('file') -> send_file()"", ""external_input_source"": ""HTTP""}"
+"Vulnerability: {""rule_id"": ""command-injection"", ""message"": ""Command injection vulnerability"", ""level"": ""error"", ""vulnerability_type"": ""Command Injection"", ""start_line"": 2, ""confidence"": 0.9}
+
+Code:
+public void executeCommand(String cmd) {
+    Runtime.getRuntime().exec(cmd);
+}
+
+File: CommandExecutor.java
+Context: Java enterprise application with system integration features","{""rule_id"": ""command-injection"", ""message"": ""Command injection vulnerability confirmed: user input passed directly to system command execution. Attackers can execute arbitrary system commands."", ""level"": ""error"", ""vulnerability_type"": ""Command Injection"", ""start_line"": 2, ""confidence"": 0.95, ""exploitability"": ""HIGH"", ""impact_analysis"": ""Complete system compromise, data exfiltration, privilege escalation, lateral movement"", ""attack_vectors"": ""HTTP parameters containing shell metacharacters like '; rm -rf /' or '&& cat /etc/passwd'"", ""remediation"": ""Use ProcessBuilder with argument arrays, input validation, avoid shell execution, implement command allowlisting"", ""data_flow_trace"": ""HTTP request -> REST controller -> service layer -> executeCommand() -> Runtime.exec()"", ""external_input_source"": ""HTTP""}"
+"Vulnerability: {""rule_id"": ""token-exposure"", ""message"": ""Sensitive token in localStorage"", ""level"": ""warning"", ""vulnerability_type"": ""Sensitive Data Exposure"", ""start_line"": 1, ""confidence"": 0.7}
+
+Code:
+const token = localStorage.getItem('authToken');
+fetch('/api/data', {
+    method: 'POST',
+    headers: { 'X-Auth-Token': token }
+});
+
+File: auth.js
+Context: Single-page application with token-based authentication","{""rule_id"": ""token-exposure"", ""message"": ""Sensitive data exposure confirmed: authentication tokens stored in localStorage are accessible to malicious scripts and browser extensions. Not directly exploitable via network but increases attack surface."", ""level"": ""warning"", ""vulnerability_type"": ""Sensitive Data Exposure"", ""start_line"": 1, ""confidence"": 0.8, ""exploitability"": ""MEDIUM"", ""impact_analysis"": ""Token theft via XSS, malicious browser extensions, or local access leading to session hijacking"", ""attack_vectors"": ""XSS attacks, malicious browser extensions, local file system access"", ""remediation"": ""Use httpOnly cookies for token storage, implement token encryption, use secure storage mechanisms"", ""data_flow_trace"": ""Application login -> localStorage.setItem() -> localStorage.getItem() -> HTTP headers"", ""external_input_source"": ""NONE""}"
+"Vulnerability: {""rule_id"": ""unsafe-deserialization"", ""message"": ""Unsafe pickle deserialization"", ""level"": ""error"", ""vulnerability_type"": ""Insecure Deserialization"", ""start_line"": 3, ""confidence"": 0.95}
+
+Code:
+def deserialize_data(data):
+    import pickle
+    return pickle.loads(data)
+
+File: utils.py
+Context: Python data processing service handling serialized objects","{""rule_id"": ""unsafe-deserialization"", ""message"": ""Insecure deserialization confirmed: pickle.loads() can execute arbitrary code when deserializing malicious objects. Extremely dangerous if data comes from untrusted sources."", ""level"": ""error"", ""vulnerability_type"": ""Insecure Deserialization"", ""start_line"": 3, ""confidence"": 0.98, ""exploitability"": ""HIGH"", ""impact_analysis"": ""Remote code execution, complete system compromise, data breach, service disruption"", ""attack_vectors"": ""Malicious pickle objects via HTTP requests, file uploads, message queues"", ""remediation"": ""Use safe serialization formats like JSON, implement object validation, use restricted unpicklers"", ""data_flow_trace"": ""HTTP request body -> request handler -> deserialize_data() -> pickle.loads()"", ""external_input_source"": ""HTTP""}"
+"Vulnerability: {""rule_id"": ""ssrf-potential"", ""message"": ""Potential SSRF vulnerability"", ""level"": ""warning"", ""vulnerability_type"": ""SSRF"", ""start_line"": 2, ""confidence"": 0.6}
+
+Code:
+function makeRequest(url) {
+    fetch(url)
+        .then(response => response.text())
+        .then(data => console.log(data));
+}
+
+File: api.js
+Context: Node.js backend service making external API calls","{""rule_id"": ""ssrf-potential"", ""message"": ""SSRF vulnerability confirmed: URL parameter used directly in fetch request without validation. Attackers can make requests to internal services or external systems."", ""level"": ""error"", ""vulnerability_type"": ""SSRF"", ""start_line"": 2, ""confidence"": 0.8, ""exploitability"": ""HIGH"", ""impact_analysis"": ""Access to internal services, cloud metadata endpoints, port scanning, potential RCE via internal services"", ""attack_vectors"": ""URLs pointing to internal services (192.168.x.x, 127.0.0.1), cloud metadata endpoints, file:// protocol"", ""remediation"": ""Implement URL validation, use allowlist of permitted domains, disable dangerous protocols"", ""data_flow_trace"": ""HTTP request parameter -> makeRequest() -> fetch(url)"", ""external_input_source"": ""HTTP""}"
+"Vulnerability: {""rule_id"": ""reflected-xss"", ""message"": ""Reflected XSS vulnerability"", ""level"": ""error"", ""vulnerability_type"": ""XSS"", ""start_line"": 2, ""confidence"": 0.9}
+
+Code:
+<?php
+echo $_GET['message'];
+?>
+
+File: display.php
+Context: PHP web application for message display","{""rule_id"": ""reflected-xss"", ""message"": ""Reflected XSS confirmed: GET parameter directly echoed to HTTP response without encoding. Attackers can execute JavaScript in victim browsers via malicious URLs."", ""level"": ""error"", ""vulnerability_type"": ""XSS"", ""start_line"": 2, ""confidence"": 0.95, ""exploitability"": ""HIGH"", ""impact_analysis"": ""Session hijacking, credential theft, malicious actions, phishing via crafted URLs"", ""attack_vectors"": ""Malicious URLs with JavaScript payloads in GET parameters shared via email, social media"", ""remediation"": ""HTML encode output, implement Content Security Policy, validate and sanitize input"", ""data_flow_trace"": ""HTTP GET request -> $_GET['message'] -> echo statement -> HTTP response"", ""external_input_source"": ""HTTP""}"
+"Vulnerability: {""rule_id"": ""hardcoded-credentials"", ""message"": ""Hardcoded credentials in code"", ""level"": ""error"", ""vulnerability_type"": ""Broken Authentication"", ""start_line"": 2, ""confidence"": 0.95}
+
+Code:
+def validate_user(username, password):
+    if username == 'admin' and password == 'password123':
+        return True
+    return False
+
+File: auth.py
+Context: Python authentication module for admin access","{""rule_id"": ""hardcoded-credentials"", ""message"": ""Hardcoded credentials confirmed: admin password embedded in source code. Not directly exploitable remotely but represents significant security risk if code is exposed."", ""level"": ""error"", ""vulnerability_type"": ""Broken Authentication"", ""start_line"": 2, ""confidence"": 0.98, ""exploitability"": ""MEDIUM"", ""impact_analysis"": ""Unauthorized admin access if credentials are discovered, source code exposure risk"", ""attack_vectors"": ""Source code access, repository leaks, insider threats, reverse engineering"", ""remediation"": ""Use environment variables, secure configuration management, implement proper password policies"", ""data_flow_trace"": ""Login form -> validate_user() -> hardcoded comparison"", ""external_input_source"": ""CONFIG""}"

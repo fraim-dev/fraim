@@ -1,0 +1,85 @@
+{
+  "signature_instructions": "\n    You are a security code analyzer.\n\n    Your job is to analyze code for potential security vulnerabilities.\n\n    Valid vulnerability types (use EXACTLY as shown):\n    - SQL Injection\n    - XSS\n    - CSRF\n    - Path Traversal\n    - Command Injection\n    - Insecure Deserialization\n    - XXE\n    - SSRF\n    - Open Redirect\n    - IDOR\n    - Sensitive Data Exposure\n    - Broken Authentication\n    - Broken Access Control\n    - Security Misconfiguration\n    - Insufficient Logging\n\n    Analyze the following code for security vulnerabilities and report them in the exact output format.\n    ",
+  "few_shot_examples": [
+    {
+      "demo_index": 0,
+      "demo_content": {
+        "augmented": true,
+        "code_chunk": "def execute_query(sql):\\n    cursor.execute(sql)\\n    return cursor.fetchall()",
+        "file_path": "src/database.py",
+        "language": "python",
+        "vulnerabilities": "[{\"rule_id\": \"sql-injection\", \"message\": \"Potential SQL Injection: raw SQL query execution without parameterization\", \"level\": \"error\", \"vulnerability_type\": \"SQL Injection\", \"start_line\": 2, \"confidence\": 0.9}]"
+      }
+    },
+    {
+      "demo_index": 1,
+      "demo_content": {
+        "augmented": true,
+        "code_chunk": "function render_user_input(userInput) {\\n    document.getElementById('output').innerHTML = userInput;\\n}",
+        "file_path": "frontend/utils.js",
+        "language": "javascript",
+        "vulnerabilities": "[{\"rule_id\": \"xss-vulnerability\", \"message\": \"Potential XSS vulnerability: user input directly inserted into HTML\", \"level\": \"error\", \"vulnerability_type\": \"XSS\", \"start_line\": 2, \"confidence\": 0.85}]"
+      }
+    },
+    {
+      "demo_index": 2,
+      "demo_content": {
+        "augmented": true,
+        "code_chunk": "public void executeCommand(String cmd) {\\n    Runtime.getRuntime().exec(cmd);\\n}",
+        "file_path": "CommandExecutor.java",
+        "language": "java",
+        "vulnerabilities": "[{\"rule_id\": \"command-injection\", \"message\": \"Command injection vulnerability: user input directly passed to exec\", \"level\": \"error\", \"vulnerability_type\": \"Command Injection\", \"start_line\": 2, \"confidence\": 0.9}]"
+      }
+    },
+    {
+      "demo_index": 3,
+      "demo_content": {
+        "augmented": true,
+        "code_chunk": "const token = localStorage.getItem('authToken');\\nfetch('/api/data', {\\n    method: 'POST',\\n    headers: { 'X-Auth-Token': token }\\n});",
+        "file_path": "auth.js",
+        "language": "javascript",
+        "vulnerabilities": "[{\"rule_id\": \"sensitive-data-exposure\", \"message\": \"Sensitive data exposure: authToken stored in localStorage\", \"level\": \"warning\", \"vulnerability_type\": \"Sensitive Data Exposure\", \"start_line\": 1, \"confidence\": 0.7}]"
+      }
+    },
+    {
+      "demo_index": 4,
+      "demo_content": {
+        "code_chunk": "<?php\\necho $_GET['message'];\\n?>",
+        "file_path": "display.php",
+        "language": "php",
+        "vulnerabilities": "[{\"rule_id\": \"reflected-xss\", \"message\": \"Reflected XSS: GET parameter directly echoed to output\", \"level\": \"error\", \"vulnerability_type\": \"XSS\", \"start_line\": 2, \"confidence\": 0.9}]"
+      }
+    },
+    {
+      "demo_index": 5,
+      "demo_content": {
+        "code_chunk": "@app.route('/download')\\ndef download_file():\\n    filename = request.args.get('file')\\n    return send_file(f'/uploads/{filename}')",
+        "file_path": "app.py",
+        "language": "python",
+        "vulnerabilities": "[{\"rule_id\": \"path-traversal\", \"message\": \"Path traversal vulnerability: unvalidated file path\", \"level\": \"error\", \"vulnerability_type\": \"Path Traversal\", \"start_line\": 4, \"confidence\": 0.8}]"
+      }
+    },
+    {
+      "demo_index": 6,
+      "demo_content": {
+        "code_chunk": "function makeRequest(url) {\\n    fetch(url)\\n        .then(response => response.text())\\n        .then(data => console.log(data));\\n}",
+        "file_path": "api.js",
+        "language": "javascript",
+        "vulnerabilities": "[{\"rule_id\": \"ssrf-potential\", \"message\": \"Potential SSRF: URL parameter used in fetch request\", \"level\": \"warning\", \"vulnerability_type\": \"SSRF\", \"start_line\": 2, \"confidence\": 0.6}]"
+      }
+    },
+    {
+      "demo_index": 7,
+      "demo_content": {
+        "code_chunk": "def deserialize_data(data):\\n    import pickle\\n    return pickle.loads(data)",
+        "file_path": "utils.py",
+        "language": "python",
+        "vulnerabilities": "[{\"rule_id\": \"unsafe-deserialization\", \"message\": \"Unsafe deserialization using pickle.loads\", \"level\": \"error\", \"vulnerability_type\": \"Insecure Deserialization\", \"start_line\": 3, \"confidence\": 0.95}]"
+      }
+    }
+  ],
+  "predictor_info": {
+    "type": "Predict",
+    "has_demos": true
+  }
+}
