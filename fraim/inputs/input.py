@@ -5,9 +5,9 @@ from typing import ContextManager, Iterator, Protocol, runtime_checkable
 
 from fraim.core.contextuals import CodeChunk
 
+
 @runtime_checkable
 class Input(Protocol, ContextManager):
-
     def __iter__(self) -> Iterator[CodeChunk]: ...
 
     # TODO: Allow inputs to describe themselves

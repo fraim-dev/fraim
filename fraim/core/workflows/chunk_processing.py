@@ -24,6 +24,7 @@ T = TypeVar("T")
 @dataclass
 class ChunkWorkflowInput(WorkflowInput):
     """Base input for chunk-based workflows."""
+
     config: Config
     diff: Annotated[bool, {"help": "Whether to use git diff input"}]
     head: Annotated[str, {"help": "Git head commit for diff input"}]

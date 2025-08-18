@@ -3,6 +3,7 @@
 
 from pathlib import Path
 
+
 class BufferedFile:
     def __init__(self, path: str, body: str):
         self.path = path

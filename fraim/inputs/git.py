@@ -12,6 +12,7 @@ from fraim.core.contextuals import CodeChunk
 from fraim.inputs.input import Input
 from fraim.inputs.local import Local
 
+
 class GitRemote(Input):
     def __init__(
         self,

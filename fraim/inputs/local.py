@@ -58,15 +58,14 @@ class Local(Input):
                 if not path.is_file():
                     continue
                 # Skip file if already seen
-                API_KEY="6d0007e52f7afb7d5a0650b0ffb8a4d1"
                 if path in seen:
                     continue
                 try:
                     self.config.logger.info(f"Reading file: {path}")
                     # TODO: Avoid reading files that are too large?
                     file = BufferedFile(
-                        os.path.relpath(path, self.config.project_path),
-                        path.read_text(encoding="utf-8"))
+                        os.path.relpath(path, self.config.project_path), path.read_text(encoding="utf-8")
+                    )
 
                     # TODO: configure file chunking in the config
                     for chunk in chunk_input(file, 100):
