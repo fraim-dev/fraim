@@ -38,14 +38,14 @@ class PackingFixedChunker(FixedChunker):
             # Case 3: Try adding the new chunk to the existing pack.
             # We create a temporary CodeChunks object to accurately measure the
             # final string length, including all XML tags and newlines.
-            size_if_added = len(str(CodeChunks(*(current_pack + [file_chunk]))))
+            size_if_added = len(str(CodeChunks(current_pack + [file_chunk])))
 
             if size_if_added > self.chunk_size:
                 # It doesn't fit. Yield the current pack.
                 self.logger.info(f"Generated chunk with files: {', '.join(current_pack.file_paths)}")
                 yield current_pack
                 # Start a new pack with the current file_chunk.
-                current_pack = CodeChunks(file_chunk)
+                current_pack = CodeChunks([file_chunk])
             else:
                 # It fits! Add the chunk to the current pack.
                 current_pack.append(file_chunk)

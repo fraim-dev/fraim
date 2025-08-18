@@ -45,10 +45,10 @@ class Local(Files):
         self.limit = limit
 
     def root_path(self) -> str:
-        return self.path.name
+        return str(self.path)
 
     def __iter__(self) -> Iterator[File]:
-        self.config.logger.info(f"Scanning local files: {self.path}, with globs: {self.globs}")
+        self.config.logger.info(f"Scanning local files: {self.path}, with globs: {self.globs}, exclude globs: {self.exclude_globs}")
         gen = self._files()
         if self.limit is not None:
             return itertools.islice(gen, self.limit)
@@ -67,7 +67,7 @@ class Local(Files):
                     self.config.logger.info(f"Reading file: {path}")
                     try:
                         yield File(
-                            path, path.read_text(encoding="utf-8")
+                            path.relative_to(self.root_path()), path.read_text(encoding="utf-8")
                         )  # buffer the files one at a time. avoid reading files that are too large?
                     except Exception as e:
                         if isinstance(e, UnicodeDecodeError):

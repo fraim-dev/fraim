@@ -11,4 +11,4 @@ class ProjectChunker(FileChunker):
         """Yield the whole project as a single chunk."""
 
         all_files = list(super().__iter__())
-        yield CodeChunks(*all_files)
+        yield CodeChunks(all_files)
