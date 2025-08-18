@@ -7,7 +7,6 @@ import logging
 import multiprocessing as mp
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Type, Union, get_args, get_origin, get_type_hints
 
 from fraim.config.config import Config
 from fraim.observability import ObservabilityManager, ObservabilityRegistry

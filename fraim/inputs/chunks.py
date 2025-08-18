@@ -1,23 +1,21 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 
-import os
-from typing import List
+from typing import Iterator
 
 from fraim.core.contextuals.code import CodeChunk
-from fraim.inputs.files import File
+from fraim.inputs.file import BufferedFile
 
 
-# TODO: generator
-def chunk_input(file: File, project_path: str, chunk_size: int) -> List[CodeChunk]:
+# TODO: move chunking concern out of input
+def chunk_input(file: BufferedFile, chunk_size: int) -> Iterator[CodeChunk]:
     """Split file content into chunks with line numbers."""
     lines = file.body.split("\n")
-    chunks = []
-    file_path = os.path.relpath(str(file.path), project_path)
 
     # If file is small enough, just process it as a single chunk
     if len(lines) <= chunk_size:
-        return [CodeChunk(file.body, file_path, 1, len(lines) - 1)]
+        yield CodeChunk(file.path, file.body, 1, len(lines) - 1)
+        return
 
     # Create chunks at logical boundaries
     for i in range(0, len(lines), chunk_size):
@@ -58,9 +56,7 @@ def chunk_input(file: File, project_path: str, chunk_size: int) -> List[CodeChun
 
         chunk_content = "\n".join(lines[chunk_start:chunk_end])
         numbered_content = prepend_line_numbers_to_snippet(chunk_content)
-        chunks.append(CodeChunk(numbered_content, file_path, chunk_start, chunk_end))
-
-    return chunks
+        yield CodeChunk(file.path, numbered_content, chunk_start, chunk_end)
 
 
 def prepend_line_numbers_to_snippet(snippet: str) -> str:
