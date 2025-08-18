@@ -6,9 +6,9 @@ from fraim.config.config import Config
 from fraim.core.contextuals.code import CodeChunk
 from fraim.inputs.chunks import chunk_input
 from fraim.inputs.file import BufferedFile
+from fraim.inputs.git import GitRemote
 from fraim.inputs.git_diff import GitDiff
 from fraim.inputs.input import Input
-from fraim.inputs.git import GitRemote
 from fraim.inputs.local import Local
 
 

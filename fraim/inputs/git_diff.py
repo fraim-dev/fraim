@@ -2,8 +2,10 @@
 # Copyright (c) 2025 Resourcely Inc.
 from types import TracebackType
 from typing import Iterator, List, Optional, Type
+
 from git import Repo
 from unidiff import PatchSet
+
 from fraim.config.config import Config
 from fraim.core.contextuals import CodeChunk
 from fraim.inputs.input import Input
