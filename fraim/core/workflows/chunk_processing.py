@@ -26,7 +26,6 @@ class ChunkWorkflowInput(WorkflowInput):
     """Base input for chunk-based workflows."""
 
     config: Config
-    diff: Annotated[bool, {"help": "Whether to use git diff input"}]
     head: Annotated[str, {"help": "Git head commit for diff input"}]
     base: Annotated[str, {"help": "Git base commit for diff input"}]
     location: Annotated[str, {"help": "Repository URL or path to scan"}]
@@ -37,6 +36,11 @@ class ChunkWorkflowInput(WorkflowInput):
         {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
     ] = None
     max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
+
+    diff: Annotated[bool, {"help": (
+        "Whether to use git diff input. If --head and --base are not specified, "
+        "the working tree is scanned."
+    )}] = False
 
 
 class ChunkProcessingMixin:
