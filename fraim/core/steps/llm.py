@@ -15,7 +15,7 @@ from fraim.core.llms.base import BaseLLM
 from fraim.core.messages import Message, SystemMessage, UserMessage
 from fraim.core.parsers.base import BaseOutputParser, ParseContext
 from fraim.core.parsers.retry import RetryOnErrorOutputParser
-from fraim.core.prompts import PromptTemplate
+from fraim.core.prompts.template import PromptTemplate, PromptTemplateError
 from fraim.core.steps.base import BaseStep
 from fraim.core.tools import BaseTool
 
@@ -39,10 +39,11 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
         static_inputs: Optional[Dict[str, Any]] = None,
         tools: Optional[List[BaseTool]] = None,
         max_tool_iterations: Optional[int] = None,
+        custom_system_tags: Optional[Dict[str, Any]] = None,
     ):
         """Creates a step that calls an LLM with a system prompt and a user prompt.
 
-        The system prompt is rendered with the static inputs and the output prompt instructions.
+        The system prompt is rendered with the static inputs, output prompt instructions, and custom tags.
 
         The user prompt is rendered with the static inputs and the dynamic inputs passed to the `run` method.
         If there are any unused dynamic inputs, they are automatically added to the end of the user prompt.
@@ -58,6 +59,7 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
             static_inputs: Static inputs to use for the system and user prompts
             tools: Optional list of tools to make available to the LLM
             max_tool_iterations: Optional maximum number of tool iterations (if not provided, uses LLM's default)
+            custom_system_tags: Optional dictionary of custom tags to render in the system prompt
         """
         if tools is not None:
             self.llm = llm.with_tools(tools, max_tool_iterations)
@@ -76,24 +78,46 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
             self.parser = RetryOnErrorOutputParser(parser)
 
         self.static_inputs = static_inputs or {}
+        self.custom_system_tags = custom_system_tags
 
-        self._system_message = self._render_system_message()
+        self._system_message = self._render_system_message(custom_system_tags)
 
-    def _render_system_message(self) -> SystemMessage:
-        """Render the system prompt with the static inputs and the output prompt instructions"""
+    def _render_system_message(self, custom_tags: Optional[Dict[str, Any]] = None) -> SystemMessage:
+        """Render the system prompt with the static inputs, output prompt instructions, and custom tags
+
+        Args:
+            custom_tags: Optional dictionary of custom tags to render in the system prompt
+
+        Raises:
+            ValueError: If any tags in the system prompt template are not provided in custom_tags or static_inputs
+        """
         inputs = self.static_inputs.copy()
+        if custom_tags:
+            inputs.update(custom_tags)
 
-        if OUTPUT_FORMAT_KEY in self.system_prompt.used_variables():
-            inputs[OUTPUT_FORMAT_KEY] = self.parser.output_prompt_instructions()
-            rendered, _ = self.system_prompt.render(inputs)
-            return SystemMessage(content=rendered)
-        else:
-            # If the system prompt doesn't use the output format key, add it to the end of the prompt
-            # automatically.
-            rendered, _ = self.system_prompt.render(inputs)
-            output_instructions = self.parser.output_prompt_instructions()
-            content = f"${rendered}\n<output_format>${output_instructions}</output_format>"
-            return SystemMessage(content=content)
+        # Get all variables used in the template
+        used_vars = self.system_prompt.used_variables()
+
+        # Check if all required variables are provided (except OUTPUT_FORMAT_KEY which is handled separately)
+        missing_vars = set(var for var in used_vars if var != OUTPUT_FORMAT_KEY and var not in inputs)
+        if missing_vars:
+            raise ValueError(f"The following tags in the system prompt were not provided: {missing_vars}")
+
+        try:
+            if OUTPUT_FORMAT_KEY in used_vars:
+                inputs[OUTPUT_FORMAT_KEY] = self.parser.output_prompt_instructions()
+                rendered, _ = self.system_prompt.render(inputs)
+                return SystemMessage(content=rendered)
+            else:
+                # If the system prompt doesn't use the output format key, add it to the end of the prompt
+                # automatically.
+                rendered, _ = self.system_prompt.render(inputs)
+                output_instructions = self.parser.output_prompt_instructions()
+                content = f"{rendered}\n<output_format>{output_instructions}</output_format>"
+                return SystemMessage(content=content)
+        except PromptTemplateError as e:
+            # Convert PromptTemplateError to ValueError for consistency
+            raise ValueError(f"Failed to render system prompt: {e}") from e
 
     def _render_user_message(self, input: Dict[str, Any]) -> UserMessage:
         """Render the user prompt with the static inputs and the dynamic inputs
