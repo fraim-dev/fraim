@@ -125,7 +125,8 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
         # At this point, choice is guaranteed to be of type Choices
         message_content = choice.message.content
         if message_content is None:
-            raise ValueError("Message content is None")
+            # Setting message_content to empty string will always fail to parse, which will trigger a retry.
+            message_content = ""
 
         context = ParseContext(llm=self.llm, messages=messages)
         return await self.parser.parse(message_content, context=context)
