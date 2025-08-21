@@ -20,13 +20,6 @@ class ScanArgs:
 def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[str]] = None) -> None:
     workflow_to_run = args.workflow
 
-    if observability_backends:
-        try:
-            manager = ObservabilityManager(observability_backends, logger=config.logger)
-            manager.setup()
-        except Exception as e:
-            config.logger.warning(f"Failed to setup observability in worker process: {str(e)}")
-
     #######################################
     # Run Workflow
     #######################################
