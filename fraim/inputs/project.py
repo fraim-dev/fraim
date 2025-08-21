@@ -40,8 +40,9 @@ class ProjectInput:
             self.input = GitRemote(self.config, url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_")
             self.project_path = self.input.root_path()
         else:
-            self.project_path = path_or_url
-            self.repo_name = os.path.basename(os.path.abspath(self.project_path))
+            # Fully resolve the path to the project
+            self.project_path = os.path.abspath(path_or_url)
+            self.repo_name = os.path.basename(self.project_path)
             if self.diff:
                 self.input = GitDiff(
                     self.config, self.project_path, head=self.head, base=self.base, globs=globs, limit=limit
