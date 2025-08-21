@@ -175,7 +175,7 @@ class RootTraversalNode(TraversalNode):
 def _traverse_path(root_path: Path, ignore_globs: Iterable[str], show_hidden: bool, max_entries: int) -> List[Entry]:
     """Traverse the root path to build an Entry tree"""
 
-    # This function uses a variant of a bread-first traversal of the root path to build an Entry tree
+    # This function uses a variant of a breadth-first traversal of the root path to build an Entry tree
     # with the following propertries
     #
     # 1. The number of (dir or file) entries in the tree is limited to max_entries
