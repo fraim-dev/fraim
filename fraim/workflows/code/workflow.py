@@ -9,6 +9,7 @@ Analyzes source code for security vulnerabilities using AI-powered scanning.
 
 import asyncio
 import os
+import threading
 from dataclasses import dataclass, field
 from typing import Annotated, Any, List, Optional
 
@@ -95,6 +96,7 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
 
         # Keep triager step as lazy since it depends on project setup
         self._triager_step: Optional[LLMStep[TriagerInput, sarif.Result]] = None
+        self._triager_lock = threading.Lock()
 
     @property
     def file_patterns(self) -> List[str]:
@@ -104,22 +106,34 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
     @property
     def triager_step(self) -> LLMStep[TriagerInput, sarif.Result]:
         """Lazily initialize the triager step."""
-        if self._triager_step is None:
-            if (
-                not hasattr(self, "project")
-                or not self.project
-                or not hasattr(self.project, "project_path")
-                or self.project.project_path is None
-            ):
-                raise ValueError("project_path must be set before accessing triager_step")
 
-            triager_tools = TreeSitterTools(self.project.project_path).tools
-            triager_llm = self.llm.with_tools(triager_tools)
-            triager_parser = PydanticOutputParser(triage_sarif.Result)
-            self._triager_step = LLMStep(
-                triager_llm, TRIAGER_PROMPTS["system"], TRIAGER_PROMPTS["user"], triager_parser
-            )
-        return self._triager_step
+        # No locking required if step already exists
+        step = self._triager_step
+        if step is not None:
+            return step
+
+        with self._triager_lock:
+            if self._triager_step is None:
+                # Validate inside the lock to avoid races with project assignment
+                if (
+                    not hasattr(self, "project")
+                    or not self.project
+                    or not hasattr(self.project, "project_path")
+                    or self.project.project_path is None
+                ):
+                    raise ValueError("project_path must be set before accessing triager_step")
+
+                triager_tools = TreeSitterTools(self.project.project_path).tools
+                triager_llm = self.llm.with_tools(triager_tools)
+                triager_parser = PydanticOutputParser(triage_sarif.Result)
+                self._triager_step = LLMStep(
+                    triager_llm,
+                    TRIAGER_PROMPTS["system"],
+                    TRIAGER_PROMPTS["user"],
+                    triager_parser,
+                )
+
+            return self._triager_step
 
     async def _process_single_chunk(self, chunk: CodeChunk, max_concurrent_triagers: int) -> List[sarif.Result]:
         """Process a single chunk with multi-step processing and error handling."""
