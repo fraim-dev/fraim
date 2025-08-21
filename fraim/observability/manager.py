@@ -65,9 +65,6 @@ class ObservabilityManager:
             litellm.failure_callback = failure_callbacks
             self.logger.info(f"LLM observability active with {len(self.configured_backends)} backend(s)")
 
-            print(litellm.success_callback)
-            print(litellm.failure_callback)
-
     def get_status(self) -> Dict[str, Any]:
         """Return status of all backends."""
         return {
