@@ -127,9 +127,9 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
         if message_content is None:
             # Setting message_content to empty string will always fail to parse, which will trigger a retry.
             #
-            # The model API _should_ always return a message here, but the Gemini API (as of August 2025) 
+            # The model API _should_ always return a message here, but the Gemini API (as of August 2025)
             # sometimes does not.
-            # 
+            #
             # See the similar issues reported other projects:
             # gemini-cli: https://github.com/google-gemini/gemini-cli/issues/6306
             # n8n: https://github.com/n8n-io/n8n/issues/18481
