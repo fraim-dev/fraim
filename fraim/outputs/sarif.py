@@ -169,6 +169,7 @@ class SarifReport(BaseSchema):
     )
     runs: List[Run] = Field(description="The set of runs contained in a SARIF log.")
 
+
 def create_run_result_model(allowed_types: Optional[List[str]] = None) -> Type[RunResults]:
     """
     Factory function to create a RunResults model with a restricted set of vulnerability types.
@@ -191,6 +192,7 @@ def create_run_result_model(allowed_types: Optional[List[str]] = None) -> Type[R
 
     return RestrictedRunResults
 
+
 def create_result_model(allowed_types: Optional[List[str]] = None) -> Type[Result]:
     """
     Factory function to create a Result model with a restricted set of vulnerability types.
@@ -209,7 +211,9 @@ def create_result_model(allowed_types: Optional[List[str]] = None) -> Type[Resul
     VulnTypeEnum = Enum("VulnTypeEnum", {t: t for t in allowed_types})
 
     class RestrictedResultProperties(ResultProperties):
-        type: VulnTypeEnum = Field(description="Type of vulnerability (e.g., 'SQL Injection', 'XSS', 'Command Injection', etc.)")
+        type: VulnTypeEnum = Field(
+            description="Type of vulnerability (e.g., 'SQL Injection', 'XSS', 'Command Injection', etc.)"
+        )
 
     class RestrictedResult(Result):
         properties: RestrictedResultProperties = Field(

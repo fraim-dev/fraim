@@ -1,7 +1,6 @@
 import logging
-from typing import Iterator
-
 from abc import abstractmethod
+from typing import Iterator
 
 from fraim.core.contextuals import CodeChunk
 

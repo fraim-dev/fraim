@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 import math
-
 from pathlib import Path
 
 import pytest
@@ -19,7 +18,7 @@ def project_path(tmp_path: Path) -> str:
 def test_single_large_file_is_split(project_path: str):
     # A single file larger than the line limit of FixedChunker, which gets split
     # into multiple CodeChunks, which are then packed.
-    large_content = '\n'.join([str(i) for i in range(1, 25)])  # 25 lines
+    large_content = "\n".join([str(i) for i in range(1, 25)])  # 25 lines
     files = InMemory(File(Path("large_file.py"), large_content), root_path=project_path)
 
     original_size = len(large_content)
@@ -31,7 +30,7 @@ def test_single_large_file_is_split(project_path: str):
     # chunk_size for PackingFixedChunker (bytes) is 500, so packed chunks should be small.
     chunks = list(FixedChunker(files=files, chunk_size=chunk_size, chunk_overlap=0))
     assert len(chunks) == expected_chunks
-    assert chunks[0].content == '1\n2\n3\n4\n5'
+    assert chunks[0].content == "1\n2\n3\n4\n5"
     assert chunks[0].line_number_start_inclusive == 1
     assert chunks[0].line_number_end_inclusive == 5
     assert chunks[0].file_path == "large_file.py"
@@ -44,7 +43,7 @@ def test_single_large_file_is_split(project_path: str):
 def test_single_large_file_is_split_with_overlap(project_path: str):
     # A single file larger than the line limit of FixedChunker, which gets split
     # into multiple CodeChunks, which are then packed.
-    large_content = '\n'.join([f"{i + 1}" for i in range(25)])  # 25 lines
+    large_content = "\n".join([f"{i + 1}" for i in range(25)])  # 25 lines
     files = InMemory(File(Path("large_file.py"), large_content), root_path=project_path)
 
     original_size = len(large_content)
@@ -56,12 +55,12 @@ def test_single_large_file_is_split_with_overlap(project_path: str):
     chunks = list(FixedChunker(files=files, chunk_size=chunk_size, chunk_overlap=chunk_overlap))
     assert len(chunks) == expected_chunks
 
-    assert chunks[0].content == '1\n2\n3\n4\n5'
+    assert chunks[0].content == "1\n2\n3\n4\n5"
     assert chunks[0].line_number_start_inclusive == 1
     assert chunks[0].line_number_end_inclusive == 5
-    assert chunks[0].content == large_content[:chunk_size - 1]
+    assert chunks[0].content == large_content[: chunk_size - 1]
 
-    assert chunks[1].content == '5\n6\n7\n8\n9'
+    assert chunks[1].content == "5\n6\n7\n8\n9"
     assert chunks[1].line_number_start_inclusive == 5
     assert chunks[1].line_number_end_inclusive == 9
 

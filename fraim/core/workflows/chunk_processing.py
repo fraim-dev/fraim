@@ -13,7 +13,7 @@ from typing import Annotated, Any, Awaitable, Callable, List, Optional, Set, Typ
 
 from fraim.config import Config
 from fraim.core.contextuals import Contextual
-from fraim.inputs.project import ProjectInput, CHUNKING_METHODS
+from fraim.inputs.project import CHUNKING_METHODS, ProjectInput
 
 from .workflow import WorkflowInput
 
@@ -27,7 +27,9 @@ class ChunkWorkflowInput(WorkflowInput):
 
     config: Config
     location: Annotated[str, {"help": "Repository URL or path to scan"}]
-    paths: Annotated[Optional[List[str]], {"help": "Optionally limit scanning to these paths (relative to `--location`)"}] = None
+    paths: Annotated[
+        Optional[List[str]], {"help": "Optionally limit scanning to these paths (relative to `--location`)"}
+    ] = None
     chunk_size: Annotated[Optional[int], {"help": "Number of characters per chunk"}] = 10_000
     chunk_overlap: Annotated[Optional[int], {"help": "Number of characters of overlap per chunk"}] = 1000
     limit: Annotated[Optional[int], {"help": "Limit the number of files to scan"}] = None
@@ -42,10 +44,11 @@ class ChunkWorkflowInput(WorkflowInput):
     max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
 
     chunking_method: Annotated[
-        str, {
+        str,
+        {
             "help": "Method to use for chunking code files",
             "choices": CHUNKING_METHODS.keys(),
-        }
+        },
     ] = "fixed"
 
 
@@ -76,8 +79,8 @@ class ChunkProcessingMixin:
     def exclude_file_patterns(self) -> List[str]:
         """File patterns for this workflow (e.g., ['*.py', '*.js'])."""
         return [
-            '*.min.js',
-            '*.min.css',
+            "*.min.js",
+            "*.min.css",
         ]
 
     def setup_project_input(self, input: ChunkWorkflowInput) -> ProjectInput:
@@ -94,8 +97,13 @@ class ChunkProcessingMixin:
         exclude_effective_globs = input.exclude_globs if input.exclude_globs is not None else self.exclude_file_patterns
 
         kwargs = SimpleNamespace(
-            location=input.location, globs=effective_globs, exclude_globs=exclude_effective_globs, limit=input.limit,
-            chunk_size=input.chunk_size, chunk_overlap=input.chunk_overlap, paths=input.paths,
+            location=input.location,
+            globs=effective_globs,
+            exclude_globs=exclude_effective_globs,
+            limit=input.limit,
+            chunk_size=input.chunk_size,
+            chunk_overlap=input.chunk_overlap,
+            paths=input.paths,
             chunking_method=input.chunking_method,
         )
         return ProjectInput(config=self.config, kwargs=kwargs)

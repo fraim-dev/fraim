@@ -1,6 +1,5 @@
 from types import TracebackType
-
-from typing import Iterator, Self, Optional
+from typing import Iterator, Optional, Self
 
 from fraim.inputs.files import File, Files
 
@@ -20,7 +19,9 @@ class InMemory(Files):
         return self
 
     def __exit__(
-        self, exc_type: Optional[type[BaseException]], exc_val: Optional[BaseException],
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
     ) -> None:
         pass

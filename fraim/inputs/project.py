@@ -1,14 +1,14 @@
 import os
 from pathlib import Path
-from typing import Any, Iterator, Type, Literal
+from typing import Any, Iterator, Literal, Type
 
 from fraim.config.config import Config
 from fraim.core.contextuals.code import CodeChunk, CodeChunks
 from fraim.inputs.chunkers import FileChunker, ProjectChunker
 from fraim.inputs.chunkers.base import Chunker
 from fraim.inputs.chunkers.fixed import FixedChunker
-from fraim.inputs.chunkers.syntactic import SyntacticChunker
 from fraim.inputs.chunkers.packed_fixed import PackingFixedChunker
+from fraim.inputs.chunkers.syntactic import SyntacticChunker
 from fraim.inputs.files import Files
 from fraim.inputs.git import GitRemote
 from fraim.inputs.local import Local
@@ -48,13 +48,22 @@ class ProjectInput:
 
         if path_or_url.startswith("http://") or path_or_url.startswith("https://") or path_or_url.startswith("git@"):
             self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
-            self.files = GitRemote(self.config, url=path_or_url, paths=paths, globs=globs, exclude_globs=exclude_globs, limit=limit,
-                                   prefix="fraim_scan_")
+            self.files = GitRemote(
+                self.config,
+                url=path_or_url,
+                paths=paths,
+                globs=globs,
+                exclude_globs=exclude_globs,
+                limit=limit,
+                prefix="fraim_scan_",
+            )
             self.project_path = self.files.root_path()
         else:
             self.project_path = path_or_url
             self.repo_name = os.path.basename(os.path.abspath(path_or_url))
-            self.files = Local(self.config, Path(path_or_url), paths=paths, globs=globs, exclude_globs=exclude_globs, limit=limit)
+            self.files = Local(
+                self.config, Path(path_or_url), paths=paths, globs=globs, exclude_globs=exclude_globs, limit=limit
+            )
 
         chunker_class = get_chunking_class(self.chunking_method)
 

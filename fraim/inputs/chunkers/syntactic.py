@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 import re
-
 from bisect import bisect_right
 from typing import Iterator
 
-from langchain_text_splitters import RecursiveCharacterTextSplitter, Language
+from langchain_text_splitters import Language, RecursiveCharacterTextSplitter
 
 from fraim.core.contextuals.code import CodeChunk
 from fraim.inputs.chunkers import FixedChunker
@@ -17,6 +16,7 @@ class SyntacticChunker(FixedChunker):
 
     It does not parse the code syntax, but rather uses the language-specific rules to split the text.
     """
+
     def __iter__(self) -> Iterator[CodeChunk]:
         with self.files as files:
             for file in files:
@@ -27,7 +27,7 @@ class SyntacticChunker(FixedChunker):
                     yield from self.split_file(file)
 
     def split_file(self, file):
-        line_starts = [0] + [match.start() + 1 for match in re.finditer('\n', file.body)]
+        line_starts = [0] + [match.start() + 1 for match in re.finditer("\n", file.body)]
         splitter = RecursiveCharacterTextSplitter.from_language(Language(file.language))
 
         for doc in splitter.create_documents([file.body]):

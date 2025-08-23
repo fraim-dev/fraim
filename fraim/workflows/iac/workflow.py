@@ -107,8 +107,7 @@ class IaCWorkflow(ChunkProcessingMixin, Workflow[IaCInput, List[sarif.Result]]):
             return high_confidence_vulns
         except Exception as e:
             self.config.logger.error(
-                f"Failed to process chunk {chunk}: {str(e)}. "
-                "Skipping this chunk and continuing with scan."
+                f"Failed to process chunk {chunk}: {str(e)}. Skipping this chunk and continuing with scan."
             )
             return []
 

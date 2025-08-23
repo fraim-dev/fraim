@@ -10,7 +10,7 @@ Dummy workflow for testing purposes. It processes code chunks without performing
 from dataclasses import dataclass
 from typing import List
 
-from fraim.core.workflows import ChunkProcessingMixin, Workflow, ChunkWorkflowInput
+from fraim.core.workflows import ChunkProcessingMixin, ChunkWorkflowInput, Workflow
 from fraim.outputs import sarif
 from fraim.workflows.registry import workflow
 
@@ -37,6 +37,7 @@ FILE_PATTERNS = [
 @dataclass
 class DryRunInput(ChunkWorkflowInput):
     """Input for the DryRun workflow."""
+
     pass
 
 

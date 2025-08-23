@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
-from typing import List, Iterator
+from typing import Iterator, List
 
 from fraim.core.contextuals.code import CodeChunk, CodeChunks
 from fraim.inputs.chunkers import FixedChunker
