@@ -17,6 +17,7 @@ class GitRemote(Files):
         self,
         config: Config,
         url: str,
+        paths: Optional[List[str]] = None,
         globs: Optional[List[str]] = None,
         exclude_globs: Optional[List[str]] = None,
         limit: Optional[int] = None,
@@ -29,6 +30,7 @@ class GitRemote(Files):
         self.limit = limit
         self.tempdir = TemporaryDirectory(prefix=prefix)
         self.path = Path(self.tempdir.name)
+        self.paths = paths
 
     def root_path(self) -> str:
         return str(self.path.absolute())

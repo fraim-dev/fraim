@@ -27,6 +27,7 @@ class ChunkWorkflowInput(WorkflowInput):
 
     config: Config
     location: Annotated[str, {"help": "Repository URL or path to scan"}]
+    paths: Annotated[Optional[List[str]], {"help": "Optionally limit scanning to these paths (relative to `--location`)"}] = None
     chunk_size: Annotated[Optional[int], {"help": "Number of characters per chunk"}] = 10_000
     chunk_overlap: Annotated[Optional[int], {"help": "Number of characters of overlap per chunk"}] = 1000
     limit: Annotated[Optional[int], {"help": "Limit the number of files to scan"}] = None
@@ -94,7 +95,7 @@ class ChunkProcessingMixin:
 
         kwargs = SimpleNamespace(
             location=input.location, globs=effective_globs, exclude_globs=exclude_effective_globs, limit=input.limit,
-            chunk_size=input.chunk_size, chunk_overlap=input.chunk_overlap,
+            chunk_size=input.chunk_size, chunk_overlap=input.chunk_overlap, paths=input.paths,
             chunking_method=input.chunking_method,
         )
         return ProjectInput(config=self.config, kwargs=kwargs)

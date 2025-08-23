@@ -35,6 +35,7 @@ class ProjectInput:
     def __init__(self, config: Config, kwargs: Any) -> None:
         self.config = config
         path_or_url = kwargs.location or None
+        paths = kwargs.paths
         globs = kwargs.globs
         exclude_globs = kwargs.exclude_globs
         limit = kwargs.limit
@@ -47,12 +48,13 @@ class ProjectInput:
 
         if path_or_url.startswith("http://") or path_or_url.startswith("https://") or path_or_url.startswith("git@"):
             self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
-            self.files = GitRemote(self.config, url=path_or_url, globs=globs, exclude_globs=exclude_globs, limit=limit, prefix="fraim_scan_")
+            self.files = GitRemote(self.config, url=path_or_url, paths=paths, globs=globs, exclude_globs=exclude_globs, limit=limit,
+                                   prefix="fraim_scan_")
             self.project_path = self.files.root_path()
         else:
             self.project_path = path_or_url
             self.repo_name = os.path.basename(os.path.abspath(path_or_url))
-            self.files = Local(self.config, Path(path_or_url), globs=globs, exclude_globs=exclude_globs, limit=limit)
+            self.files = Local(self.config, Path(path_or_url), paths=paths, globs=globs, exclude_globs=exclude_globs, limit=limit)
 
         chunker_class = get_chunking_class(self.chunking_method)
 

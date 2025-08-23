@@ -13,9 +13,23 @@ from fraim.inputs.files import File, Files
 
 
 class Local(Files):
-    def __init__(self, config: Config, path: Path, globs: Optional[List[str]] = None, exclude_globs: Optional[List[str]] = None, limit: Optional[int] = None):
+    def __init__(
+            self,
+            config: Config,
+            root_path: Path,
+            paths: Optional[list[str]] = None,
+            globs: Optional[List[str]] = None,
+            exclude_globs: Optional[List[str]] = None,
+            limit: Optional[int] = None,
+    ):
         self.config = config
-        self.path = path
+        self.root_path = root_path
+
+        if paths:
+            self.paths = [self.root_path / p for p in paths]
+        else:
+            self.paths = [self.root_path]
+
         # TODO: remove hardcoded globs
         self.globs = (
             globs
@@ -44,11 +58,7 @@ class Local(Files):
         )
         self.limit = limit
 
-    def root_path(self) -> str:
-        return str(self.path)
-
     def __iter__(self) -> Iterator[File]:
-        self.config.logger.info(f"Scanning local files: {self.path}, with globs: {self.globs}, exclude globs: {self.exclude_globs}")
         gen = self._files()
         if self.limit is not None:
             return itertools.islice(gen, self.limit)
@@ -56,30 +66,41 @@ class Local(Files):
 
     def _files(self) -> Iterator[File]:
         seen = set()
-        for glob_pattern in self.globs:
-            for path in self.path.rglob(glob_pattern):
-                if any(path.match(exclude) for exclude in self.exclude_globs):
-                    self.config.logger.debug(f"Skipping excluded file: {path}")
-                    continue
+        for subpath in self.paths:
+            self.config.logger.info(
+                f"Scanning local files: {subpath}, with globs: {self.globs}, "
+                "exclude globs: {self.exclude_globs}"
+            )
+            for glob_pattern in self.globs:
+                if subpath.is_file():
+                    paths = [subpath]
+                else:
+                    paths = subpath.rglob(glob_pattern)
 
-                if path.is_file() and path not in seen:
-                    seen.add(path)
-                    self.config.logger.info(f"Reading file: {path}")
-                    try:
-                        yield File(
-                            path.relative_to(self.root_path()), path.read_text(encoding="utf-8")
-                        )  # buffer the files one at a time. avoid reading files that are too large?
-                    except Exception as e:
-                        if isinstance(e, UnicodeDecodeError):
-                            self.config.logger.warning(f"Skipping file with encoding issues: {path}")
-                            continue
-                        self.config.logger.error(f"Error reading file: {path} - {e}")
-                        raise e
+                for path in paths:
+                    if any(path.match(exclude) for exclude in self.exclude_globs):
+                        self.config.logger.debug(f"Skipping excluded file: {path}")
+                        yield File(path.relative_to(self.root_path), path.read_text(encoding="utf-8"))
+                    else:
+                        if path.is_file() and path not in seen:
+                            seen.add(path)
+                            self.config.logger.info(f"Reading file: {path}")
+                            try:
+                                yield File(
+                                    path.relative_to(self.root_path), path.read_text(encoding="utf-8")
+                                )  # buffer the files one at a time. avoid reading files that are too large?
+                            except Exception as e:
+                                if isinstance(e, UnicodeDecodeError):
+                                    self.config.logger.warning(f"Skipping file with encoding issues: {path}")
+                                    continue
+                                self.config.logger.error(f"Error reading file: {path} - {e}")
+                                raise e
 
     def __enter__(self) -> Self:
         return self
 
     def __exit__(
-        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+            self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException],
+            exc_tb: Optional[TracebackType]
     ) -> None:
         pass
