@@ -97,7 +97,7 @@ class ChunkProcessingMixin:
         kwargs = SimpleNamespace(
             location=input.location, globs=effective_globs, limit=input.limit,
             chunk_size=input.chunk_size, chunk_overlap=input.chunk_overlap,
-            chunking_method=input.chunking_method,  exclude_globs=exclude_effective_globs,
+            chunking_method=input.chunking_method, exclude_globs=exclude_effective_globs,
         )
         return ProjectInput(config=self.config, kwargs=kwargs)
 

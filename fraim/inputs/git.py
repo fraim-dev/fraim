@@ -29,7 +29,7 @@ class GitRemote(Input):
         self.exclude_globs = exclude_globs
         self.limit = limit
         self.tempdir = TemporaryDirectory(prefix=prefix)
-        self.path = self.tempdir.name
+        self.path = Path(self.tempdir.name)
 
     def root_path(self) -> str:
         return Path(self.path).absolute().name
