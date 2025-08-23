@@ -25,8 +25,10 @@ from fraim.tools.tree_sitter import TreeSitterTools
 from fraim.util.pydantic import merge_models
 from fraim.workflows.registry import workflow
 from fraim.workflows.utils import filter_results_by_confidence, write_sarif_and_html_report
+from refraim.lib import create_result_model
 
 from . import triage_sarif_overlay
+from ...outputs.sarif import create_run_result_model
 
 FILE_PATTERNS = [
     "*.py",
@@ -94,8 +96,27 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
 
         # Initialize LLM and scanner step immediately
         self.llm = LiteLLM.from_config(self.config)
-        scanner_parser = PydanticOutputParser(sarif.RunResults)
-        self.scanner_step: LLMStep[SASTInput, sarif.RunResults] = LLMStep(
+        SASTWorkflowRunResults = create_run_result_model(
+            allowed_types=[
+                "SQL Injection",
+                "XSS",
+                "CSRF",
+                "Path Traversal",
+                "Command Injection",
+                "Insecure Deserialization",
+                "XXE",
+                "SSRF",
+                "Open Redirect",
+                "IDOR",
+                "Sensitive Data Exposure",
+                "Broken Authentication",
+                "Broken Access Control",
+                "Security Misconfiguration",
+                "Insufficient Logging",
+            ],
+        )
+        scanner_parser = PydanticOutputParser(SASTWorkflowRunResults)
+        self.scanner_step: LLMStep[SASTInput, SASTWorkflowRunResults] = LLMStep(
             self.llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser
         )
 
