@@ -37,10 +37,14 @@ class ChunkWorkflowInput(WorkflowInput):
     ] = None
     max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
 
-    diff: Annotated[bool, {"help": (
-        "Whether to use git diff input. If --head and --base are not specified, "
-        "the working tree is scanned."
-    )}] = False
+    diff: Annotated[
+        bool,
+        {
+            "help": (
+                "Whether to use git diff input. If --head and --base are not specified, the working tree is scanned."
+            )
+        },
+    ] = False
 
 
 class ChunkProcessingMixin:
