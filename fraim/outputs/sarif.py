@@ -6,7 +6,8 @@ SARIF (Static Analysis Results Interchange Format) Pydantic models.
 Used for generating standardized vulnerability reports.
 """
 
-from typing import List, Literal, Optional
+from enum import Enum
+from typing import List, Literal, Optional, Type
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -167,6 +168,55 @@ class SarifReport(BaseSchema):
         description="The URI of the JSON schema corresponding to the version of the SARIF specification that the log file complies with.",
     )
     runs: List[Run] = Field(description="The set of runs contained in a SARIF log.")
+
+def create_run_result_model(allowed_types: Optional[List[str]] = None) -> Type[RunResults]:
+    """
+    Factory function to create a RunResults model with a restricted set of vulnerability types.
+
+    Args:
+        allowed_types: A list of strings representing the allowed vulnerability types.
+                       If None or empty, the default RunResults model with a string type is returned.
+
+    Returns:
+        A Pydantic model class for RunResults, with ResultProperties.type restricted to an enum
+        if allowed_types is provided.
+    """
+    if not allowed_types:
+        return RunResults
+
+    RestrictedResult = create_result_model(allowed_types)
+
+    class RestrictedRunResults(RunResults):
+        results: List[RestrictedResult] = Field(description="The set of results contained in a SARIF log.")
+
+    return RestrictedRunResults
+
+def create_result_model(allowed_types: Optional[List[str]] = None) -> Type[Result]:
+    """
+    Factory function to create a Result model with a restricted set of vulnerability types.
+
+    Args:
+        allowed_types: A list of strings representing the allowed vulnerability types.
+                       If None or empty, the default Result model with a string type is returned.
+
+    Returns:
+        A Pydantic model class for Result, with ResultProperties.type restricted to an enum
+        if allowed_types is provided.
+    """
+    if not allowed_types:
+        return Result
+
+    VulnTypeEnum = Enum("VulnTypeEnum", {t: t for t in allowed_types})
+
+    class RestrictedResultProperties(ResultProperties):
+        type: VulnTypeEnum = Field(description="Type of vulnerability (e.g., 'SQL Injection', 'XSS', 'Command Injection', etc.)")
+
+    class RestrictedResult(Result):
+        properties: RestrictedResultProperties = Field(
+            description="Key/value pairs that provide additional information about the result."
+        )
+
+    return RestrictedResult
 
 
 def create_sarif_report(results: List[Result], tool_version: str = "1.0.0") -> SarifReport:
