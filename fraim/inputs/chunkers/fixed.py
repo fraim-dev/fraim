@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 import re
-
 from bisect import bisect_right
 from typing import Iterator
 
@@ -36,7 +35,7 @@ class FixedChunker(Chunker):
                 yield from self.split_file(file)
 
     def split_file(self, file: File) -> Iterator[CodeChunk]:
-        line_starts = [0] + [match.start() + 1 for match in re.finditer('\n', file.body)]
+        line_starts = [0] + [match.start() + 1 for match in re.finditer("\n", file.body)]
         for doc in self.splitter.create_documents([file.body]):
             start_index = doc.metadata["start_index"]
             end_index = start_index + len(doc.page_content)

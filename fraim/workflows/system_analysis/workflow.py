@@ -244,9 +244,7 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
             return [result]
 
         except Exception as e:
-            self.config.logger.error(
-                f"Failed to process chunk {chunk}: {str(e)}"
-            )
+            self.config.logger.error(f"Failed to process chunk {chunk}: {str(e)}")
             return []
 
     async def _aggregate_results(self, chunk_results: List[SystemAnalysisResult]) -> Dict[str, Any]:

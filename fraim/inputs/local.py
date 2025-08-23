@@ -17,13 +17,13 @@ from fraim.inputs.input import Input
 
 class Local(Input):
     def __init__(
-            self,
-            config: Config,
-            root_path: Path,
-            paths: Optional[list[str]] = None,
-            globs: Optional[List[str]] = None,
-            exclude_globs: Optional[List[str]] = None,
-            limit: Optional[int] = None,
+        self,
+        config: Config,
+        root_path: Path,
+        paths: Optional[list[str]] = None,
+        globs: Optional[List[str]] = None,
+        exclude_globs: Optional[List[str]] = None,
+        limit: Optional[int] = None,
     ):
         self.config = config
         self.root_path = root_path
@@ -56,9 +56,7 @@ class Local(Input):
                 "*.jsx",
             ]
         )
-        self.exclude_globs = (
-            exclude_globs if exclude_globs else ['*.min.js', '*.min.css']
-        )
+        self.exclude_globs = exclude_globs if exclude_globs else ["*.min.js", "*.min.css"]
         self.limit = limit
 
     def root_path(self) -> str:
@@ -71,8 +69,7 @@ class Local(Input):
         seen = set()
         for subpath in self.paths:
             self.config.logger.info(
-                f"Scanning local files: {subpath}, with globs: {self.globs}, "
-                "exclude globs: {self.exclude_globs}"
+                f"Scanning local files: {subpath}, with globs: {self.globs}, exclude globs: {{self.exclude_globs}}"
             )
             for glob_pattern in self.globs:
                 if subpath.is_file():

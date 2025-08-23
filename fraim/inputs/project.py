@@ -1,14 +1,14 @@
 import os
 from pathlib import Path
-from typing import Any, Iterator, Type, Literal
+from typing import Any, Iterator, Literal, Type
 
 from fraim.config.config import Config
 from fraim.core.contextuals.code import CodeChunk, CodeChunks
 from fraim.inputs.chunkers import FileChunker, ProjectChunker
 from fraim.inputs.chunkers.base import Chunker
 from fraim.inputs.chunkers.fixed import FixedChunker
-from fraim.inputs.chunkers.syntactic import SyntacticChunker
 from fraim.inputs.chunkers.packed_fixed import PackingFixedChunker
+from fraim.inputs.chunkers.syntactic import SyntacticChunker
 from fraim.inputs.files import Files
 from fraim.inputs.git import GitRemote
 from fraim.inputs.git_diff import GitDiff

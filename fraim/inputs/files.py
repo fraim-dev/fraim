@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
-from langchain_community.document_loaders.parsers.language.language_parser import LANGUAGE_EXTENSIONS
 from pathlib import Path
 from typing import ContextManager, Iterator, Protocol, runtime_checkable
+
+from langchain_community.document_loaders.parsers.language.language_parser import LANGUAGE_EXTENSIONS
+
 
 class File:
     def __init__(self, path: Path, body: str):
@@ -10,7 +12,7 @@ class File:
         self.body = body
 
     @property
-    def language(self) -> str|None:
+    def language(self) -> str | None:
         return LANGUAGE_EXTENSIONS.get(str(self.path.suffix), None)
 
 

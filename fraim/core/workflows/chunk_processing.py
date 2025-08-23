@@ -13,7 +13,7 @@ from typing import Annotated, Any, Awaitable, Callable, List, Optional, Set, Typ
 
 from fraim.config import Config
 from fraim.core.contextuals import Contextual
-from fraim.inputs.project import ProjectInput, CHUNKING_METHODS
+from fraim.inputs.project import CHUNKING_METHODS, ProjectInput
 
 from .workflow import WorkflowInput
 
@@ -29,6 +29,9 @@ class ChunkWorkflowInput(WorkflowInput):
     head: Annotated[str, {"help": "Git head commit for diff input"}]
     base: Annotated[str, {"help": "Git base commit for diff input"}]
     location: Annotated[str, {"help": "Repository URL or path to scan"}]
+    paths: Annotated[
+        Optional[List[str]], {"help": "Optionally limit scanning to these paths (relative to `--location`)"}
+    ] = None
     chunk_size: Annotated[Optional[int], {"help": "Number of characters per chunk"}] = 10_000
     chunk_overlap: Annotated[Optional[int], {"help": "Number of characters of overlap per chunk"}] = 1000
     limit: Annotated[Optional[int], {"help": "Limit the number of files to scan"}] = None
@@ -95,9 +98,9 @@ class ChunkProcessingMixin:
         exclude_effective_globs = input.exclude_globs if input.exclude_globs is not None else self.exclude_file_patterns
 
         kwargs = SimpleNamespace(
-            location=input.location, globs=effective_globs, limit=input.limit,
-            chunk_size=input.chunk_size, chunk_overlap=input.chunk_overlap,
-            chunking_method=input.chunking_method, exclude_globs=exclude_effective_globs,
+            location=input.location, globs=effective_globs, exclude_globs=exclude_effective_globs, limit=input.limit,
+            chunk_size=input.chunk_size, chunk_overlap=input.chunk_overlap, paths=input.paths,
+            chunking_method=input.chunking_method,
         )
         return ProjectInput(config=self.config, kwargs=kwargs)
 

@@ -13,6 +13,8 @@ import threading
 from dataclasses import dataclass, field
 from typing import Annotated, Any, List, Optional
 
+from refraim.lib import create_result_model
+
 from fraim.config import Config
 from fraim.core.contextuals import CodeChunk, Contextual
 from fraim.core.llms.litellm import LiteLLM
@@ -25,10 +27,9 @@ from fraim.tools.tree_sitter import TreeSitterTools
 from fraim.util.pydantic import merge_models
 from fraim.workflows.registry import workflow
 from fraim.workflows.utils import filter_results_by_confidence, write_sarif_and_html_report
-from refraim.lib import create_result_model
 
-from . import triage_sarif_overlay
 from ...outputs.sarif import create_run_result_model
+from . import triage_sarif_overlay
 
 FILE_PATTERNS = [
     "*.py",
@@ -64,10 +65,7 @@ class CodeInput(ChunkWorkflowInput):
         int, {"help": "Maximum number of triager requests per chunk to run concurrently"}
     ] = 3
 
-
-    no_triage: Annotated[
-        bool, {"help": "Skip triage step and only return raw scanner results"}
-    ] = False
+    no_triage: Annotated[bool, {"help": "Skip triage step and only return raw scanner results"}] = False
 
 
 @dataclass
@@ -217,8 +215,7 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
 
         except Exception as e:
             self.config.logger.exception(
-                f"Failed to process chunk {str(chunk)}: {str(e)}. "
-                "Skipping this chunk and continuing with scan."
+                f"Failed to process chunk {str(chunk)}: {str(e)}. Skipping this chunk and continuing with scan."
             )
             return []
 

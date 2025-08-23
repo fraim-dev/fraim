@@ -3,8 +3,6 @@
 
 from fraim.core.contextuals.contextual import Contextual
 
-
-# TODO: Consider CodeDiff, other types of Contextuals
 class CodeChunk(Contextual[str]):
     """Concrete implementation of Contextual for code snippets"""
 
@@ -40,8 +38,7 @@ class CodeChunks(list[CodeChunk], Contextual[str]):
         return list(set([c.file_path for c in self]))
 
     def __str__(self) -> str:
-        return f"<files asdf>{"\n".join(str(chunk) for chunk in self)}</files>"
-
+        return f"<files>{'\n'.join(str(chunk) for chunk in self)}</files>"
 
     def __repr__(self):
         return str(self)
