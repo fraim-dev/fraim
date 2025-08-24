@@ -4,9 +4,11 @@ from typing import Any, Iterator, Literal, Type
 
 from fraim.config.config import Config
 from fraim.core.contextuals.code import CodeChunk, CodeChunks
-from fraim.inputs.chunkers import FileChunker, ProjectChunker
+from fraim.inputs.chunkers import FileChunker, MaxContextChunker
 from fraim.inputs.chunkers.base import Chunker
-from fraim.inputs.chunkers.fixed import FixedChunker
+
+from fraim.inputs.chunkers.fixed import FixedCharChunker, FixedTokenChunker
+from fraim.inputs.chunkers.ast_llm import LLMChunker
 from fraim.inputs.chunkers.packed_fixed import PackingFixedChunker
 from fraim.inputs.chunkers.syntactic import SyntacticChunker
 from fraim.inputs.files import Files
@@ -17,10 +19,12 @@ from fraim.inputs.local import Local
 
 CHUNKING_METHODS = {
     "syntactic": SyntacticChunker,
-    "fixed": FixedChunker,
-    "packed_fixed": PackingFixedChunker,
+    "fixed": FixedCharChunker,
+    "fixed_token": FixedTokenChunker,
+    "packed": PackingFixedChunker,
     "file": FileChunker,
-    "project": ProjectChunker,
+    "project": MaxContextChunker,
+    # "llm": LLMChunker,
 }
 
 
@@ -74,7 +78,7 @@ class ProjectInput:
             project_path=self.project_path,
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
-            config=self.config,
+            model=self.config.model,
         )
 
     def __iter__(self) -> Iterator[CodeChunks | CodeChunk]:

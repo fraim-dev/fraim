@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2025 Resourcely Inc.
+from typing import Iterator
+
+from litellm import get_max_tokens
+
+from fraim.inputs.chunkers.packed_fixed import PackingFixedChunker
+
+
+class MaxContextChunker(PackingFixedChunker):
+    """
+    MaxContextChunker for using the full context window of an LLM.
+
+    The MaxContextChunker yields chunks consisting of as many full files that can be returned before
+    exceeding a specified percentage of the model's maximum token limit given.
+
+
+    PackingFixedChunker can be used here because it does not split files when chunk_size is larger than the file size.
+
+    Args:
+        model (str): The name of the LLM model to determine max tokens.
+        chunk_fraction (int, optional): The fraction of the model's max tokens to use.
+        **kwargs: Additional arguments passed to the FileChunker.
+    ."""
+
+    def __init__(self, model: str, chunk_fraction: float = 0.7, chunk_size=None, chunk_overlap=None, **kwargs) -> None:
+        # Chunk size is determined by the model's max tokens and chunk_fraction.
+        chunk_size = get_max_tokens(model) * chunk_fraction
+
+        super().__init__(
+            chunk_size=int(chunk_size),
+            chunk_overlap=0,
+            **kwargs
+        )

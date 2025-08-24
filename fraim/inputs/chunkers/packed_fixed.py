@@ -2,11 +2,12 @@
 # Copyright (c) 2025 Resourcely Inc.
 from typing import Iterator, List
 
-from fraim.core.contextuals.code import CodeChunk, CodeChunks
-from fraim.inputs.chunkers import FixedChunker
+from fraim.core.contextuals.code import CodeChunks
+from fraim.inputs.chunkers.fixed import FixedTokenChunker
+from fraim.inputs.chunkers.syntactic import SyntacticChunker
 
 
-class PackingFixedChunker(FixedChunker):
+class PackingFixedChunker(SyntacticChunker):
     """
     A chunker that packs multiple whole files into chunks.
 
@@ -16,7 +17,7 @@ class PackingFixedChunker(FixedChunker):
     yielded, and a new one is started.
 
     Rules:
-    1. Files are split with FixedChunker prior to packing.
+    1. Files are split with FixedChunker before packing.
     2. If a single file is larger than `chunk_size`, it will be yielded by
        itself in its own chunk, violating the size limit to uphold rule #1.
     """

@@ -13,5 +13,6 @@ class Chunker:
         if self.logger is None:
             self.logger = logging.getLogger(__name__)
 
+
     @abstractmethod
     def __iter__(self) -> Iterator[CodeChunk]: ...
