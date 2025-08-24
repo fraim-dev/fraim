@@ -66,7 +66,7 @@ class Local(Files):
         seen = set()
         for subpath in self.paths:
             self.config.logger.info(
-                f"Scanning local files: {subpath}, with globs: {self.globs}, exclude globs: {{self.exclude_globs}}"
+                f"Scanning local files: {subpath}, with globs: {self.globs}, exclude globs: {self.exclude_globs}"
             )
             for glob_pattern in self.globs:
                 if subpath.is_file():

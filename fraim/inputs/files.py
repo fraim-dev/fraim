@@ -5,6 +5,7 @@ from typing import ContextManager, Iterator, Protocol, runtime_checkable
 
 from langchain_community.document_loaders.parsers.language.language_parser import LANGUAGE_EXTENSIONS
 
+import mcp_server_tree_sitter
 
 class File:
     def __init__(self, path: Path, body: str):

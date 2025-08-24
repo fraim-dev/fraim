@@ -52,6 +52,7 @@ class ChunkWorkflowInput(WorkflowInput):
     ] = "fixed"
 
 
+
 class ChunkProcessingMixin:
     """
     Mixin class providing utilities for chunk-based workflows.

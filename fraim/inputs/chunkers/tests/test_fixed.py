@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from fraim.inputs.chunkers.fixed import FixedChunker
+from fraim.inputs.chunkers.fixed import FixedCharChunker
 from fraim.inputs.chunkers.tests.lib import InMemory
 from fraim.inputs.files import File
 
@@ -16,7 +16,7 @@ def project_path(tmp_path: Path) -> str:
 
 
 def test_single_large_file_is_split(project_path: str):
-    # A single file larger than the line limit of FixedChunker, which gets split
+    # A single file larger than the line limit of FixedCharChunker, which gets split
     # into multiple CodeChunks, which are then packed.
     large_content = "\n".join([str(i) for i in range(1, 25)])  # 25 lines
     files = InMemory(File(Path("large_file.py"), large_content), root_path=project_path)
@@ -26,9 +26,9 @@ def test_single_large_file_is_split(project_path: str):
     chunk_size = 10
     expected_chunks = math.ceil(original_size / chunk_size)
 
-    # chunk_size for FixedChunker (lines) is 10, so it should be split.
+    # chunk_size for FixedCharChunker (lines) is 10, so it should be split.
     # chunk_size for PackingFixedChunker (bytes) is 500, so packed chunks should be small.
-    chunks = list(FixedChunker(files=files, chunk_size=chunk_size, chunk_overlap=0))
+    chunks = list(FixedCharChunker(files=files, chunk_size=chunk_size, chunk_overlap=0))
     assert len(chunks) == expected_chunks
     assert chunks[0].content == "1\n2\n3\n4\n5"
     assert chunks[0].line_number_start_inclusive == 1
@@ -41,7 +41,7 @@ def test_single_large_file_is_split(project_path: str):
 
 
 def test_single_large_file_is_split_with_overlap(project_path: str):
-    # A single file larger than the line limit of FixedChunker, which gets split
+    # A single file larger than the line limit of FixedCharChunker, which gets split
     # into multiple CodeChunks, which are then packed.
     large_content = "\n".join([f"{i + 1}" for i in range(25)])  # 25 lines
     files = InMemory(File(Path("large_file.py"), large_content), root_path=project_path)
@@ -52,7 +52,7 @@ def test_single_large_file_is_split_with_overlap(project_path: str):
     chunk_size = 10
     expected_chunks = int(original_size / (chunk_size - chunk_overlap * 2))
 
-    chunks = list(FixedChunker(files=files, chunk_size=chunk_size, chunk_overlap=chunk_overlap))
+    chunks = list(FixedCharChunker(files=files, chunk_size=chunk_size, chunk_overlap=chunk_overlap))
     assert len(chunks) == expected_chunks
 
     assert chunks[0].content == "1\n2\n3\n4\n5"
