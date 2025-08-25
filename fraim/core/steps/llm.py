@@ -13,7 +13,7 @@ from litellm.types.utils import StreamingChoices
 
 from fraim.core.llms.base import BaseLLM
 from fraim.core.messages import Message, SystemMessage, UserMessage
-from fraim.core.parsers.base import BaseOutputParser, ParseContext
+from fraim.core.parsers.base import BaseOutputParser, OutputParserError, ParseContext
 from fraim.core.parsers.retry import RetryOnErrorOutputParser
 from fraim.core.prompts import PromptTemplate
 from fraim.core.steps.base import BaseStep

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
+import dataclasses
 
 from fraim.core.contextuals.contextual import Contextual
 
@@ -25,3 +26,14 @@ class CodeChunk(Contextual[str]):
     # TODO: Change to repr
     def __str__(self) -> str:
         return f'<code_chunk file_path="{self.file_path}" line_number_start_inclusive="{self.line_number_start_inclusive}" line_number_end_inclusive="{self.line_number_end_inclusive}">\n{self.content}\n</code_chunk>'
+
+
+@dataclasses.dataclass
+class CodeChunkFailure:
+    """Used to represent a failure to process a code chunk."""
+
+    chunk: CodeChunk
+    """The code chunk that failed to be processed."""
+
+    reason: str
+    """The reason why the failure occurred."""
