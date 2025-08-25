@@ -162,7 +162,7 @@ class Notification(BaseSchema):
         description="A reference to the descriptor for this notification.",
     )
     message: Message = Field(..., description="A message that describes the condition.")
-    locations: List[Location] = Field(default=None, description="The locations relevant to this notification.")
+    locations: List[Location] = Field(default_factory=list, description="The locations relevant to this notification.")
 
 
 class Invocation(BaseSchema):
