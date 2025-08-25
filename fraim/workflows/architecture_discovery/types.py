@@ -7,7 +7,9 @@ Architecture Discovery Types
 Data classes and type definitions for the Architecture Discovery workflow.
 """
 
-from dataclasses import dataclass
+from __future__ import annotations
+
+from dataclasses import dataclass, field
 from typing import Annotated, Any, Dict, List, Optional
 
 from pydantic import BaseModel
@@ -20,10 +22,6 @@ class ArchitectureDiscoveryInput(ChunkWorkflowInput):
     """Input for the Architecture Discovery orchestrator workflow."""
 
     # Architecture-specific configuration options
-    include_data_flows: Annotated[bool, {"help": "Generate detailed data flow analysis"}] = True
-
-    include_trust_boundaries: Annotated[bool, {"help": "Identify and map trust boundaries"}] = True
-
     diagram_format: Annotated[
         str, {"help": "Output format for architecture diagrams (currently only mermaid supported)"}
     ] = "mermaid"
@@ -35,15 +33,87 @@ class ArchitectureDiscoveryInput(ChunkWorkflowInput):
         bool, {"help": "Automatically reduce concurrency when rate limits are hit"}
     ] = True
 
+    # File override options for bypassing sub-workflow execution
+    infrastructure_file: Annotated[
+        Optional[str], {"help": "Path to JSON file containing infrastructure discovery results to use instead of running infrastructure discovery"}
+    ] = None
+
+    api_interfaces_file: Annotated[
+        Optional[str], {"help": "Path to JSON file containing API interface discovery results to use instead of running API discovery"}
+    ] = None
+
+
+# Unified Component Model for Architecture Discovery
+
+@dataclass
+class UnifiedComponent:
+    """Unified representation of a system component (infrastructure + API interfaces)."""
+
+    # Core component identity
+    component_id: str
+    component_name: str
+    # service, database, cache, load_balancer, queue, storage, cdn, proxy, gateway, other
+    component_type: str
+    description: Optional[str] = None
+
+    # Infrastructure characteristics (from infrastructure discovery)
+    # provider, service_name, configuration, etc.
+    infrastructure_details: Optional[Dict[str, Any]] = None
+    # container configs, resource limits, environments
+    deployment_info: Optional[Dict[str, Any]] = None
+
+    # API interface characteristics (from API discovery)
+    # REST endpoints, GraphQL schema, WebSocket connections
+    api_interfaces: Optional[List[Dict[str, Any]]] = None
+    # data models used by this component
+    data_models: Optional[List[Dict[str, Any]]] = None
+
+    # Component relationships and connectivity
+    # other components this depends on
+    dependencies: List[str] = field(default_factory=list)
+    # other components that depend on this
+    dependents: List[str] = field(default_factory=list)
+
+    # Network and communication details
+    exposed_ports: List[int] = field(default_factory=list)
+    # http, https, tcp, udp, grpc, etc.
+    protocols: List[str] = field(default_factory=list)
+    # public endpoints exposed by this component
+    endpoints: List[str] = field(default_factory=list)
+
+    # Security and trust information
+    # will be populated by trust boundary analysis
+    trust_zone: Optional[str] = None
+    security_controls: List[str] = field(default_factory=list)
+    authentication_methods: List[str] = field(default_factory=list)
+
+    # Metadata
+    confidence: float = 0.0
+    # files where this component was discovered
+    source_files: List[str] = field(default_factory=list)
+    metadata: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class UnifiedComponentDiscovery:
+    """Results of unified component discovery phase."""
+
+    components: List[UnifiedComponent] = field(default_factory=list)
+    component_relationships: List[Dict[str, Any]] = field(
+        default_factory=list)  # discovered relationships between components
+    summary: Optional[Dict[str, Any]] = None
+    confidence: float = 0.0
+
 
 @dataclass
 class ComponentDiscoveryResults:
     """Container for component discovery results."""
 
-    # Infrastructure Discovery Results
-    infrastructure: Optional[Dict[str, Any]] = None
+    # Unified Component Discovery Results
+    unified_components: Optional[UnifiedComponentDiscovery] = None
 
-    # API Interface Discovery Results
+    # Legacy Discovery Results (still needed for backward compatibility and synthesis)
+    infrastructure: Optional[Dict[str, Any]] = None
     api_interfaces: Optional[Dict[str, Any]] = None
 
     # Synthesis results

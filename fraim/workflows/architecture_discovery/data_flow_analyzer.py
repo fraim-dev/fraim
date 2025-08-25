@@ -4,351 +4,406 @@
 """
 Data Flow Analyzer
 
-Handles extraction, deduplication, and enrichment of data flows from
-infrastructure and API discovery results.
+Analyzes data flows between unified system components, replacing the previous
+fragmented approach that worked with separate infrastructure and API results.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from fraim.config import Config
 
-from .types import ComponentDiscoveryResults
+from .types import ComponentDiscoveryResults, UnifiedComponent
+from .port_protocol_mapper import PortProtocolMapper, DataClassification
+from .flow_analysis_config import get_environment_config
+from .client_discovery import ClientDiscoveryService
 
 
 class DataFlowAnalyzer:
-    """Analyzes and extracts data flows from component discovery results."""
+    """Analyzes data flows between unified system components."""
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, project_root: Optional[str] = None):
         self.config = config
 
+        # Determine analysis environment from config or default to production
+        analysis_env = getattr(config, 'analysis_environment', 'production')
+        analysis_config = get_environment_config(analysis_env)
+
+        # Initialize port mapper with IaC extraction capability
+        self.port_mapper = PortProtocolMapper(analysis_config, project_root)
+
+        # Initialize client discovery service
+        self.client_discovery = ClientDiscoveryService(config)
+
+        # Store all components for client discovery
+        self.all_components: List[UnifiedComponent] = []
+
     async def analyze_data_flows(self, results: ComponentDiscoveryResults) -> List[Dict[str, Any]]:
-        """Main entry point for data flow analysis."""
+        """Main entry point for data flow analysis using unified components."""
         try:
+            # Log port mapping configuration and IaC extraction results
+            self.port_mapper.log_port_assumptions(self.config.logger)
+            self._log_iac_extraction_results()
+
             data_flows = []
 
-            # Extract data flows from infrastructure
-            if results.infrastructure:
-                infra_flows = self._extract_infrastructure_data_flows(results.infrastructure)
-                data_flows.extend(infra_flows)
+            # Primary approach: Extract data flows from unified components
+            if results.unified_components and results.unified_components.components:
+                # Store components for client discovery
+                self.all_components = results.unified_components.components.copy()
 
-            # Extract data flows from API interfaces
-            if results.api_interfaces:
-                api_flows = self._extract_api_data_flows(results.api_interfaces)
-                data_flows.extend(api_flows)
+                self.config.logger.info(
+                    f"Analyzing data flows between {len(results.unified_components.components)} unified components")
+
+                # Extract flows using original components (includes all existing relationships)
+                unified_flows = self._extract_unified_component_data_flows(
+                    results.unified_components.components)
+                data_flows.extend(unified_flows)
+
+                # After flow extraction, integrate any generated clients back into results
+                # This ensures they appear in diagrams without disrupting existing connections
+                generated_clients = self.client_discovery.get_generated_clients()
+                if generated_clients:
+                    self.config.logger.info(
+                        f"Integrating {len(generated_clients)} generated client components")
+                    results.unified_components.components.extend(
+                        generated_clients)
+                    # Don't add to self.all_components here to avoid affecting subsequent processing
+            else:
+                raise Exception(
+                    "Required dependency not found: unified components")
 
             # Deduplicate and enrich flows
             enriched_flows = self._deduplicate_and_enrich_flows(data_flows)
 
             self.config.logger.info(f"Analyzed {len(enriched_flows)} total data flows")
+
+            # Log client discovery summary
+            client_summary = self.client_discovery.get_client_summary()
+            self.config.logger.info(f"Client Discovery Summary: "
+                                    f"APIs processed: {client_summary['total_apis_processed']}, "
+                                    f"Clients found: {client_summary['total_clients_discovered']}, "
+                                    f"Explicit: {client_summary['explicit_clients_found']}, "
+                                    f"Generated: {client_summary['generated_clients_created']}")
+
+            # Log any unreliable port mappings used
+            self._log_port_reliability_warnings(enriched_flows)
+
             return enriched_flows
 
         except Exception as e:
             self.config.logger.error(f"Data flow analysis failed: {str(e)}")
             return []
 
-    def _extract_infrastructure_data_flows(self, infrastructure: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Extract data flows from infrastructure discovery."""
+    def _extract_unified_component_data_flows(self, components: List[UnifiedComponent]) -> List[Dict[str, Any]]:
+        """Extract data flows from unified components by analyzing their connectivity and relationships."""
         flows = []
 
         try:
-            self.config.logger.info(f"Processing infrastructure data: {type(infrastructure)}")
+            # Create component lookup for relationship analysis
+            component_map = {comp.component_id: comp for comp in components}
 
-            # Extract flows from container configurations
-            if "container_configs" in infrastructure:
-                containers = infrastructure["container_configs"]
-                self.config.logger.info(f"Found {len(containers)} container configs")
+            # 1. Extract flows from component network exposure (ports, endpoints)
+            for component in components:
+                flows.extend(self._extract_component_network_flows(component))
 
-                for i, container in enumerate(containers):
-                    try:
-                        self.config.logger.info(f"Processing container {i}: {type(container)}")
+            # 2. Extract flows from explicit dependencies and relationships
+            for component in components:
+                flows.extend(self._extract_component_relationship_flows(
+                    component, component_map))
 
-                        if isinstance(container, dict):
-                            # Extract flows from exposed ports
-                            exposed_ports = container.get("exposed_ports", [])
-                            self.config.logger.info(
-                                f"Container {i} exposed_ports: {type(exposed_ports)} - {exposed_ports}"
-                            )
+            # 3. Extract flows from API interfaces
+            for component in components:
+                flows.extend(self._extract_component_api_flows(component))
 
-                            for port in exposed_ports:
-                                flow = {
-                                    "source": container.get("container_name", "unknown"),
-                                    "target": "external",
-                                    "type": "container_port_exposure",
-                                    "category": "infrastructure",
-                                    "protocol": "TCP",
-                                    "port": port,
-                                    "direction": "bidirectional",
-                                    "data_classification": "application_data",
-                                    "encryption": False,
-                                    "authentication": "unknown",
-                                    "metadata": {
-                                        "container_name": container.get("container_name"),
-                                        "base_image": container.get("base_image"),
-                                        "runtime": container.get("runtime", "unknown"),
-                                    },
-                                }
-                                flows.append(flow)
+            # 4. Extract flows from infrastructure deployment details
+            for component in components:
+                flows.extend(
+                    self._extract_component_infrastructure_flows(component))
 
-                            # Extract flows from volume mounts
-                            volume_mounts = container.get("volume_mounts", [])
-                            self.config.logger.info(
-                                f"Container {i} volume_mounts: {type(volume_mounts)} - {volume_mounts}"
-                            )
-
-                            for volume in volume_mounts:
-                                # volume_mounts is an array of strings, not dictionaries
-                                if isinstance(volume, str):
-                                    flow = {
-                                        "source": container.get("container_name", "unknown"),
-                                        "target": f"volume_{volume.replace('/', '_')}",
-                                        "type": "volume_mount",
-                                        "category": "infrastructure",
-                                        "protocol": "filesystem",
-                                        "port": None,
-                                        "direction": "bidirectional",
-                                        "data_classification": "persistent_data",
-                                        "encryption": False,
-                                        "authentication": "filesystem_level",
-                                        "metadata": {
-                                            "mount_path": volume,
-                                            "access_mode": "ReadWrite",  # Default
-                                        },
-                                    }
-                                    flows.append(flow)
-                    except Exception as container_error:
-                        self.config.logger.error(f"Error processing container {i}: {str(container_error)}")
-                        continue
-
-            # Extract flows from infrastructure components
-            if "infrastructure_components" in infrastructure:
-                components = infrastructure["infrastructure_components"]
-                self.config.logger.info(f"Found {len(components)} infrastructure components")
-
-                for i, component in enumerate(components):
-                    try:
-                        self.config.logger.info(f"Processing component {i}: {type(component)}")
-
-                        if isinstance(component, dict):
-                            # Create flows for load balancers
-                            if component.get("type") == "load_balancer":
-                                # Handle configuration field which might be string or dict
-                                config = component.get("configuration", {})
-                                ssl_enabled = False
-                                if isinstance(config, dict):
-                                    ssl_enabled = config.get("ssl_enabled", False)
-                                elif isinstance(config, str):
-                                    ssl_enabled = "ssl" in config.lower() or "tls" in config.lower()
-
-                                flow = {
-                                    "source": "external",
-                                    "target": component.get("name", "unknown_lb"),
-                                    "type": "load_balancer_ingress",
-                                    "category": "infrastructure",
-                                    "protocol": "HTTP",
-                                    "port": 80,
-                                    "direction": "unidirectional",
-                                    "data_classification": "application_data",
-                                    "encryption": ssl_enabled,
-                                    "authentication": "unknown",
-                                    "metadata": {
-                                        "provider": component.get("provider"),
-                                        "service_name": component.get("service_name"),
-                                        "environment": component.get("environment"),
-                                    },
-                                }
-                                flows.append(flow)
-
-                            # Create flows for databases
-                            elif component.get("type") in ["database", "rds", "dynamodb"]:
-                                # Handle configuration field which might be string or dict
-                                config = component.get("configuration", {})
-                                encrypted = False
-                                if isinstance(config, dict):
-                                    encrypted = config.get("encrypted", False)
-                                elif isinstance(config, str):
-                                    encrypted = "encrypt" in config.lower() or "ssl" in config.lower()
-
-                                flow = {
-                                    "source": "application",
-                                    "target": component.get("name", "unknown_db"),
-                                    "type": "database_connection",
-                                    "category": "infrastructure",
-                                    "protocol": "SQL",
-                                    "port": 5432,  # Default, could be enhanced
-                                    "direction": "bidirectional",
-                                    "data_classification": "persistent_data",
-                                    "encryption": encrypted,
-                                    "authentication": "database_auth",
-                                    "metadata": {
-                                        "provider": component.get("provider"),
-                                        "service_name": component.get("service_name"),
-                                        "environment": component.get("environment"),
-                                    },
-                                }
-                                flows.append(flow)
-                    except Exception as component_error:
-                        self.config.logger.error(f"Error processing component {i}: {str(component_error)}")
-                        continue
-
-            # Extract flows from deployment environments
-            if "deployment_environments" in infrastructure:
-                environments = infrastructure["deployment_environments"]
-                self.config.logger.info(f"Found {len(environments)} deployment environments")
-
-                for i, env in enumerate(environments):
-                    try:
-                        self.config.logger.info(f"Processing environment {i}: {type(env)}")
-
-                        if isinstance(env, dict):
-                            # Create flows for services within environments
-                            services = env.get("services", [])
-                            self.config.logger.info(f"Environment {i} services: {type(services)} - {services}")
-
-                            for j, service1 in enumerate(services):
-                                for service2 in services[j + 1 :]:
-                                    if isinstance(service1, dict) and isinstance(service2, dict):
-                                        flow = {
-                                            "source": service1.get("name", "unknown_service"),
-                                            "target": service2.get("name", "unknown_service"),
-                                            "type": "service_communication",
-                                            "category": "infrastructure",
-                                            "protocol": "HTTP",
-                                            "port": service2.get("port", 8080),
-                                            "direction": "bidirectional",
-                                            "data_classification": "application_data",
-                                            "encryption": False,
-                                            "authentication": "service_level",
-                                            "metadata": {
-                                                "environment": env.get("name"),
-                                                "namespace": env.get("namespace"),
-                                            },
-                                        }
-                                        flows.append(flow)
-                    except Exception as env_error:
-                        self.config.logger.error(f"Error processing environment {i}: {str(env_error)}")
-                        continue
-
-            self.config.logger.info(f"Successfully extracted {len(flows)} infrastructure data flows")
+            self.config.logger.info(
+                f"Extracted {len(flows)} data flows from {len(components)} unified components")
             return flows
 
         except Exception as e:
-            self.config.logger.error(f"Error extracting infrastructure data flows: {str(e)}")
-            import traceback
-
-            self.config.logger.error(f"Traceback: {traceback.format_exc()}")
+            self.config.logger.error(
+                f"Error extracting unified component data flows: {str(e)}")
             return []
 
-    def _extract_api_data_flows(self, api_interfaces: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Extract data flows from API interface discovery."""
+    def _extract_component_network_flows(self, component: UnifiedComponent) -> List[Dict[str, Any]]:
+        """Extract data flows based on component's network exposure (ports, endpoints)."""
         flows = []
 
-        try:
-            # Extract flows from REST endpoints
-            if "rest_endpoints" in api_interfaces:
-                endpoints = api_interfaces["rest_endpoints"]
+        # Analyze exposed ports
+        for port in component.exposed_ports:
+            port_info = self.port_mapper.analyze_port_with_iac_priority(
+                port, component.component_name, None
+            )
+
+            flow = {
+                "source": "external" if port_info.direction == "inbound" else component.component_id,
+                "target": component.component_id if port_info.direction == "inbound" else "external",
+                "type": f"{component.component_type}_port_exposure",
+                "category": "network",
+                "protocol": port_info.protocol,
+                "port": port,
+                "direction": port_info.direction,
+                "data_classification": port_info.data_classification.value,
+                "encryption": port_info.default_encryption,
+                "authentication": port_info.typical_auth,
+                "metadata": {
+                    "component_name": component.component_name,
+                    "component_type": component.component_type,
+                    "service_type": port_info.service_name,
+                    "security_level": port_info.security_level.value,
+                    "protocols": component.protocols,
+                },
+            }
+            flows.append(flow)
+
+        # Analyze public endpoints
+        for endpoint in component.endpoints:
+            # Extract protocol and port from endpoint URL
+            protocol = "HTTPS" if endpoint.startswith("https://") else "HTTP"
+            port = 443 if protocol == "HTTPS" else 80
+
+            flow = {
+                "source": "external",
+                "target": component.component_id,
+                "type": f"{component.component_type}_endpoint_access",
+                "category": "api",
+                "protocol": protocol,
+                "port": port,
+                "direction": "inbound",
+                "data_classification": "public",
+                "encryption": protocol == "HTTPS",
+                "authentication": "varies",  # Would depend on specific endpoint
+                "metadata": {
+                    "component_name": component.component_name,
+                    "component_type": component.component_type,
+                    "endpoint_url": endpoint,
+                },
+            }
+            flows.append(flow)
+
+        return flows
+
+    def _extract_component_relationship_flows(self, component: UnifiedComponent, component_map: Dict[str, UnifiedComponent]) -> List[Dict[str, Any]]:
+        """Extract data flows based on explicit component dependencies and relationships."""
+        flows = []
+
+        # Analyze dependencies (this component depends on others)
+        for dep_id in component.dependencies:
+            if dep_id in component_map:
+                target_comp = component_map[dep_id]
+
+                # Infer communication details based on component types
+                flow_info = self._infer_component_communication(
+                    component, target_comp)
+
+                flow = {
+                    "source": component.component_id,
+                    "target": dep_id,
+                    "type": f"{component.component_type}_to_{target_comp.component_type}",
+                    "category": "dependency",
+                    "protocol": flow_info.get("protocol", "TCP"),
+                    "port": flow_info.get("port"),
+                    "direction": "unidirectional",
+                    "data_classification": flow_info.get("data_classification", "internal"),
+                    "encryption": flow_info.get("encryption", False),
+                    "authentication": flow_info.get("authentication", "service_to_service"),
+                    "metadata": {
+                        "source_component": component.component_name,
+                        "source_type": component.component_type,
+                        "target_component": target_comp.component_name,
+                        "target_type": target_comp.component_type,
+                        "relationship": "dependency",
+                    },
+                }
+                flows.append(flow)
+
+        return flows
+
+    def _extract_component_api_flows(self, component: UnifiedComponent) -> List[Dict[str, Any]]:
+        """Extract data flows from component's API interfaces using hybrid client discovery."""
+        flows: List[Dict[str, Any]] = []
+
+        if not component.api_interfaces:
+            return flows
+
+        # Discover actual client components for this API service
+        client_components = self.client_discovery.discover_api_clients(
+            component, self.all_components)
+
+        if not client_components:
+            self.config.logger.warning(
+                f"No clients found for API component {component.component_name}")
+            return flows
+
+        for api_interface in component.api_interfaces:
+            api_type = api_interface.get("type", "unknown")
+
+            if api_type == "rest":
+                endpoints = api_interface.get("endpoints", [])
                 for endpoint in endpoints:
-                    if isinstance(endpoint, dict):
-                        # Create flow for each endpoint
+                    # Create flow for each REST endpoint from each discovered client
+                    method = endpoint.get("http_method", "GET")
+                    protocol = "HTTPS" if endpoint.get(
+                        "ssl_enabled", False) else "HTTP"
+
+                    for client_comp in client_components:
                         flow = {
-                            "source": "client",
-                            "target": endpoint.get("service_name", "unknown_service"),
-                            "type": "api_call",
+                            "source": client_comp.component_id,  # Use actual client component ID
+                            "target": component.component_id,
+                            "type": f"rest_{method.lower()}",
                             "category": "api",
-                            "protocol": "HTTP",
-                            "port": 443 if endpoint.get("requires_auth", False) else 80,
-                            "direction": "bidirectional",
+                            "protocol": protocol,
+                            "port": 443 if protocol == "HTTPS" else 80,
+                            "direction": "inbound",
                             "data_classification": self._classify_endpoint_data(endpoint),
-                            # Assume HTTPS if auth required
-                            "encryption": endpoint.get("requires_auth", False),
-                            "authentication": endpoint.get("auth_type", "unknown"),
+                            "encryption": protocol == "HTTPS",
+                            "authentication": endpoint.get("authentication", "unknown"),
                             "metadata": {
-                                "method": endpoint.get("http_method"),
-                                "path": endpoint.get("endpoint_path"),
-                                "service_name": endpoint.get("service_name"),
-                                "owasp_risks": endpoint.get("owasp_risks", []),
+                                "component_name": component.component_name,
+                                "client_name": client_comp.component_name,
+                                "client_type": client_comp.component_type,
+                                "endpoint_path": endpoint.get("endpoint_path", ""),
+                                "http_method": method,
+                                "api_type": "REST",
+                                "client_generated": client_comp.metadata and client_comp.metadata.get("generated", False),
                             },
                         }
                         flows.append(flow)
 
-            # Extract flows from GraphQL schema
-            if "graphql_schema" in api_interfaces:
-                graphql_fields = api_interfaces["graphql_schema"]
-                for field in graphql_fields:
-                    if isinstance(field, dict):
-                        flow = {
-                            "source": "client",
-                            "target": "graphql_service",
-                            "type": "graphql_query",
-                            "category": "api",
-                            "protocol": "HTTP",
-                            "port": 443,
-                            "direction": "bidirectional",
-                            "data_classification": self._classify_graphql_data(field),
-                            "encryption": True,  # GraphQL typically uses HTTPS
-                            "authentication": field.get("requires_auth", "unknown"),
-                            "metadata": {
-                                "field_name": field.get("field_name"),
-                                "field_type": field.get("field_type"),
-                                "operation_type": field.get("operation_type"),
-                            },
-                        }
-                        flows.append(flow)
+            # Handle GraphQL, WebSocket, and other API types similarly
+            elif api_type == "graphql":
+                for client_comp in client_components:
+                    flow = {
+                        "source": client_comp.component_id,  # Use actual client component ID
+                        "target": component.component_id,
+                        "type": "graphql_query",
+                        "category": "api",
+                        "protocol": "HTTPS",
+                        "port": 443,
+                        "direction": "bidirectional",
+                        "data_classification": "varies",
+                        "encryption": True,
+                        "authentication": "varies",
+                        "metadata": {
+                            "component_name": component.component_name,
+                            "client_name": client_comp.component_name,
+                            "client_type": client_comp.component_type,
+                            "api_type": "GraphQL",
+                            "client_generated": client_comp.metadata and client_comp.metadata.get("generated", False),
+                        },
+                    }
+                    flows.append(flow)
 
-            # Extract flows from WebSocket connections
-            if "websocket_connections" in api_interfaces:
-                websockets = api_interfaces["websocket_connections"]
-                for ws in websockets:
-                    if isinstance(ws, dict):
-                        flow = {
-                            "source": "client",
-                            "target": ws.get("service_name", "websocket_service"),
-                            "type": "websocket_connection",
-                            "category": "api",
-                            "protocol": "WebSocket",
-                            "port": 443,
-                            "direction": "bidirectional",
-                            "data_classification": "real_time_data",
-                            "encryption": True,
-                            "authentication": ws.get("auth_required", "unknown"),
-                            "metadata": {
-                                "endpoint": ws.get("endpoint"),
-                                "protocol": ws.get("protocol"),
-                                "broadcasting": ws.get("broadcasting"),
-                            },
-                        }
-                        flows.append(flow)
+        return flows
 
-            # Extract flows from existing data flows (if already identified by API discovery)
-            if "data_flows" in api_interfaces:
-                existing_flows = api_interfaces["data_flows"]
-                for existing_flow in existing_flows:
-                    if isinstance(existing_flow, dict):
-                        flow = {
-                            "source": existing_flow.get("source", "unknown"),
-                            "target": existing_flow.get("destination", "unknown"),
-                            "type": "api_data_flow",
-                            "category": "api",
-                            "protocol": "HTTP",
-                            "port": None,
-                            "direction": "bidirectional",
-                            "data_classification": self._classify_flow_data(existing_flow),
-                            "encryption": True,
-                            "authentication": "unknown",
-                            "metadata": {
-                                "flow_name": existing_flow.get("flow_name"),
-                                "data_format": existing_flow.get("data_format"),
-                                "transformation_logic": existing_flow.get("transformation_logic"),
-                                "error_handling": existing_flow.get("error_handling"),
-                            },
-                        }
-                        flows.append(flow)
+    def _extract_component_infrastructure_flows(self, component: UnifiedComponent) -> List[Dict[str, Any]]:
+        """Extract data flows from component's infrastructure deployment details."""
+        flows = []
 
-            self.config.logger.info(f"Extracted {len(flows)} API data flows")
-            return flows
+        # Analyze deployment information (container volumes, etc.)
+        if component.deployment_info:
+            volume_mounts = component.deployment_info.get("volume_mounts", [])
+            for volume in volume_mounts:
+                if isinstance(volume, str):
+                    data_class = self._classify_volume_data(volume)
+                    encryption = self._detect_volume_encryption(
+                        volume, component.deployment_info)
 
-        except Exception as e:
-            self.config.logger.error(f"Error extracting API data flows: {str(e)}")
-            return []
+                    flow = {
+                        "source": component.component_id,
+                        "target": f"volume_{volume.replace('/', '_')}",
+                        "type": "volume_mount",
+                        "category": "infrastructure",
+                        "protocol": "filesystem",
+                        "port": None,
+                        "direction": "bidirectional",
+                        "data_classification": data_class,
+                        "encryption": encryption,
+                        "authentication": "filesystem_level",
+                        "metadata": {
+                            "component_name": component.component_name,
+                            "component_type": component.component_type,
+                            "mount_path": volume,
+                            "access_mode": "ReadWrite",  # Default
+                        },
+                    }
+                    flows.append(flow)
+
+        return flows
+
+    def _infer_component_communication(self, source: UnifiedComponent, target: UnifiedComponent) -> Dict[str, Any]:
+        """Infer communication details between two components based on their types."""
+        communication = {}
+
+        # Database connections
+        if target.component_type in ["database", "cache"]:
+            if "postgres" in target.component_name.lower():
+                communication.update(
+                    {"protocol": "TCP", "port": 5432, "encryption": True})
+            elif "mysql" in target.component_name.lower():
+                communication.update(
+                    {"protocol": "TCP", "port": 3306, "encryption": True})
+            elif "redis" in target.component_name.lower():
+                communication.update(
+                    {"protocol": "TCP", "port": 6379, "encryption": False})
+            elif "mongodb" in target.component_name.lower():
+                communication.update(
+                    {"protocol": "TCP", "port": 27017, "encryption": True})
+            else:
+                # Default database assumptions
+                communication.update(
+                    {"protocol": "TCP", "port": 5432, "encryption": True})
+
+            communication.update({
+                "data_classification": "sensitive",
+                "authentication": "database_credentials"
+            })
+
+        # Service-to-service communication
+        elif target.component_type == "service":
+            communication.update({
+                "protocol": "HTTPS" if "https" in target.protocols else "HTTP",
+                "port": 443 if "https" in target.protocols else 80,
+                "encryption": "https" in target.protocols,
+                "data_classification": "internal",
+                "authentication": "service_token"
+            })
+
+        # Load balancer communication
+        elif target.component_type == "load_balancer":
+            communication.update({
+                "protocol": "HTTPS",
+                "port": 443,
+                "encryption": True,
+                "data_classification": "public",
+                "authentication": "none"
+            })
+
+        # Queue/messaging systems
+        elif target.component_type == "queue":
+            communication.update({
+                "protocol": "AMQP",
+                "port": 5672,
+                "encryption": True,
+                "data_classification": "internal",
+                "authentication": "queue_credentials"
+            })
+
+        # Default assumptions
+        else:
+            communication.update({
+                "protocol": "TCP",
+                "port": None,
+                "encryption": False,
+                "data_classification": "internal",
+                "authentication": "unknown"
+            })
+
+        return communication
 
     def _classify_endpoint_data(self, endpoint: Dict[str, Any]) -> str:
         """Classify data sensitivity based on endpoint characteristics."""
@@ -542,3 +597,104 @@ class DataFlowAnalyzer:
             return True
 
         return False
+
+    def _classify_volume_data(self, volume_path: str) -> str:
+        """Classify data sensitivity based on volume mount path."""
+        path_lower = volume_path.lower()
+
+        if any(term in path_lower for term in ["/etc", "/config", "/secrets", "/certs"]):
+            return DataClassification.RESTRICTED.value
+        elif any(term in path_lower for term in ["/data", "/db", "/database", "/postgres", "/mysql"]):
+            return DataClassification.CONFIDENTIAL.value
+        elif any(term in path_lower for term in ["/logs", "/tmp", "/temp"]):
+            return DataClassification.INTERNAL.value
+        elif any(term in path_lower for term in ["/var/lib", "/usr/share", "/opt"]):
+            return DataClassification.INTERNAL.value
+        else:
+            return DataClassification.INTERNAL.value
+
+    def _detect_volume_encryption(self, volume_path: str, container_config: Dict[str, Any]) -> bool:
+        """Detect if a volume mount is likely encrypted."""
+        path_lower = volume_path.lower()
+
+        # Check if it's a security-related mount that should be encrypted
+        if any(term in path_lower for term in ["/etc/ssl", "/certs", "/secrets", "/keys"]):
+            return True
+
+        # Check container environment for encryption hints
+        env_vars = container_config.get("environment_variables", [])
+        for var in env_vars:
+            var_lower = str(var).lower()
+            if any(term in var_lower for term in ["encrypt", "ssl", "tls"]):
+                return True
+
+                # Check if base image suggests encryption capability
+        base_image = container_config.get("base_image", "").lower()
+        if any(term in base_image for term in ["secure", "encrypted"]):
+            return True
+
+        return False
+
+    def _log_port_reliability_warnings(self, flows: List[Dict[str, Any]]) -> None:
+        """Log warnings for flows using unreliable port mappings."""
+        unreliable_ports = set()
+
+        for flow in flows:
+            port = flow.get("port")
+            if port:
+                is_reliable, explanation = self.port_mapper.is_port_mapping_reliable(
+                    port)
+                if not is_reliable:
+                    unreliable_ports.add((port, explanation))
+
+        if unreliable_ports:
+            self.config.logger.warning(
+                "Some data flows use ports with uncertain mappings:")
+            for port, explanation in sorted(unreliable_ports):
+                self.config.logger.warning(f"  {explanation}")
+            self.config.logger.warning(
+                "Consider verifying these port mappings for your specific environment"
+            )
+
+    def _log_iac_extraction_results(self) -> None:
+        """Log information about IaC port extraction results."""
+        if not self.port_mapper.iac_mappings:
+            self.config.logger.warning(
+                "No IaC port mappings found - relying on standards and inference")
+            return
+
+        total_services = len(self.port_mapper.iac_mappings)
+        total_mappings = sum(len(mappings)
+                             for mappings in self.port_mapper.iac_mappings.values())
+
+        self.config.logger.info(f"IaC Port Mappings:")
+        self.config.logger.info(
+            f"  Services with explicit port mappings: {total_services}")
+        self.config.logger.info(
+            f"  Total port mappings found: {total_mappings}")
+
+        # Log the services we have explicit mappings for
+        for service_name, mappings in self.port_mapper.iac_mappings.items():
+            ports = [str(m.container_port) for m in mappings]
+            sources = list(set(m.source.value for m in mappings))
+            self.config.logger.info(
+                f"  {service_name}: ports {', '.join(ports)} (from {', '.join(sources)})")
+
+    def _classify_mapping_source(self, flow: Dict[str, Any]) -> str:
+        """Classify whether a flow's port mapping came from IaC or assumptions."""
+        service_name = flow.get("source")
+        port = flow.get("port")
+
+        if service_name and service_name in self.port_mapper.iac_mappings:
+            mappings = self.port_mapper.iac_mappings[service_name]
+            for mapping in mappings:
+                if mapping.container_port == port:
+                    return f"iac_{mapping.source.value}"
+
+        # Check if we have a standards-based mapping
+        if port:
+            standard = self.port_mapper.port_registry.get_port_standard(port)
+            if standard:
+                return f"standard_{standard.standard_level.value}"
+
+        return "inferred"

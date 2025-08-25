@@ -22,6 +22,12 @@ system: |
   - Infrastructure as Code (Terraform, CloudFormation)
   - Monitoring and logging infrastructure
 
+  **PRODUCTION FOCUS**: Prioritize production environments and production-ready configurations. When analyzing environments:
+  - Give highest priority to production, prod, live, and production-like environments
+  - Focus on stable, production-grade infrastructure components
+  - Emphasize production-specific security, scaling, and monitoring configurations
+  - For non-production environments, only include if they contain production-relevant patterns or configurations
+
   Analyze the provided configuration and extract infrastructure-specific information with high confidence.
 
   {{ output_format }}
@@ -29,5 +35,11 @@ system: |
 user: |
   Please analyze the following infrastructure/deployment configuration:
   {{ code }}
+
+  {% if focus_environments %}
+  **ENVIRONMENT FOCUS**: Focus analysis specifically on these environments: {{ focus_environments | join(", ") }}
+  - Prioritize configurations and components related to these environments
+  - Filter out configurations that are clearly for other environments unless they contain production-relevant patterns
+  {% endif %}
 
   Only include findings with high confidence (0.7+). If no infrastructure information is found, return empty arrays for each category.

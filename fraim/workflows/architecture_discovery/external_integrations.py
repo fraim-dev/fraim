@@ -4,37 +4,57 @@
 """
 External Integration Analyzer
 
-Handles identification, categorization, and analysis of external system
-integrations from infrastructure and API discovery results.
+Identifies and analyzes external system integrations from unified components,
+data flows, and trust boundary information.
 """
 
 from typing import Any, Dict, List
 
 from fraim.config import Config
 
-from .types import ComponentDiscoveryResults, ExternalIntegration
+from .types import ComponentDiscoveryResults, ExternalIntegration, UnifiedComponent
 
 
 class ExternalIntegrationAnalyzer:
-    """Analyzes external system integrations from component discovery results."""
+    """Identifies external integrations from unified components and data flows."""
 
     def __init__(self, config: Config):
         self.config = config
 
     async def analyze_external_integrations(self, results: ComponentDiscoveryResults) -> List[Dict[str, Any]]:
-        """Main entry point for external integration analysis."""
+        """Main entry point for external integration analysis using unified components."""
         try:
             external_integrations = []
 
-            # Extract external integrations from infrastructure
-            if results.infrastructure:
-                infra_externals = self._extract_infrastructure_externals(results.infrastructure)
-                external_integrations.extend(infra_externals)
+            # Primary approach: Analyze external integrations from unified components and data flows
+            if results.unified_components and results.unified_components.components:
+                self.config.logger.info(
+                    f"Analyzing external integrations for {len(results.unified_components.components)} unified components")
 
-            # Extract external integrations from APIs
-            if results.api_interfaces:
-                api_externals = self._extract_api_externals(results.api_interfaces)
-                external_integrations.extend(api_externals)
+                # Get data flows and trust boundaries for context
+                data_flows = results.data_flows or []
+                trust_boundaries = results.trust_boundaries or []
+
+                unified_externals = self._analyze_unified_component_external_integrations(
+                    results.unified_components.components, data_flows, trust_boundaries
+                )
+                external_integrations.extend(unified_externals)
+                self.config.logger.info(
+                    f"Found {len(unified_externals)} external integrations from unified components")
+            else:
+                self.config.logger.warning(
+                    "No unified components found, falling back to legacy fragmented analysis")
+
+                # Fallback: Use legacy fragmented approach during transition
+                if results.infrastructure:
+                    infra_externals = self._extract_infrastructure_externals(
+                        results.infrastructure)
+                    external_integrations.extend(infra_externals)
+
+                if results.api_interfaces:
+                    api_externals = self._extract_api_externals(
+                        results.api_interfaces)
+                    external_integrations.extend(api_externals)
 
             # Deduplicate and categorize
             categorized_integrations = self._deduplicate_external_integrations(external_integrations)
@@ -45,6 +65,288 @@ class ExternalIntegrationAnalyzer:
         except Exception as e:
             self.config.logger.error(f"External integration analysis failed: {str(e)}")
             return []
+
+    def _analyze_unified_component_external_integrations(self, components: List[UnifiedComponent], data_flows: List[Dict[str, Any]], trust_boundaries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Analyze external integrations from unified components using data flows and trust boundaries."""
+        external_integrations = []
+
+        try:
+            # Create component lookup
+            component_map = {comp.component_id: comp for comp in components}
+
+            # 1. Identify external integrations from data flows
+            external_integrations.extend(
+                self._extract_external_integrations_from_flows(data_flows, component_map))
+
+            # 2. Identify external integrations from component infrastructure details
+            for component in components:
+                external_integrations.extend(
+                    self._extract_external_integrations_from_component(component))
+
+            # 3. Identify external integrations from API interfaces
+            for component in components:
+                external_integrations.extend(
+                    self._extract_external_integrations_from_api_interfaces(component))
+
+            # 4. Identify external integrations from trust boundary context
+            external_integrations.extend(self._extract_external_integrations_from_trust_boundaries(
+                trust_boundaries, component_map))
+
+            self.config.logger.info(
+                f"Extracted {len(external_integrations)} external integrations from unified components")
+            return external_integrations
+
+        except Exception as e:
+            self.config.logger.error(
+                f"Error analyzing unified component external integrations: {str(e)}")
+            return []
+
+    def _extract_external_integrations_from_flows(self, data_flows: List[Dict[str, Any]], component_map: Dict[str, UnifiedComponent]) -> List[Dict[str, Any]]:
+        """Extract external integrations from data flows that cross system boundaries."""
+        external_integrations = []
+
+        for flow in data_flows:
+            source = flow.get('source')
+            target = flow.get('target')
+
+            # Look for flows involving external sources/targets
+            if source == 'external' or target == 'external':
+                # Find the internal component in this flow
+                internal_component_id = target if source == 'external' else source
+                if internal_component_id and isinstance(internal_component_id, str):
+                    internal_component = component_map.get(
+                        internal_component_id)
+                else:
+                    internal_component = None
+
+                if internal_component:
+                    integration = {
+                        "name": f"external_integration_via_{internal_component.component_name}",
+                        "type": flow.get('type', 'unknown_external'),
+                        "category": "data_flow_external",
+                        "protocol": flow.get('protocol', 'unknown'),
+                        "endpoint": None,  # External flows don't have specific endpoints
+                        "authentication": flow.get('authentication', 'unknown'),
+                        "data_classification": flow.get('data_classification', 'unknown'),
+                        "criticality": self._assess_flow_criticality(flow),
+                        "metadata": {
+                            "flow_direction": "inbound" if source == 'external' else "outbound",
+                            "internal_component": internal_component.component_name,
+                            "internal_component_type": internal_component.component_type,
+                            "port": flow.get('port'),
+                            "encryption": flow.get('encryption', False),
+                            "flow_type": flow.get('type'),
+                        },
+                    }
+                    external_integrations.append(integration)
+
+        return external_integrations
+
+    def _extract_external_integrations_from_component(self, component: UnifiedComponent) -> List[Dict[str, Any]]:
+        """Extract external integrations from component infrastructure details."""
+        external_integrations = []
+
+        # Check infrastructure details for external services
+        if component.infrastructure_details:
+            provider = component.infrastructure_details.get('provider')
+            service_name = component.infrastructure_details.get('service_name')
+
+            # Cloud provider services are external integrations
+            if provider and provider.lower() in ['aws', 'azure', 'gcp', 'google']:
+                integration = {
+                    "name": f"{provider.lower()}_{component.component_name}",
+                    "type": "cloud_service",
+                    "category": "infrastructure_external",
+                    "protocol": "HTTPS",
+                    "endpoint": f"{provider.lower()}.com",
+                    "authentication": "cloud_provider_auth",
+                    "data_classification": self._classify_component_data_sensitivity(component),
+                    "criticality": self._assess_component_criticality_for_external(component),
+                    "metadata": {
+                        "provider": provider,
+                        "service_name": service_name,
+                        "component_type": component.component_type,
+                        "component_name": component.component_name,
+                        "availability_zone": component.infrastructure_details.get('availability_zone'),
+                        "configuration": component.infrastructure_details.get('configuration'),
+                    },
+                }
+                external_integrations.append(integration)
+
+        # Check deployment info for external dependencies (container registries, etc.)
+        if component.deployment_info:
+            base_image = component.deployment_info.get('base_image', '')
+            if self._is_external_image(base_image):
+                registry = self._extract_registry(base_image)
+                if registry:
+                    integration = {
+                        "name": f"container_registry_{registry}",
+                        "type": "container_registry",
+                        "category": "infrastructure_external",
+                        "protocol": "HTTPS",
+                        "endpoint": registry,
+                        "authentication": "registry_credentials",
+                        "data_classification": "container_images",
+                        "criticality": "high",  # Container images are critical for deployment
+                        "metadata": {
+                            "registry_type": self._classify_registry(registry),
+                            "base_image": base_image,
+                            "component_name": component.component_name,
+                        },
+                    }
+                    external_integrations.append(integration)
+
+        return external_integrations
+
+    def _extract_external_integrations_from_api_interfaces(self, component: UnifiedComponent) -> List[Dict[str, Any]]:
+        """Extract external integrations from component API interfaces."""
+        external_integrations: List[Dict[str, Any]] = []
+
+        if not component.api_interfaces:
+            return external_integrations
+
+        for api_interface in component.api_interfaces:
+            api_type = api_interface.get('type', 'unknown')
+
+            # Look for external API calls or third-party integrations
+            if api_type == 'rest':
+                endpoints = api_interface.get('endpoints', [])
+                for endpoint in endpoints:
+                    # Check for external API patterns
+                    endpoint_path = endpoint.get('endpoint_path', '')
+                    if self._indicates_external_api(endpoint_path):
+                        integration = {
+                            "name": f"external_api_{component.component_name}_{endpoint_path.replace('/', '_')}",
+                            "type": "third_party_api",
+                            "category": "api_external",
+                            "protocol": "HTTPS" if endpoint.get('ssl_enabled', False) else "HTTP",
+                            "endpoint": endpoint_path,
+                            "authentication": endpoint.get('authentication', 'unknown'),
+                            "data_classification": self._classify_endpoint_data_sensitivity(endpoint),
+                            "criticality": "medium",
+                            "metadata": {
+                                "component_name": component.component_name,
+                                "http_method": endpoint.get('http_method', 'GET'),
+                                "endpoint_path": endpoint_path,
+                                "api_type": api_type,
+                            },
+                        }
+                        external_integrations.append(integration)
+
+        return external_integrations
+
+    def _extract_external_integrations_from_trust_boundaries(self, trust_boundaries: List[Dict[str, Any]], component_map: Dict[str, UnifiedComponent]) -> List[Dict[str, Any]]:
+        """Extract external integrations from trust boundary analysis."""
+        external_integrations = []
+
+        for boundary in trust_boundaries:
+            boundary_type = boundary.get('type')
+
+            # DMZ and external boundaries indicate external integrations
+            if boundary_type in ['dmz_boundary', 'external_boundary']:
+                components = boundary.get('components', [])
+                for component_name in components:
+                    # Find component by name (need to match by name since boundary stores component names)
+                    component = None
+                    for comp in component_map.values():
+                        if comp.component_name == component_name:
+                            component = comp
+                            break
+
+                    if component:
+                        integration = {
+                            "name": f"external_boundary_integration_{component_name}",
+                            "type": "boundary_external",
+                            "category": "trust_boundary_external",
+                            "protocol": "varies",
+                            "endpoint": None,
+                            "authentication": "varies",
+                            "data_classification": "varies",
+                            "criticality": boundary.get('threat_level', 'medium'),
+                            "metadata": {
+                                "boundary_name": boundary.get('name'),
+                                "boundary_type": boundary_type,
+                                "component_name": component_name,
+                                "component_type": component.component_type,
+                                "security_controls": boundary.get('security_controls', []),
+                                "threat_level": boundary.get('threat_level'),
+                            },
+                        }
+                        external_integrations.append(integration)
+
+        return external_integrations
+
+    def _assess_flow_criticality(self, flow: Dict[str, Any]) -> str:
+        """Assess criticality of an external data flow."""
+        data_classification = flow.get('data_classification', '').lower()
+
+        if data_classification in ['sensitive', 'confidential']:
+            return 'high'
+        elif data_classification == 'internal':
+            return 'medium'
+        else:
+            return 'low'
+
+    def _classify_component_data_sensitivity(self, component: UnifiedComponent) -> str:
+        """Classify data sensitivity for a component."""
+        # Database components typically handle sensitive data
+        if component.component_type == 'database':
+            return 'sensitive'
+
+        # Components with authentication mechanisms handle sensitive data
+        if component.authentication_methods and any(auth in component.authentication_methods for auth in ['oauth', 'jwt', 'saml']):
+            return 'sensitive'
+
+        # API components handling user data
+        if component.api_interfaces and any('user' in str(api).lower() or 'auth' in str(api).lower() for api in component.api_interfaces):
+            return 'confidential'
+
+        return 'internal'
+
+    def _assess_component_criticality_for_external(self, component: UnifiedComponent) -> str:
+        """Assess criticality of component for external integration purposes."""
+        # Database and storage components are highly critical
+        if component.component_type in ['database', 'storage']:
+            return 'high'
+
+        # Load balancers and gateways are critical for availability
+        if component.component_type in ['load_balancer', 'gateway', 'proxy']:
+            return 'high'
+
+        # Services with external endpoints are medium criticality
+        if component.endpoints:
+            return 'medium'
+
+        return 'low'
+
+    def _indicates_external_api(self, endpoint_path: str) -> bool:
+        """Check if endpoint path indicates external API integration."""
+        external_indicators = [
+            'webhook', 'callback', 'oauth', 'auth/external',
+            'api/external', 'third-party', 'integration'
+        ]
+
+        path_lower = endpoint_path.lower()
+        return any(indicator in path_lower for indicator in external_indicators)
+
+    def _classify_endpoint_data_sensitivity(self, endpoint: Dict[str, Any]) -> str:
+        """Classify data sensitivity for an API endpoint."""
+        path = endpoint.get('endpoint_path', '').lower()
+        method = endpoint.get('http_method', 'GET').upper()
+
+        # Authentication endpoints handle sensitive data
+        if any(term in path for term in ['auth', 'login', 'password', 'token']):
+            return 'sensitive'
+
+        # User data endpoints
+        if any(term in path for term in ['user', 'profile', 'account']):
+            return 'confidential'
+
+        # Write operations typically handle more sensitive data
+        if method in ['POST', 'PUT', 'PATCH', 'DELETE']:
+            return 'internal'
+
+        return 'public'
 
     def _extract_infrastructure_externals(self, infrastructure: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Extract external integrations from infrastructure."""

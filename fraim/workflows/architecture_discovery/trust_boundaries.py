@@ -4,46 +4,64 @@
 """
 Trust Boundary Analyzer
 
-Handles identification, analysis, and prioritization of trust boundaries
-from infrastructure and API discovery results.
+Analyzes and groups unified system components into trust boundaries based on
+data flows, security levels, and component relationships.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from fraim.config import Config
 
-from .types import ComponentDiscoveryResults, TrustBoundary
+from .types import ComponentDiscoveryResults, TrustBoundary, UnifiedComponent
 
 
 class TrustBoundaryAnalyzer:
-    """Analyzes trust boundaries from component discovery results."""
+    """Groups unified components into trust boundaries based on data flows and security levels."""
 
     def __init__(self, config: Config):
         self.config = config
 
     async def analyze_trust_boundaries(self, results: ComponentDiscoveryResults) -> List[Dict[str, Any]]:
-        """Main entry point for trust boundary analysis."""
+        """Main entry point for trust boundary analysis using unified components."""
         try:
             self.config.logger.info("Starting trust boundary analysis")
             trust_boundaries = []
 
-            # Debug: Log what data we have
-            self.config.logger.info(f"Infrastructure data available: {results.infrastructure is not None}")
-            self.config.logger.info(f"API interfaces data available: {results.api_interfaces is not None}")
+            # Primary approach: Analyze trust boundaries from unified components and data flows
+            if results.unified_components and results.unified_components.components:
+                self.config.logger.info(
+                    f"Analyzing trust boundaries for {len(results.unified_components.components)} unified components")
 
-            # Identify network-level trust boundaries from infrastructure
-            if results.infrastructure:
-                self.config.logger.info("Processing infrastructure trust boundaries")
-                network_boundaries = self._identify_network_trust_boundaries(results.infrastructure)
-                trust_boundaries.extend(network_boundaries)
-                self.config.logger.info(f"Found {len(network_boundaries)} infrastructure trust boundaries")
+                # Get data flows if available for relationship analysis
+                data_flows = results.data_flows or []
 
-            # Identify application-level trust boundaries from APIs
-            if results.api_interfaces:
-                self.config.logger.info("Processing API trust boundaries")
-                api_boundaries = self._identify_api_trust_boundaries(results.api_interfaces)
-                trust_boundaries.extend(api_boundaries)
-                self.config.logger.info(f"Found {len(api_boundaries)} API trust boundaries")
+                unified_boundaries = self._analyze_unified_component_trust_boundaries(
+                    results.unified_components.components, data_flows
+                )
+                trust_boundaries.extend(unified_boundaries)
+                self.config.logger.info(
+                    f"Found {len(unified_boundaries)} unified trust boundaries")
+            else:
+                self.config.logger.warning(
+                    "No unified components found, falling back to legacy fragmented analysis")
+
+                # Fallback: Use legacy fragmented approach during transition
+                if results.infrastructure:
+                    self.config.logger.info(
+                        "Processing infrastructure trust boundaries")
+                    network_boundaries = self._identify_network_trust_boundaries(
+                        results.infrastructure)
+                    trust_boundaries.extend(network_boundaries)
+                    self.config.logger.info(
+                        f"Found {len(network_boundaries)} infrastructure trust boundaries")
+
+                if results.api_interfaces:
+                    self.config.logger.info("Processing API trust boundaries")
+                    api_boundaries = self._identify_api_trust_boundaries(
+                        results.api_interfaces)
+                    trust_boundaries.extend(api_boundaries)
+                    self.config.logger.info(
+                        f"Found {len(api_boundaries)} API trust boundaries")
 
             # Analyze and prioritize boundaries
             analyzed_boundaries = self._analyze_trust_boundaries(trust_boundaries)
@@ -57,6 +75,401 @@ class TrustBoundaryAnalyzer:
 
             self.config.logger.error(f"Traceback: {traceback.format_exc()}")
             return []
+
+    def _analyze_unified_component_trust_boundaries(self, components: List[UnifiedComponent], data_flows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Analyze trust boundaries from unified components and data flows."""
+        boundaries = []
+
+        try:
+            # Create component mapping for quick lookup
+            component_map = {comp.component_id: comp for comp in components}
+
+            # Group components into trust zones based on multiple criteria
+            trust_zones = self._group_components_into_trust_zones(
+                components, data_flows, component_map)
+
+            # Convert trust zones into trust boundary objects
+            for zone_name, zone_info in trust_zones.items():
+                boundary = self._create_trust_boundary_from_zone(
+                    zone_name, zone_info, data_flows)
+                boundaries.append(boundary)
+
+            # Add inter-zone boundaries (boundaries between trust zones)
+            inter_zone_boundaries = self._identify_inter_zone_boundaries(
+                trust_zones, data_flows, component_map)
+            boundaries.extend(inter_zone_boundaries)
+
+            self.config.logger.info(
+                f"Created {len(boundaries)} trust boundaries from unified components")
+            return boundaries
+
+        except Exception as e:
+            self.config.logger.error(
+                f"Error analyzing unified component trust boundaries: {str(e)}")
+            return []
+
+    def _group_components_into_trust_zones(self, components: List[UnifiedComponent], data_flows: List[Dict[str, Any]], component_map: Dict[str, UnifiedComponent]) -> Dict[str, Dict[str, Any]]:
+        """Group components into trust zones based on security levels, exposure, and data flows."""
+        trust_zones: Dict[str, Dict[str, Any]] = {}
+
+        for component in components:
+            # Determine trust zone based on component characteristics
+            zone_name = self._determine_component_trust_zone(
+                component, data_flows)
+
+            if zone_name not in trust_zones:
+                trust_zones[zone_name] = {
+                    'components': [],
+                    'component_types': set(),
+                    'security_level': 'medium',
+                    'external_exposure': False,
+                    'data_classifications': set(),
+                    'protocols': set(),
+                }
+
+            # Add component to trust zone
+            trust_zones[zone_name]['components'].append(component)
+            trust_zones[zone_name]['component_types'].add(
+                component.component_type)
+            trust_zones[zone_name]['protocols'].update(component.protocols)
+
+            # Update zone characteristics based on component
+            if self._is_externally_exposed(component, data_flows):
+                trust_zones[zone_name]['external_exposure'] = True
+
+            # Update security level based on component sensitivity
+            component_security = self._assess_component_security_level(
+                component)
+            current_security = trust_zones[zone_name]['security_level']
+            trust_zones[zone_name]['security_level'] = self._merge_security_levels(
+                current_security, component_security)
+
+            # Collect data classifications from flows involving this component
+            component_data_classes = self._get_component_data_classifications(
+                component, data_flows)
+            trust_zones[zone_name]['data_classifications'].update(
+                component_data_classes)
+
+        return trust_zones
+
+    def _determine_component_trust_zone(self, component: UnifiedComponent, data_flows: List[Dict[str, Any]]) -> str:
+        """Determine which trust zone a component belongs to."""
+
+        # DMZ zone for externally exposed components
+        if self._is_externally_exposed(component, data_flows):
+            if component.component_type == 'load_balancer':
+                return 'external_dmz'
+            elif component.component_type == 'service' and component.api_interfaces:
+                return 'api_dmz'
+            else:
+                return 'public_zone'
+
+        # Data zone for databases and storage
+        elif component.component_type in ['database', 'storage', 'cache']:
+            sensitivity = self._assess_component_security_level(component)
+            if sensitivity == 'high':
+                return 'sensitive_data_zone'
+            else:
+                return 'data_zone'
+
+        # Internal service zone
+        elif component.component_type == 'service':
+            return 'internal_service_zone'
+
+        # Infrastructure zone for queues, proxies, etc.
+        elif component.component_type in ['queue', 'proxy', 'gateway', 'cdn']:
+            return 'infrastructure_zone'
+
+        # Default internal zone
+        else:
+            return 'internal_zone'
+
+    def _is_externally_exposed(self, component: UnifiedComponent, data_flows: List[Dict[str, Any]]) -> bool:
+        """Check if component is exposed to external networks."""
+
+        # Check if component has public endpoints
+        if component.endpoints:
+            return True
+
+        # Check if component has flows from/to external sources
+        for flow in data_flows:
+            if ((flow.get('source') == 'external' and flow.get('target') == component.component_id) or
+                    (flow.get('target') == 'external' and flow.get('source') == component.component_id)):
+                return True
+
+        # Check for common external exposure ports
+        external_ports = {80, 443, 8080, 8443}
+        if any(port in external_ports for port in component.exposed_ports):
+            return True
+
+        return False
+
+    def _assess_component_security_level(self, component: UnifiedComponent) -> str:
+        """Assess the security sensitivity level of a component."""
+
+        # Database components are typically high security
+        if component.component_type == 'database':
+            return 'high'
+
+        # Components with authentication/authorization are high security
+        if any(auth in component.authentication_methods for auth in ['oauth', 'jwt', 'saml']):
+            return 'high'
+
+        # Components handling sensitive data paths
+        sensitive_indicators = ['auth', 'admin', 'payment', 'user', 'account']
+        if any(indicator in component.component_name.lower() for indicator in sensitive_indicators):
+            return 'high'
+
+        # API services are medium security by default
+        if component.component_type == 'service' and component.api_interfaces:
+            return 'medium'
+
+        # Infrastructure components are typically low-medium
+        if component.component_type in ['load_balancer', 'proxy', 'cdn']:
+            return 'low'
+
+        return 'medium'
+
+    def _get_component_data_classifications(self, component: UnifiedComponent, data_flows: List[Dict[str, Any]]) -> set:
+        """Get data classifications for flows involving this component."""
+        classifications = set()
+
+        for flow in data_flows:
+            if flow.get('source') == component.component_id or flow.get('target') == component.component_id:
+                data_class = flow.get('data_classification')
+                if data_class:
+                    classifications.add(data_class)
+
+        return classifications
+
+    def _merge_security_levels(self, current: str, new: str) -> str:
+        """Merge security levels, taking the higher security level."""
+        levels = {'low': 1, 'medium': 2, 'high': 3}
+        current_level = levels.get(current, 2)
+        new_level = levels.get(new, 2)
+
+        if new_level > current_level:
+            return new
+        return current
+
+    def _create_trust_boundary_from_zone(self, zone_name: str, zone_info: Dict[str, Any], data_flows: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Create a trust boundary object from a trust zone."""
+
+        components = zone_info['components']
+        component_names = [comp.component_name for comp in components]
+        component_ids = [comp.component_id for comp in components]
+
+        # Determine security controls based on zone characteristics
+        security_controls = self._determine_zone_security_controls(
+            zone_name, zone_info)
+
+        # Determine threat level based on exposure and data sensitivity
+        threat_level = self._assess_zone_threat_level(zone_name, zone_info)
+
+        # Create description
+        description = self._create_zone_description(zone_name, zone_info)
+
+        boundary = {
+            "name": zone_name,
+            "type": self._map_zone_to_boundary_type(zone_name),
+            "category": "unified_component_grouping",
+            "components": component_names,
+            "security_controls": security_controls,
+            "threat_level": threat_level,
+            "description": description,
+            "metadata": {
+                "component_count": len(components),
+                "component_types": list(zone_info['component_types']),
+                "component_ids": component_ids,
+                "external_exposure": zone_info['external_exposure'],
+                "security_level": zone_info['security_level'],
+                "data_classifications": list(zone_info['data_classifications']),
+                "protocols": list(zone_info['protocols']),
+            },
+        }
+
+        return boundary
+
+    def _determine_zone_security_controls(self, zone_name: str, zone_info: Dict[str, Any]) -> List[str]:
+        """Determine appropriate security controls for a trust zone."""
+        controls = []
+
+        # Base controls for all zones
+        controls.append("Access Control")
+        controls.append("Logging and Monitoring")
+
+        # External exposure controls
+        if zone_info['external_exposure']:
+            controls.extend([
+                "Web Application Firewall",
+                "DDoS Protection",
+                "Rate Limiting",
+                "Input Validation"
+            ])
+
+        # Data protection controls
+        if 'sensitive' in zone_info['data_classifications'] or 'confidential' in zone_info['data_classifications']:
+            controls.extend([
+                "Data Encryption",
+                "Data Loss Prevention",
+                "Backup and Recovery",
+                "Data Classification"
+            ])
+
+        # Database specific controls
+        if 'database' in zone_info['component_types']:
+            controls.extend([
+                "Database Security",
+                "Query Monitoring",
+                "Privilege Management",
+                "Data Masking"
+            ])
+
+        # API specific controls
+        if any(comp.api_interfaces for comp in zone_info['components']):
+            controls.extend([
+                "API Security",
+                "Authentication",
+                "Authorization",
+                "API Rate Limiting"
+            ])
+
+        return list(set(controls))  # Remove duplicates
+
+    def _assess_zone_threat_level(self, zone_name: str, zone_info: Dict[str, Any]) -> str:
+        """Assess threat level for a trust zone."""
+
+        # External exposure increases threat level
+        if zone_info['external_exposure']:
+            return 'high'
+
+        # Sensitive data increases threat level
+        if zone_info['security_level'] == 'high':
+            return 'high'
+
+        # Database zones are typically high threat
+        if 'database' in zone_info['component_types']:
+            return 'high'
+
+        # DMZ zones are high threat
+        if 'dmz' in zone_name.lower():
+            return 'high'
+
+        return 'medium'
+
+    def _create_zone_description(self, zone_name: str, zone_info: Dict[str, Any]) -> str:
+        """Create a descriptive text for the trust zone."""
+        component_count = len(zone_info['components'])
+        component_types = list(zone_info['component_types'])
+
+        description = f"Trust boundary containing {component_count} component(s) of types: {', '.join(component_types)}."
+
+        if zone_info['external_exposure']:
+            description += " This zone is externally exposed and requires enhanced security controls."
+
+        if zone_info['security_level'] == 'high':
+            description += " Contains sensitive components requiring strict access controls."
+
+        return description
+
+    def _map_zone_to_boundary_type(self, zone_name: str) -> str:
+        """Map trust zone names to boundary types."""
+        zone_mappings = {
+            'external_dmz': 'dmz_boundary',
+            'api_dmz': 'dmz_boundary',
+            'public_zone': 'external_boundary',
+            'sensitive_data_zone': 'data_boundary',
+            'data_zone': 'data_boundary',
+            'internal_service_zone': 'application_boundary',
+            'infrastructure_zone': 'network_boundary',
+            'internal_zone': 'internal_boundary'
+        }
+
+        return zone_mappings.get(zone_name, 'trust_boundary')
+
+    def _identify_inter_zone_boundaries(self, trust_zones: Dict[str, Dict[str, Any]], data_flows: List[Dict[str, Any]], component_map: Dict[str, UnifiedComponent]) -> List[Dict[str, Any]]:
+        """Identify boundaries between trust zones based on data flows."""
+        inter_zone_boundaries = []
+
+        # Create zone lookup for components
+        component_to_zone = {}
+        for zone_name, zone_info in trust_zones.items():
+            for component in zone_info['components']:
+                component_to_zone[component.component_id] = zone_name
+
+        # Analyze flows between different zones
+        zone_connections: Dict[str, Dict[str, Any]] = {}
+        for flow in data_flows:
+            source_id = flow.get('source')
+            target_id = flow.get('target')
+
+            # Skip external flows for now
+            if source_id in ['external', 'client'] or target_id in ['external', 'client']:
+                continue
+
+            source_zone = component_to_zone.get(source_id)
+            target_zone = component_to_zone.get(target_id)
+
+            if source_zone and target_zone and source_zone != target_zone:
+                sorted_zones = sorted([source_zone, target_zone])
+                connection_key = f"{sorted_zones[0]}__{sorted_zones[1]}"
+
+                if connection_key not in zone_connections:
+                    zone_connections[connection_key] = {
+                        'flows': [],
+                        'data_classifications': set(),
+                        'protocols': set()
+                    }
+
+                zone_connections[connection_key]['flows'].append(flow)
+                zone_connections[connection_key]['data_classifications'].add(
+                    flow.get('data_classification', 'unknown'))
+                zone_connections[connection_key]['protocols'].add(
+                    flow.get('protocol', 'unknown'))
+
+        # Create inter-zone boundary objects
+        for connection_key, connection_info in zone_connections.items():
+            zone1, zone2 = connection_key.split("__")
+            boundary = {
+                "name": f"InterZone_{zone1}_to_{zone2}",
+                "type": "inter_zone_boundary",
+                "category": "zone_crossing",
+                "components": [zone1, zone2],
+                "security_controls": [
+                    "Zone Crossing Controls",
+                    "Traffic Inspection",
+                    "Access Policy Enforcement"
+                ],
+                "threat_level": self._assess_inter_zone_threat_level(zone1, zone2, connection_info),
+                "description": f"Boundary controlling data flows between {zone1} and {zone2} zones",
+                "metadata": {
+                    "flow_count": len(connection_info['flows']),
+                    "data_classifications": list(connection_info['data_classifications']),
+                    "protocols": list(connection_info['protocols']),
+                    "source_zone": zone1,
+                    "target_zone": zone2,
+                },
+            }
+            inter_zone_boundaries.append(boundary)
+
+        return inter_zone_boundaries
+
+    def _assess_inter_zone_threat_level(self, zone1: str, zone2: str, connection_info: Dict[str, Any]) -> str:
+        """Assess threat level for inter-zone boundaries."""
+
+        # Connections involving DMZ zones are high risk
+        if 'dmz' in zone1.lower() or 'dmz' in zone2.lower():
+            return 'high'
+
+        # Connections involving sensitive data zones are high risk
+        if 'sensitive' in zone1.lower() or 'sensitive' in zone2.lower():
+            return 'high'
+
+        # Multiple data classifications suggest complex flows = higher risk
+        if len(connection_info['data_classifications']) > 2:
+            return 'high'
+
+        return 'medium'
 
     def _identify_network_trust_boundaries(self, infrastructure: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Identify network-level trust boundaries."""

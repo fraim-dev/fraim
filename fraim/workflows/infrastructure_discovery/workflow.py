@@ -19,6 +19,7 @@ from fraim.core.steps.llm import LLMStep
 from fraim.core.workflows import ChunkProcessingMixin, Workflow
 from fraim.workflows.registry import workflow
 from fraim.workflows.utils import write_json_output
+from fraim.workflows.utils.filter_results_by_confidences import filter_by_confidence_float, convert_int_confidence_to_float
 
 from .file_patterns import INFRASTRUCTURE_FILE_PATTERNS
 from .steps import create_dedup_step, create_infrastructure_step
@@ -71,7 +72,7 @@ class InfrastructureDiscoveryWorkflow(ChunkProcessingMixin, Workflow[Infrastruct
         return self._dedup_step
 
     async def _process_single_chunk(
-        self, chunk: CodeChunk, focus_environments: list[str] | None = None, include_secrets: bool = True
+        self, chunk: CodeChunk, focus_environments: list[str] | None = None, include_secrets: bool = True, confidence_threshold: float | None = None
     ) -> list[InfrastructureAnalysisResult]:
         """Process a single chunk for infrastructure analysis."""
         try:
@@ -80,10 +81,42 @@ class InfrastructureDiscoveryWorkflow(ChunkProcessingMixin, Workflow[Infrastruct
             chunk_input = AgentInput(
                 code=chunk,
                 config=self.config,
+                focus_environments=focus_environments,
             )
 
             # Run infrastructure analysis
             result = await self.infrastructure_step.run(chunk_input)
+
+            # Apply confidence filtering if threshold is provided
+            if confidence_threshold is not None:
+                self.config.logger.debug(
+                    f"Filtering infrastructure findings by confidence threshold: {confidence_threshold}")
+
+                # Filter each type of finding by confidence
+                filtered_containers = filter_by_confidence_float(
+                    result.container_configs, confidence_threshold)
+                filtered_components = filter_by_confidence_float(
+                    result.infrastructure_components, confidence_threshold)
+                filtered_environments = filter_by_confidence_float(
+                    result.deployment_environments, confidence_threshold)
+
+                # Create new result with filtered findings
+                filtered_result = InfrastructureAnalysisResult(
+                    container_configs=filtered_containers,
+                    infrastructure_components=filtered_components,
+                    deployment_environments=filtered_environments
+                )
+
+                # Log filtering results
+                original_count = len(result.container_configs) + len(
+                    result.infrastructure_components) + len(result.deployment_environments)
+                filtered_count = len(
+                    filtered_containers) + len(filtered_components) + len(filtered_environments)
+                self.config.logger.debug(
+                    f"Confidence filtering: {original_count} -> {filtered_count} findings")
+
+                return [filtered_result]
+
             return [result]
 
         except Exception as e:
@@ -161,6 +194,16 @@ class InfrastructureDiscoveryWorkflow(ChunkProcessingMixin, Workflow[Infrastruct
         try:
             self.config.logger.info("Starting Infrastructure Discovery workflow")
 
+            # Determine confidence threshold
+            confidence_threshold = input.confidence_threshold
+            if confidence_threshold is None:
+                # Convert integer confidence (1-10) to float (0.0-1.0)
+                confidence_threshold = convert_int_confidence_to_float(
+                    self.config.confidence)
+
+            self.config.logger.info(
+                f"Using confidence threshold: {confidence_threshold}")
+
             # 1. Setup project input using mixin utility
             project = self.setup_project_input(input)
 
@@ -173,7 +216,12 @@ class InfrastructureDiscoveryWorkflow(ChunkProcessingMixin, Workflow[Infrastruct
 
                 # 2. Create a closure that captures workflow parameters
                 async def chunk_processor(chunk: CodeChunk) -> list[InfrastructureAnalysisResult]:
-                    return await self._process_single_chunk(chunk, input.focus_environments, input.include_secrets)
+                    return await self._process_single_chunk(
+                        chunk,
+                        input.focus_environments,
+                        input.include_secrets,
+                        confidence_threshold
+                    )
 
                 # 3. Process chunks concurrently using mixin utility
                 chunk_results = await self.process_chunks_concurrently(

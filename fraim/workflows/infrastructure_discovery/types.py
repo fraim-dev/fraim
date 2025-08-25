@@ -7,7 +7,7 @@ Infrastructure Discovery Types
 Pydantic models and dataclasses for infrastructure discovery workflow.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Annotated, Any
 
 from pydantic import BaseModel, Field
@@ -88,9 +88,14 @@ class InfrastructureDiscoveryInput(ChunkWorkflowInput):
 
     focus_environments: Annotated[
         list[str] | None, {"help": "Specific environments to focus on (e.g., production, staging, development)"}
-    ] = None
+    ] = field(default_factory=lambda: ["production", "prod", "live"])
 
     include_secrets: Annotated[bool, {"help": "Include analysis of environment variables and secrets"}] = True
+
+    confidence_threshold: Annotated[
+        float | None,
+        {"help": "Minimum confidence threshold (0.0-1.0) for filtering infrastructure findings. If None, uses config.confidence converted to float"}
+    ] = None
 
 
 @dataclass
@@ -99,3 +104,4 @@ class AgentInput:
 
     code: CodeChunk
     config: Config
+    focus_environments: list[str] | None = None

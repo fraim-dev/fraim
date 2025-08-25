@@ -50,6 +50,18 @@ class SynthesisUtils:
                 elif isinstance(instances, dict):
                     count += 1
 
+        # Count container configs
+        if "container_configs" in infrastructure:
+            container_configs = infrastructure["container_configs"]
+            if isinstance(container_configs, list):
+                count += len(container_configs)
+
+        # Count infrastructure components
+        if "infrastructure_components" in infrastructure:
+            components = infrastructure["infrastructure_components"]
+            if isinstance(components, list):
+                count += len(components)
+
         return count
 
     def _count_api_components(self, api_interfaces: Dict[str, Any]) -> int:
@@ -95,15 +107,29 @@ class SynthesisUtils:
         components = set()
 
         # Extract from infrastructure
-        if results.infrastructure and "deployment_topology" in results.infrastructure:
-            topology = results.infrastructure["deployment_topology"]
-            for component_type, instances in topology.items():
-                if isinstance(instances, list):
-                    for instance in instances:
-                        if isinstance(instance, dict) and "name" in instance:
-                            components.add(instance["name"])
-                elif isinstance(instances, dict) and "name" in instances:
-                    components.add(instances["name"])
+        if results.infrastructure:
+            # Extract from deployment topology
+            if "deployment_topology" in results.infrastructure:
+                topology = results.infrastructure["deployment_topology"]
+                for component_type, instances in topology.items():
+                    if isinstance(instances, list):
+                        for instance in instances:
+                            if isinstance(instance, dict) and "name" in instance:
+                                components.add(instance["name"])
+                    elif isinstance(instances, dict) and "name" in instances:
+                        components.add(instances["name"])
+
+            # Extract from container configs
+            if "container_configs" in results.infrastructure:
+                for config in results.infrastructure["container_configs"]:
+                    if isinstance(config, dict) and "container_name" in config:
+                        components.add(config["container_name"])
+
+            # Extract from infrastructure components
+            if "infrastructure_components" in results.infrastructure:
+                for comp in results.infrastructure["infrastructure_components"]:
+                    if isinstance(comp, dict) and "name" in comp:
+                        components.add(comp["name"])
 
         # Extract from API interfaces
         if results.api_interfaces:

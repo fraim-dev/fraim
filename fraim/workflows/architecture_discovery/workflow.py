@@ -20,6 +20,7 @@ from fraim.workflows.registry import workflow
 from fraim.workflows.utils.write_json_output import write_json_output
 
 from .component_discovery import ComponentDiscoveryExecutor
+from .unified_component_discovery import UnifiedComponentDiscoveryExecutor
 from .data_flow_analyzer import DataFlowAnalyzer
 from .diagram_generator import ArchitectureDiagramGenerator
 from .external_integrations import ExternalIntegrationAnalyzer
@@ -31,16 +32,15 @@ from .types import ArchitectureDiscoveryInput, ComponentDiscoveryResults
 @workflow("architecture_discovery")
 class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dict[str, Any]]):
     """
-    Orchestrates Infrastructure Discovery and API Interface Discovery to create
-    comprehensive system architecture analysis.
+    Orchestrates unified architecture discovery following proper architectural analysis sequence.
 
-    This workflow:
-    1. Runs infrastructure_discovery and api_interface_discovery in parallel
-    2. Synthesizes results into complete architecture view
-    3. Maps data flows between discovered components
-    4. Identifies trust boundaries and external integrations
-    5. Generates architecture diagrams
-    6. Writes category-based output files for each analysis type
+    This workflow follows the improved architectural approach:
+    1. **Unified Component Discovery**: Identifies ALL system components (infrastructure + API interfaces) 
+    2. **Data Flow Analysis**: Maps data flows between the identified unified components
+    3. **Trust Boundary Analysis**: Groups unified components into trust boundaries based on data flows
+    4. **External Integration Analysis**: Identifies external system integrations
+    5. **Architecture Diagram Generation**: Creates comprehensive architecture diagrams  
+    6. **Structured Output**: Writes category-based output files for each analysis type
     """
 
     def __init__(self, config: Config, *args: Any, **kwargs: Any) -> None:
@@ -50,7 +50,8 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
         self.output_subdir: Optional[str] = None
 
         # Initialize analyzer components
-        self.component_executor = ComponentDiscoveryExecutor(config)
+        self.component_discovery_executor = ComponentDiscoveryExecutor(config)
+        self.unified_component_executor = UnifiedComponentDiscoveryExecutor(config)
         self.data_flow_analyzer = DataFlowAnalyzer(config)
         self.external_analyzer = ExternalIntegrationAnalyzer(config)
         self.trust_analyzer = TrustBoundaryAnalyzer(config)
@@ -83,10 +84,10 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
             # Create organized output subdirectory
             self._create_output_subdirectory()
 
-            # Phase 1: Parallel Component Discovery
+            # Phase 1: Unified Component Discovery - Identify ALL system components
             await self._execute_component_discovery(input)
 
-            # Phase 2: Architecture Synthesis
+            # Phase 2: Sequential Architecture Synthesis - Data flows → Trust boundaries → External integrations
             await self._execute_architecture_synthesis(input)
 
             # Phase 3: Write Category-Based Output Files
@@ -100,6 +101,12 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
                 "data_flows": self.results.data_flows or [],
                 "external_integrations": self.results.external_integrations or [],
                 "trust_boundaries": self.results.trust_boundaries or [],
+                "unified_components": {
+                    "components": [comp.__dict__ for comp in self.results.unified_components.components] if self.results.unified_components else [],
+                    "relationships": self.results.unified_components.component_relationships if self.results.unified_components else [],
+                    "summary": self.results.unified_components.summary if self.results.unified_components else {}
+                },
+                # Legacy component structure for backwards compatibility
                 "components": {
                     "infrastructure": self.results.infrastructure or {},
                     "api_interfaces": self.results.api_interfaces or {},
@@ -112,30 +119,58 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
             raise
 
     async def _execute_component_discovery(self, input: ArchitectureDiscoveryInput) -> None:
-        """Execute Phase 1: Parallel Component Discovery."""
+        """Execute Phase 1: Component Discovery and Unification."""
 
-        self.config.logger.info("Starting Phase 1: Component Discovery")
+        self.config.logger.info("Starting Phase 1: Component Discovery and Unification")
 
-        # Use the component discovery executor
-        self.results = await self.component_executor.execute_component_discovery(input)
+        # Step 1: Run infrastructure and API discovery workflows in parallel
+        self.config.logger.info("Step 1.1: Running infrastructure and API discovery workflows")
+        raw_discovery_results = await self.component_discovery_executor.execute_component_discovery(input)
 
-        self.config.logger.info("Phase 1: Component Discovery completed")
+        # Step 1.2: Transform raw results into unified components
+        self.config.logger.info("Step 1.2: Transforming results into unified components")
+        unified_results = await self.unified_component_executor.execute_unified_component_discovery(
+            input,
+            infrastructure_data=raw_discovery_results.infrastructure,
+            api_interfaces_data=raw_discovery_results.api_interfaces
+        )
+
+        # Combine all results
+        self.results = unified_results
+
+        self.config.logger.info("Phase 1: Component Discovery and Unification completed")
 
     async def _execute_architecture_synthesis(self, input: ArchitectureDiscoveryInput) -> None:
-        """Execute Phase 2: Architecture Synthesis."""
+        """Execute Phase 2: Sequential Architecture Synthesis."""
 
-        self.config.logger.info("Starting Phase 2: Architecture Synthesis")
+        self.config.logger.info(
+            "Starting Phase 2: Sequential Architecture Synthesis")
 
-        # Synthesize component results using analyzer classes (excluding diagram generation)
-        synthesis_tasks = [
-            self._synthesize_data_flows(input),
-            self._synthesize_external_integrations(input),
-            self._synthesize_trust_boundaries(input),
-        ]
+        # Ensure we have unified components to work with
+        if not self.results.unified_components or not self.results.unified_components.components:
+            self.config.logger.warning(
+                "No unified components found - skipping synthesis")
+            return
 
-        await asyncio.gather(*synthesis_tasks)
+        # Follow proper architectural sequence: data flows → trust boundaries → external integrations
 
-        self.config.logger.info("Phase 2: Architecture Synthesis completed")
+        # Step 1: Analyze data flows between unified components
+        self.config.logger.info(
+            "Step 1: Analyzing data flows between unified components")
+        await self._synthesize_data_flows(input)
+
+        # Step 2: Group components into trust boundaries (uses data flow information)
+        self.config.logger.info(
+            "Step 2: Grouping components into trust boundaries")
+        await self._synthesize_trust_boundaries(input)
+
+        # Step 3: Identify external system integrations
+        self.config.logger.info(
+            "Step 3: Identifying external system integrations")
+        await self._synthesize_external_integrations(input)
+
+        self.config.logger.info(
+            "Phase 2: Sequential Architecture Synthesis completed")
 
     async def _synthesize_architecture_diagram(self, input: ArchitectureDiscoveryInput) -> None:
         """Synthesize complete architecture diagram from component discoveries."""
@@ -154,10 +189,6 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
 
     async def _synthesize_data_flows(self, input: ArchitectureDiscoveryInput) -> None:
         """Synthesize data flows between discovered components."""
-
-        if not input.include_data_flows:
-            self.results.data_flows = []
-            return
 
         self.config.logger.info("Synthesizing data flows")
 
@@ -190,15 +221,6 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
 
     async def _synthesize_trust_boundaries(self, input: ArchitectureDiscoveryInput) -> None:
         """Synthesize trust boundaries from component analysis."""
-
-        self.config.logger.info(
-            f"Trust boundary synthesis called. include_trust_boundaries={input.include_trust_boundaries}"
-        )
-
-        if not input.include_trust_boundaries:
-            self.config.logger.info("Trust boundaries disabled, skipping")
-            self.results.trust_boundaries = []
-            return
 
         self.config.logger.info("Synthesizing trust boundaries")
 
@@ -244,6 +266,9 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
 
             # Write component data (JSON)
             await self._write_component_data()
+
+            # Write deployment environments (JSON)
+            await self._write_deployment_environments()
 
             # Write metadata summary (JSON)
             await self._write_metadata_summary(input.diagram_format)
@@ -357,11 +382,17 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
             self.config.logger.error(f"Error writing trust boundaries: {str(e)}")
 
     async def _write_component_data(self) -> None:
-        """Write component discovery data to JSON file."""
+        """Write component discovery data to JSON file, excluding deployment environments."""
         try:
+            # Create infrastructure data without deployment_environments
+            infrastructure_data = {}
+            if self.results.infrastructure:
+                infrastructure_data = {k: v for k, v in self.results.infrastructure.items()
+                                       if k != "deployment_environments"}
+
             components_data = {
                 "components": {
-                    "infrastructure": self.results.infrastructure or {},
+                    "infrastructure": infrastructure_data,
                     "api_interfaces": self.results.api_interfaces or {},
                 },
                 "summary": {
@@ -384,6 +415,37 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
         except Exception as e:
             self.config.logger.error(f"Error writing component data: {str(e)}")
 
+    async def _write_deployment_environments(self) -> None:
+        """Write deployment environments to separate JSON file."""
+        try:
+            # Extract deployment environments from infrastructure results
+            environments = []
+            if self.results.infrastructure and "deployment_environments" in self.results.infrastructure:
+                environments = self.results.infrastructure["deployment_environments"]
+
+            deployment_env_data = {
+                "deployment_environments": environments,
+                "summary": {
+                    "total_environments": len(environments),
+                    "environment_names": [env.get("name", "unknown") for env in environments if isinstance(env, dict)],
+                    "namespaces": list(set(env.get("namespace") for env in environments
+                                           if isinstance(env, dict) and env.get("namespace"))),
+                },
+            }
+
+            write_json_output(
+                results=deployment_env_data,
+                workflow_name="deployment_environments",
+                config=self.config,
+                custom_filename="deployment_environments.json",
+                include_timestamp=False,
+                output_dir=self.output_subdir,
+            )
+
+        except Exception as e:
+            self.config.logger.error(
+                f"Error writing deployment environments: {str(e)}")
+
     async def _write_metadata_summary(self, diagram_format: str) -> None:
         """Write metadata summary to JSON file."""
         try:
@@ -400,6 +462,9 @@ class ArchitectureDiscoveryOrchestrator(Workflow[ArchitectureDiscoveryInput, Dic
                         "trust_boundaries": self.results.trust_boundaries is not None
                         and len(self.results.trust_boundaries) > 0,
                         "components": True,  # Always written
+                        "deployment_environments": self.results.infrastructure is not None
+                        and "deployment_environments" in self.results.infrastructure
+                        and len(self.results.infrastructure["deployment_environments"]) > 0,
                     }
                 }
             )

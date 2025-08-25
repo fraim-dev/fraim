@@ -9,6 +9,8 @@ workflows with proper error handling and result processing.
 """
 
 import asyncio
+import json
+import os
 from typing import Any, Dict, List
 
 from fraim.config import Config
@@ -39,6 +41,18 @@ class ComponentDiscoveryExecutor:
 
     async def _execute_infrastructure_discovery(self, input: ArchitectureDiscoveryInput) -> Dict[str, Any]:
         """Execute infrastructure_discovery workflow to map deployment topology."""
+
+        # Check if file override is provided
+        if input.infrastructure_file and os.path.exists(input.infrastructure_file):
+            self.config.logger.info(f"Loading infrastructure results from file: {input.infrastructure_file}")
+            try:
+                with open(input.infrastructure_file, 'r', encoding='utf-8') as f:
+                    results = json.load(f)
+                self.config.logger.info("Successfully loaded infrastructure discovery results from file")
+                return results
+            except Exception as e:
+                self.config.logger.error(f"Failed to load infrastructure file {input.infrastructure_file}: {str(e)}")
+                return {"error": f"Failed to load file: {str(e)}"}
 
         self.config.logger.info("Executing infrastructure discovery workflow")
 
@@ -88,6 +102,18 @@ class ComponentDiscoveryExecutor:
 
     async def _execute_api_interface_discovery(self, input: ArchitectureDiscoveryInput) -> Dict[str, Any]:
         """Execute api_interface_discovery workflow to map service contracts."""
+
+        # Check if file override is provided
+        if input.api_interfaces_file and os.path.exists(input.api_interfaces_file):
+            self.config.logger.info(f"Loading API interfaces results from file: {input.api_interfaces_file}")
+            try:
+                with open(input.api_interfaces_file, 'r', encoding='utf-8') as f:
+                    results = json.load(f)
+                self.config.logger.info("Successfully loaded API interface discovery results from file")
+                return results
+            except Exception as e:
+                self.config.logger.error(f"Failed to load API interfaces file {input.api_interfaces_file}: {str(e)}")
+                return {"error": f"Failed to load file: {str(e)}"}
 
         self.config.logger.info("Executing API interface discovery workflow")
 
