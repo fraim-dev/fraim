@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from typing import Annotated, Any, List, Optional
 
 from fraim.config import Config
-from fraim.core.contextuals import CodeChunk
+from fraim.core.contextuals import CodeChunk, CodeChunkFailure
 from fraim.core.llms.litellm import LiteLLM
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
@@ -89,6 +89,7 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
 
         # Initialize LLM and scanner step immediately
         self.llm = LiteLLM.from_config(self.config)
+        self.failed_chunks: list[CodeChunkFailure] = []
         scanner_parser = PydanticOutputParser(sarif.RunResults)
         self.scanner_step: LLMStep[SASTInput, sarif.RunResults] = LLMStep(
             self.llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser
@@ -171,6 +172,7 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
             return high_confidence_triaged_vulns
 
         except Exception as e:
+            self.failed_chunks.append(CodeChunkFailure(chunk=chunk, reason=str(e)))
             self.config.logger.error(
                 f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {str(e)}. "
                 "Skipping this chunk and continuing with scan."
@@ -198,6 +200,7 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
                 repo_name=self.project.repo_name,
                 output_dir=self.config.output_dir,
                 logger=self.config.logger,
+                failed_chunks=self.failed_chunks,
             )
 
             return results
