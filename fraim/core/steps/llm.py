@@ -125,7 +125,17 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
         # At this point, choice is guaranteed to be of type Choices
         message_content = choice.message.content
         if message_content is None:
-            raise ValueError("Message content is None")
+            # Setting message_content to empty string will always fail to parse, which will trigger a retry.
+            #
+            # The model API _should_ always return a message here, but the Gemini API (as of August 2025)
+            # sometimes does not.
+            #
+            # See the similar issues reported other projects:
+            # gemini-cli: https://github.com/google-gemini/gemini-cli/issues/6306
+            # n8n: https://github.com/n8n-io/n8n/issues/18481
+            #
+            # If/when the Gemini API is fixed, consider removing this workaround.
+            message_content = ""
 
         context = ParseContext(llm=self.llm, messages=messages)
         return await self.parser.parse(message_content, context=context)
