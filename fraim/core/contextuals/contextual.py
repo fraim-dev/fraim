@@ -43,7 +43,7 @@ class Locations(list[Location]):
 
 
     def __str__(self):
-        return ', '.join(map(str, iter(self.self)))
+        return ', '.join([str(l) for l in self])
 
 class Contextual(Protocol, Generic[T]):
     """A piece of content with a contextual description.

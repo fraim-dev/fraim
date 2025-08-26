@@ -67,6 +67,7 @@ class Local(Input):
 
         seen = set()
         for subpath in self.paths:
+            subpath = Path(subpath)
             self.config.logger.info(
                 f"Scanning local files: {subpath}, with globs: {self.globs}, exclude globs: {self.exclude_globs}"
             )
