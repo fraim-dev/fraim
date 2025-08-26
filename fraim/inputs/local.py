@@ -78,7 +78,6 @@ class Local(Input):
                 for path in paths:
                     if any(path.match(exclude) for exclude in self.exclude_globs):
                         self.config.logger.debug(f"Skipping excluded file: {path}")
-                        yield Input(path.relative_to(self.root_path), path.read_text(encoding="utf-8"))
                     else:
                         # Skip file if not a file
                         if not path.is_file():
