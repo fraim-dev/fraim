@@ -56,7 +56,6 @@ class Config:
         self.max_iterations = max_iterations
         self.temperature = temperature
         self.confidence = confidence
-        self.project_path = project_path
         self.logger = logger
 
     def _get_provider_from_model(self, model: str) -> str:

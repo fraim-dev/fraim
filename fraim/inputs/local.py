@@ -9,8 +9,6 @@ from typing import Iterator, List, Optional, Type
 from typing_extensions import Self
 
 from fraim.config.config import Config
-from fraim.core.contextuals import CodeChunk
-from fraim.inputs.chunks import chunk_input
 from fraim.inputs.file import File
 from fraim.inputs.input import Input
 
@@ -97,7 +95,7 @@ class Local(Input):
                             self.config.logger.info(f"Reading file: {path}")
                             # TODO: Avoid reading files that are too large?
                             yield File(
-                                os.path.relpath(path, self.config.project_path), path.read_text(encoding="utf-8")
+                                os.path.relpath(path, self.root_path), path.read_text(encoding="utf-8")
                             )
 
                             # Add file to set of seen files, exit early if maximum reached.
