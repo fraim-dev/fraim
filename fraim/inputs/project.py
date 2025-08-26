@@ -58,7 +58,7 @@ class ProjectInput:
         if path_or_url.startswith("http://") or path_or_url.startswith("https://") or path_or_url.startswith("git@"):
             self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
             # TODO: git diff here?
-            self.input = GitRemote(self.config, url=path_or_url, paths=paths, globs=globs, exclude_globs=exclude_globs,  limit=limit, prefix="fraim_scan_")
+            self.input = GitRemote(self.config, url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_", exclude_globs=exclude_globs, paths=paths)
             self.project_path = self.input.root_path()
         else:
             # Fully resolve the path to the project
@@ -66,10 +66,10 @@ class ProjectInput:
             self.repo_name = os.path.basename(self.project_path)
             if self.diff:
                 self.input = GitDiff(
-                    self.config, self.project_path, head=self.head, base=self.base, globs=globs, exclude_globs=exclude_globs, limit=limit
+                    self.config, self.project_path, head=self.head, base=self.base, globs=globs, limit=limit, exclude_globs=exclude_globs,
                 )
             else:
-                self.input = Local(self.config, self.project_path, paths=paths, globs=globs, limit=limit)
+                self.input = Local(self.config, self.project_path, globs=globs, limit=limit, exclude_globs=exclude_globs, paths=paths)
 
         chunker_class = get_chunking_class(self.chunking_method)
 

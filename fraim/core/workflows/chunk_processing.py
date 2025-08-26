@@ -33,7 +33,7 @@ class ChunkWorkflowInput(WorkflowInput):
         Optional[List[str]], {"help": "Optionally limit scanning to these paths (relative to `--location`)"}
     ] = None
     chunk_size: Annotated[Optional[int], {"help": "Number of characters per chunk"}] = 10_000
-    chunk_overlap: Annotated[Optional[int], {"help": "Number of characters of overlap per chunk"}] = 1000
+    chunk_overlap: Annotated[Optional[int], {"help": "Number of characters of overlap per chunk"}] = 1_000
     limit: Annotated[Optional[int], {"help": "Limit the number of files to scan"}] = None
     globs: Annotated[
         Optional[List[str]],
@@ -45,6 +45,14 @@ class ChunkWorkflowInput(WorkflowInput):
     ] = None
     max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
 
+    diff: Annotated[
+        bool,
+        {
+            "help": (
+                "Whether to use git diff input. If --head and --base are not specified, the working tree is scanned."
+            )
+        },
+    ] = False
     chunking_method: Annotated[
         str, {
             "help": "Method to use for chunking code files",
@@ -99,8 +107,13 @@ class ChunkProcessingMixin:
         exclude_effective_globs = input.exclude_globs if input.exclude_globs is not None else self.exclude_file_patterns
 
         kwargs = SimpleNamespace(
-            location=input.location, globs=effective_globs, exclude_globs=exclude_effective_globs, limit=input.limit,
-            chunk_size=input.chunk_size, chunk_overlap=input.chunk_overlap, paths=input.paths,
+            location=input.location,
+            globs=effective_globs,
+            exclude_globs=exclude_effective_globs,
+            limit=input.limit,
+            chunk_size=input.chunk_size,
+            chunk_overlap=input.chunk_overlap,
+            paths=input.paths,
             chunking_method=input.chunking_method,
         )
         return ProjectInput(config=self.config, kwargs=kwargs)

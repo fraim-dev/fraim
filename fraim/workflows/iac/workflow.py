@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Annotated, Any, List, Optional
 
 from fraim.config import Config
-from fraim.core.contextuals import CodeChunk
+from fraim.core.contextuals import CodeChunk, Contextual
 from fraim.core.llms.litellm import LiteLLM
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
@@ -67,7 +67,7 @@ class IaCInput(ChunkWorkflowInput):
 class IaCCodeChunkInput:
     """Input for processing a single IaC chunk."""
 
-    code: CodeChunk
+    code: Contextual[str]
     config: Config
 
 
@@ -92,11 +92,11 @@ class IaCWorkflow(ChunkProcessingMixin, Workflow[IaCInput, List[sarif.Result]]):
         """IaC file patterns."""
         return FILE_PATTERNS
 
-    async def _process_single_chunk(self, chunk: CodeChunk) -> List[sarif.Result]:
+    async def _process_single_chunk(self, chunk: Contextual[str]) -> List[sarif.Result]:
         """Process a single chunk with error handling."""
         try:
             # 1. Scan the code for vulnerabilities.
-            self.config.logger.info(f"Scanning code for vulnerabilities: {Path(chunk)}")
+            self.config.logger.info(f"Scanning code for vulnerabilities: {str(chunk.locations)}")
             iac_input = IaCCodeChunkInput(code=chunk, config=self.config)
             vulns = await self.scanner_step.run(iac_input)
 
@@ -107,7 +107,8 @@ class IaCWorkflow(ChunkProcessingMixin, Workflow[IaCInput, List[sarif.Result]]):
             return high_confidence_vulns
         except Exception as e:
             self.config.logger.error(
-                f"Failed to process chunk {chunk}: {str(e)}. Skipping this chunk and continuing with scan."
+                f"Failed to process chunk {str(chunk.locations)}: {str(e)}. "
+                "Skipping this chunk and continuing with scan."
             )
             return []
 

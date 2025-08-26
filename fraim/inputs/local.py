@@ -22,8 +22,8 @@ class Local(Input):
         root_path: Path,
         paths: Optional[list[str]] = None,
         globs: Optional[List[str]] = None,
-        exclude_globs: Optional[List[str]] = None,
         limit: Optional[int] = None,
+        exclude_globs: Optional[List[str]] = None,
     ):
         self.config = config
         self.root_path = root_path
@@ -65,7 +65,6 @@ class Local(Input):
     def __iter__(self) -> Iterator[CodeChunk]:
         self.config.logger.info(f"Scanning local files: {self.path}, with globs: {self.globs}")
 
-    def _files(self) -> Iterator[Input]:
         seen = set()
         for subpath in self.paths:
             self.config.logger.info(

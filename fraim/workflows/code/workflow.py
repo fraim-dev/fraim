@@ -138,14 +138,6 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
     @property
     def triager_step(self) -> LLMStep[TriagerInput, sarif.Result]:
         """Lazily initialize the triager step."""
-        if self._triager_step is None:
-            if (
-                not hasattr(self, "project")
-                or not self.project
-                or not hasattr(self.project, "project_path")
-                or self.project.project_path is None
-            ):
-                raise ValueError("project_path must be set before accessing triager_step")
 
         # No locking required if step already exists
         step = self._triager_step
@@ -214,10 +206,12 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
             return high_confidence_triaged_vulns
 
         except Exception as e:
-            self.config.logger.exception(
-                f"Failed to process chunk {str(chunk)}: {str(e)}. Skipping this chunk and continuing with scan."
+            self.config.logger.error(
+                f"Failed to process chunk {str(chunk.locations)}: {str(e)}. "
+                "Skipping this chunk and continuing with scan."
             )
             return []
+
 
     async def workflow(self, input: CodeInput) -> List[sarif.Result]:
         """Main Code workflow - full control over execution with multi-step processing."""

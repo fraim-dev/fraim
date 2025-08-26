@@ -1,8 +1,11 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
+import itertools
 
-from fraim.core.contextuals.contextual import Contextual
+from fraim.core.contextuals.contextual import Contextual, Location, Locations
 
+
+# TODO: Consider CodeDiff, other types of Contextuals
 class CodeChunk(Contextual[str]):
     """Concrete implementation of Contextual for code snippets"""
 
@@ -20,6 +23,16 @@ class CodeChunk(Contextual[str]):
     def description(self, _: str) -> None:
         raise AttributeError("description is read-only")
 
+    @property
+    def locations(self) -> Locations:
+        return Locations(
+            Location(
+                file_path=self.file_path,
+                line_number_start_inclusive=self.line_number_start_inclusive,
+                line_number_end_inclusive=self.line_number_end_inclusive,
+            )
+        )
+
     def __str__(self) -> str:
         return f'<code_chunk file_path="{self.file_path}" line_number_start_inclusive="{self.line_number_start_inclusive}" line_number_end_inclusive="{self.line_number_end_inclusive}">\n{self.content}\n</code_chunk>'
 
@@ -32,13 +45,19 @@ class CodeChunks(list[CodeChunk], Contextual[str]):
         all_files = all_files or []
         super().__init__(all_files)
 
-
     @property
     def file_paths(self) -> list[str]:
         return list(set([c.file_path for c in self]))
 
+    @property
+    def locations(self) -> Locations:
+        locations = Locations()
+        for chunk in self:
+            locations = locations + chunk.locations
+        return locations
+
     def __str__(self) -> str:
-        return f"<files>{'\n'.join(str(chunk) for chunk in self)}</files>"
+        return f"<code_chunks>{'\n'.join(str(chunk) for chunk in self)}</code_chunks>"
 
     def __repr__(self):
         return str(self)

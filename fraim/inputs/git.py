@@ -29,7 +29,7 @@ class GitRemote(Input):
         self.exclude_globs = exclude_globs
         self.limit = limit
         self.tempdir = TemporaryDirectory(prefix=prefix)
-        self.path = Path(self.tempdir.name)
+        self.path = self.tempdir.name
 
     def root_path(self) -> str:
         return Path(self.path).absolute().name
@@ -47,7 +47,7 @@ class GitRemote(Input):
 
         # Clone remote repository to a local directory, delegate to file iterator.
         self._clone_to_path()
-        for chunk in Local(self.config, self.path, self.globs, self.exclude_globs, self.limit):
+        for chunk in Local(self.config, self.path, self.globs, self.limit, self.exclude_globs):
             yield chunk
 
     def _clone_to_path(self) -> None:
