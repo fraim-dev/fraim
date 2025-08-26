@@ -2,7 +2,7 @@
 # Copyright (c) 2025 Resourcely Inc.
 
 from textwrap import dedent
-from typing import Any, Callable, ClassVar, List, Optional, Self, Type
+from typing import Any, Callable, ClassVar, Iterator, List, Optional, Self, Type
 
 from mcp_server_tree_sitter.api import (  # type: ignore[import-untyped]
     get_language_registry,
@@ -80,6 +80,9 @@ class TreeSitterTools:
             QueryCodeTool.create(self.project),
             SearchTextTool.create(self.project),
         ]
+
+    def __iter__(self) -> Iterator[BaseTool]:
+        return iter(self.tools)
 
 
 class TreeSitterBaseTool(BaseTool):
