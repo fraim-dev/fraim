@@ -235,6 +235,24 @@ def create_result_model(allowed_types: Optional[List[str]] = None) -> type[Resul
 
     return RestrictedResult
 
+def create_run_model(allowed_types: Optional[List[str]] = None) -> type[Run]:
+    """
+    Factory function to create a Run model with a restricted set of vulnerability types.
+
+    Args:
+        allowed_types: A list of strings representing the allowed vulnerability types.
+                       If None or empty, the default Run model with a string type is returned.
+
+    Returns:
+        A Pydantic model class for Run, with ResultProperties.type restricted to an enum
+        if allowed_types is provided.
+    """
+    RestrictedResultModel = create_result_model(allowed_types)
+
+    class RestrictedRun(Run):
+        results: List[RestrictedResultModel] = Field(description="The set of results contained in a SARIF log.")
+
+    return RestrictedRun
 
 def create_sarif_report(
         results: List[Result],

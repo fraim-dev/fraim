@@ -1,10 +1,7 @@
-from pathlib import Path
-
-from fraim.core.contextuals import CodeChunk
 from fraim.inputs.chunkers.file import FileChunker
-from fraim.inputs.chunkers.tests.lib import InMemory
 import logging
 
+from fraim.inputs.chunkers.tests.lib import InMemory
 from fraim.inputs.file import File
 
 log = logging.getLogger(__name__)
