@@ -9,7 +9,7 @@ from typing_extensions import Self
 from fraim.config import Config
 from fraim.core.contextuals import CodeChunk
 from fraim.inputs.chunks import chunk_input
-from fraim.inputs.file import BufferedFile
+from fraim.inputs.file import File
 from fraim.inputs.input import Input
 
 
@@ -22,7 +22,7 @@ class StandardInput(Input):
         return "stdin"
 
     def __iter__(self) -> Iterator[CodeChunk]:
-        for chunk in chunk_input(BufferedFile("stdin", self.body), chunk_size=128):
+        for chunk in chunk_input(File("stdin", self.body), chunk_size=128):
             yield chunk
 
     def __enter__(self) -> Self:

@@ -13,8 +13,6 @@ import threading
 from dataclasses import dataclass, field
 from typing import Annotated, Any, List, Optional
 
-from refraim.lib import create_result_model
-
 from fraim.config import Config
 from fraim.core.contextuals import CodeChunk, Contextual
 from fraim.core.llms.litellm import LiteLLM
@@ -28,7 +26,7 @@ from fraim.util.pydantic import merge_models
 from fraim.workflows.registry import workflow
 from fraim.workflows.utils import filter_results_by_confidence, write_sarif_and_html_report
 
-from ...outputs.sarif import create_run_result_model
+from ...outputs.sarif import create_run_result_model, create_result_model
 from . import triage_sarif_overlay
 
 FILE_PATTERNS = [
@@ -94,7 +92,7 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
 
         # Initialize LLM and scanner step immediately
         self.llm = LiteLLM.from_config(self.config)
-        SASTWorkflowRunResults = create_run_result_model(
+        sast_workflow_run_results_class = create_result_model(
             allowed_types=[
                 "SQL Injection",
                 "XSS",
@@ -113,8 +111,8 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
                 "Insufficient Logging",
             ],
         )
-        scanner_parser = PydanticOutputParser(SASTWorkflowRunResults)
-        self.scanner_step: LLMStep[SASTInput, SASTWorkflowRunResults] = LLMStep(
+        scanner_parser = PydanticOutputParser(sast_workflow_run_results_class)
+        self.scanner_step: LLMStep[SASTInput, sast_workflow_run_results_class] = LLMStep(
             self.llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser
         )
 

@@ -1,15 +1,20 @@
 from pathlib import Path
 
+from fraim.core.contextuals import CodeChunk
 from fraim.inputs.chunkers.file import FileChunker
 from fraim.inputs.chunkers.tests.lib import InMemory
-from fraim.inputs.files import File
+import logging
+
+from fraim.inputs.file import File
+
+log = logging.getLogger(__name__)
 
 
 def test_file_chunker():
     """Test that NoneChunker yields the whole project as a single chunk."""
-    files = InMemory(File(path=Path("file1.py"), body="print('Hello, World!')"), root_path="/project")
+    files = InMemory(File(path="file1.py", body="print('Hello, World!')"), root_path="/project")
 
-    chunker = FileChunker(files=files, chunk_size=100, logger=None)
+    chunker = FileChunker(files=files, chunk_size=100, logger=log)
 
     chunks = list(chunker)
 

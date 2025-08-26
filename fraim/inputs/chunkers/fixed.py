@@ -1,17 +1,15 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 import re
-from abc import abstractproperty, abstractmethod
+from abc import abstractmethod
 from bisect import bisect_right
 from typing import Iterator
 
-from langchain_core.documents import BaseDocumentTransformer
-from langchain_text_splitters import CharacterTextSplitter, RecursiveCharacterTextSplitter, Tokenizer, \
-    TokenTextSplitter, TextSplitter
+from langchain_text_splitters import CharacterTextSplitter, RecursiveCharacterTextSplitter, TextSplitter
 
 from fraim.core.contextuals.code import CodeChunk
 from fraim.inputs.chunkers.base import Chunker
-from fraim.inputs.files import File, Files
+from fraim.inputs.file import Files, File
 
 
 class FixedBaseChunker(Chunker):

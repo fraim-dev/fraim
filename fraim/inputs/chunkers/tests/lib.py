@@ -1,10 +1,10 @@
 from types import TracebackType
 from typing import Iterator, Optional, Self
 
-from fraim.inputs.files import File, Files
+from fraim.inputs.file import File, Files
 
 
-class InMemory(Files):
+class InMemory:
     def __init__(self, *files: File, root_path: str):
         self._files = files
         self._root_path = root_path

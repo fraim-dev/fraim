@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 
-from fraim.inputs.file import BufferedFile
+from fraim.inputs.file import File
 from typing import List, Iterator
 
 from fraim.core.contextuals.code import CodeChunk
@@ -9,7 +9,7 @@ from fraim.inputs.chunkers.base import Chunker
 
 
 class ProjectInputChunker(Chunker):
-    def __init__(self, files: List[BufferedFile], project_path: str, chunk_size: int, **kwargs) -> None:
+    def __init__(self, files: List[File], project_path: str, chunk_size: int, **kwargs) -> None:
         super().__init__(**kwargs)
         self.files = files
         self.chunk_size = chunk_size
@@ -24,7 +24,7 @@ class ProjectInputChunker(Chunker):
 
 
 # TODO: move chunking concern out of input
-def chunk_input(file: BufferedFile, chunk_size: int) -> Iterator[CodeChunk]:
+def chunk_input(file: File, chunk_size: int) -> Iterator[CodeChunk]:
     """Split file content into chunks with line numbers."""
     lines = file.body.split("\n")
 

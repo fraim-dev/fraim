@@ -1,13 +1,13 @@
+import logging
 from pathlib import Path
-from unittest.mock import MagicMock, patch, Mock
+from unittest.mock import MagicMock, patch
 
-from litellm import get_max_tokens
-
-from fraim.core.contextuals.code import CodeChunks, CodeChunk
+from fraim.core.contextuals.code import CodeChunks
 from fraim.inputs.chunkers.max_context import MaxContextChunker
 from fraim.inputs.chunkers.tests.lib import InMemory
-from fraim.inputs.files import File
+from fraim.inputs.file import File
 
+log = logging.getLogger(__name__)
 
 def test_max_content_chunker() -> None:
     """Test that NoneChunker yields the whole project as a single chunk."""
@@ -18,7 +18,7 @@ def test_max_content_chunker() -> None:
     file_2 = File(path=Path("file2.py"), body="print('Hello, from file2!')")
     files = InMemory(file_1, file_2, root_path="/project")
 
-    chunker = MaxContextChunker(files=files, model='gemini/gemini-2.5-flash', fraction=fraction, logger=None)
+    chunker = MaxContextChunker(files=files, model='gemini/gemini-2.5-flash', fraction=fraction, logger=log)
 
     chunks = list(chunker)
 
@@ -43,11 +43,11 @@ def test_max_content_chunker_overflow(mock_get_max_tokens: MagicMock) -> None:
 
     mock_get_max_tokens.return_value = 100 / fraction  # So that chunk_size becomes 100
 
-    file_1 = File(path=Path("file1.py"), body="print('Hello, from file1!')")
-    file_2 = File(path=Path("file2.py"), body="a " * 120)
+    file_1 = File(path="file1.py", body="print('Hello, from file1!')")
+    file_2 = File(path="file2.py", body="a " * 120)
     files = InMemory(file_1, file_2, root_path="/project")
 
-    chunker = MaxContextChunker(files=files, model='test', fraction=fraction, logger=None)
+    chunker = MaxContextChunker(files=files, model='test', fraction=fraction, logger=log)
 
     chunks = list(chunker)
 

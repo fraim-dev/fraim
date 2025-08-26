@@ -11,7 +11,7 @@ from typing_extensions import Self
 from fraim.config.config import Config
 from fraim.core.contextuals import CodeChunk
 from fraim.inputs.chunks import chunk_input
-from fraim.inputs.file import BufferedFile
+from fraim.inputs.file import File
 from fraim.inputs.input import Input
 
 
@@ -29,7 +29,7 @@ class Local(Input):
         self.root_path = root_path
 
         if paths:
-            self.paths = [self.root_path / p for p in paths]
+            self.paths = [Path(self.root_path) / p for p in paths]
         else:
             self.paths = [self.root_path]
 
@@ -62,8 +62,8 @@ class Local(Input):
     def root_path(self) -> str:
         return self.path
 
-    def __iter__(self) -> Iterator[CodeChunk]:
-        self.config.logger.info(f"Scanning local files: {self.path}, with globs: {self.globs}")
+    def __iter__(self) -> Iterator[File]:
+        self.config.logger.info(f"Scanning local files: {self.root_path}, with globs: {self.globs}")
 
         seen = set()
         for subpath in self.paths:
@@ -95,13 +95,9 @@ class Local(Input):
                         try:
                             self.config.logger.info(f"Reading file: {path}")
                             # TODO: Avoid reading files that are too large?
-                            file = BufferedFile(
+                            yield File(
                                 os.path.relpath(path, self.config.project_path), path.read_text(encoding="utf-8")
                             )
-
-                            # TODO: configure file chunking in the config
-                            for chunk in chunk_input(file, 100):
-                                yield chunk
 
                             # Add file to set of seen files, exit early if maximum reached.
                             seen.add(path)

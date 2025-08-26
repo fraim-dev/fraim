@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
-from pathlib import Path
-from typing import Iterator, List
+from typing import Iterator
 
 from fraim.core.contextuals.code import CodeChunk
 from fraim.inputs.chunkers.base import Chunker
-from fraim.inputs.files import Files
+from fraim.inputs.file import Files
 
 
 class FileChunker(Chunker):

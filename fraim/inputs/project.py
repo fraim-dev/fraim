@@ -3,15 +3,14 @@ from pathlib import Path
 from typing import Any, Iterator, Literal, Type
 
 from fraim.config.config import Config
+from fraim.core.contextuals import Contextual
 from fraim.core.contextuals.code import CodeChunk, CodeChunks
 from fraim.inputs.chunkers import FileChunker, MaxContextChunker
 from fraim.inputs.chunkers.base import Chunker
 
 from fraim.inputs.chunkers.fixed import FixedCharChunker, FixedTokenChunker
-from fraim.inputs.chunkers.ast_llm import LLMChunker
 from fraim.inputs.chunkers.packed_fixed import PackingFixedChunker
 from fraim.inputs.chunkers.syntactic import SyntacticChunker
-from fraim.inputs.files import Files
 from fraim.inputs.git import GitRemote
 from fraim.inputs.git_diff import GitDiff
 from fraim.inputs.input import Input
@@ -24,13 +23,12 @@ CHUNKING_METHODS = {
     "packed": PackingFixedChunker,
     "file": FileChunker,
     "project": MaxContextChunker,
-    # "llm": LLMChunker,
 }
 
 
 class ProjectInput:
     config: Config
-    input: Input
+    files: Input
     chunk_size: int
     chunk_overlap: int = 0
     project_path: str
@@ -58,30 +56,31 @@ class ProjectInput:
         if path_or_url.startswith("http://") or path_or_url.startswith("https://") or path_or_url.startswith("git@"):
             self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
             # TODO: git diff here?
-            self.input = GitRemote(self.config, url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_", exclude_globs=exclude_globs, paths=paths)
-            self.project_path = self.input.root_path()
+            self.files = GitRemote(self.config, url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_", exclude_globs=exclude_globs, paths=paths)
+            self.project_path = self.files.root_path()
         else:
             # Fully resolve the path to the project
             self.project_path = os.path.abspath(path_or_url)
             self.repo_name = os.path.basename(self.project_path)
             if self.diff:
-                self.input = GitDiff(
+                self.files = GitDiff(
                     self.config, self.project_path, head=self.head, base=self.base, globs=globs, limit=limit, exclude_globs=exclude_globs,
                 )
             else:
-                self.input = Local(self.config, self.project_path, globs=globs, limit=limit, exclude_globs=exclude_globs, paths=paths)
+                self.files = Local(self.config, self.project_path, globs=globs, limit=limit, exclude_globs=exclude_globs, paths=paths)
 
         chunker_class = get_chunking_class(self.chunking_method)
 
         self.chunker = chunker_class(
-            files=self.input,
+            files=self.files,
             project_path=self.project_path,
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
             model=self.config.model,
+            logger=self.config.logger,
         )
 
-    def __iter__(self) -> Iterator[CodeChunks | CodeChunk]:
+    def __iter__(self) -> Iterator[Contextual[str]]:
         return iter(self.chunker)
 
 

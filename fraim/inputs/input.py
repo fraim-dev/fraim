@@ -4,11 +4,12 @@
 from typing import ContextManager, Iterator, Protocol, runtime_checkable
 
 from fraim.core.contextuals import CodeChunk
+from fraim.inputs.file import File
 
 
 @runtime_checkable
 class Input(Protocol, ContextManager):
-    def __iter__(self) -> Iterator[CodeChunk]: ...
+    def __iter__(self) -> Iterator[File]: ...
 
     # TODO: Allow inputs to describe themselves
     # def describe(self) -> str: ...
