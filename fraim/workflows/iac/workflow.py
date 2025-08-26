@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Annotated, Any, List, Optional
 
 from fraim.config import Config
-from fraim.core.contextuals import CodeChunk, Contextual
+from fraim.core.contextuals import CodeChunk, CodeChunkFailure, Contextual
 from fraim.core.llms.litellm import LiteLLM
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
@@ -79,6 +79,7 @@ class IaCWorkflow(ChunkProcessingMixin, Workflow[IaCInput, List[sarif.Result]]):
         super().__init__(config, *args, **kwargs)
 
         # Construct an LLM instance
+        self.failed_chunks: list[CodeChunkFailure] = []
         llm = LiteLLM.from_config(config)
 
         # Construct the Scanner Step
@@ -106,6 +107,7 @@ class IaCWorkflow(ChunkProcessingMixin, Workflow[IaCInput, List[sarif.Result]]):
 
             return high_confidence_vulns
         except Exception as e:
+            self.failed_chunks.append(CodeChunkFailure(chunk=chunk, reason=str(e)))
             self.config.logger.error(
                 f"Failed to process chunk {str(chunk.locations)}: {str(e)}. "
                 "Skipping this chunk and continuing with scan."
@@ -131,6 +133,7 @@ class IaCWorkflow(ChunkProcessingMixin, Workflow[IaCInput, List[sarif.Result]]):
                 repo_name=project.repo_name,
                 output_dir=self.config.output_dir,
                 logger=self.config.logger,
+                failed_chunks=self.failed_chunks,
             )
 
             return results

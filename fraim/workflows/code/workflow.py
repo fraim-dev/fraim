@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from typing import Annotated, Any, List, Optional
 
 from fraim.config import Config
-from fraim.core.contextuals import CodeChunk, Contextual
+from fraim.core.contextuals import CodeChunk, CodeChunkFailure, Contextual
 from fraim.core.llms.litellm import LiteLLM
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
@@ -26,8 +26,8 @@ from fraim.util.pydantic import merge_models
 from fraim.workflows.registry import workflow
 from fraim.workflows.utils import filter_results_by_confidence, write_sarif_and_html_report
 
-from ...outputs.sarif import create_run_result_model, create_result_model
 from . import triage_sarif_overlay
+from ...outputs.sarif import create_result_model
 
 FILE_PATTERNS = [
     "*.py",
@@ -92,6 +92,7 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
 
         # Initialize LLM and scanner step immediately
         self.llm = LiteLLM.from_config(self.config)
+        self.failed_chunks: list[CodeChunkFailure] = []
         sast_workflow_run_results_class = create_result_model(
             allowed_types=[
                 "SQL Injection",
@@ -204,6 +205,7 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
             return high_confidence_triaged_vulns
 
         except Exception as e:
+            self.failed_chunks.append(CodeChunkFailure(chunk=chunk, reason=str(e)))
             self.config.logger.error(
                 f"Failed to process chunk {str(chunk.locations)}: {str(e)}. "
                 "Skipping this chunk and continuing with scan."
@@ -233,6 +235,7 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
                 repo_name=self.project.repo_name,
                 output_dir=self.config.output_dir,
                 logger=self.config.logger,
+                failed_chunks=self.failed_chunks,
             )
 
             return results

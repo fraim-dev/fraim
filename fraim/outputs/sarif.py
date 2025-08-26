@@ -5,9 +5,8 @@
 SARIF (Static Analysis Results Interchange Format) Pydantic models.
 Used for generating standardized vulnerability reports.
 """
-
 from enum import Enum
-from typing import List, Literal, Optional, Type
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -144,6 +143,39 @@ class Tool(BaseSchema):
     driver: ToolComponent = Field(description="The analysis tool that was run.")
 
 
+# A reference to a rule or notification descriptor
+class ReportingDescriptorReference(BaseSchema):
+    """Information about how to locate a relevant reporting descriptor."""
+
+    id: Optional[str] = Field(None, description="The id of the descriptor.")
+
+
+# The main Notification object schema
+class Notification(BaseSchema):
+    """Describes a condition relevant to the tool itself, as opposed to being relevant to the analysis target."""
+
+    level: ResultLevelEnum = Field(description="A value specifying the severity level of the notification.")
+    descriptor: Optional[ReportingDescriptorReference] = Field(
+        default=None,
+        description="A reference to the descriptor for this notification.",
+    )
+    message: Message = Field(..., description="A message that describes the condition.")
+    locations: List[Location] = Field(default_factory=list, description="The locations relevant to this notification.")
+
+
+class Invocation(BaseSchema):
+    """The runtime environment of a single invocation of an analysis tool."""
+
+    execution_successful: bool = Field(
+        ...,
+        description="A value indicating whether the tool's execution completed successfully.",
+    )
+
+    toolExecutionNotifications: List[Notification] = Field(
+        description="A list of notifications raised during tool execution.",
+    )
+
+
 class RunResults(BaseSchema):
     """Describes just the results of a single run of an analysis tool."""
 
@@ -155,6 +187,10 @@ class Run(RunResults):
 
     tool: Tool = Field(
         description="Information about the tool or tool pipeline that generated the results in this run. A run can only contain results produced by a single tool or tool pipeline. A run can aggregate the results from multiple log files, as long as the context around the tool run (tool command-line arguments and the like) is indentical for all aggregated files."
+    )
+
+    invocations: list[Invocation] = Field(
+        description="Describes the invocation of the analysis tool that will be merged with a separate run.",
     )
 
 
@@ -170,30 +206,7 @@ class SarifReport(BaseSchema):
     runs: List[Run] = Field(description="The set of runs contained in a SARIF log.")
 
 
-def create_run_result_model(allowed_types: Optional[List[str]] = None) -> Type[RunResults]:
-    """
-    Factory function to create a RunResults model with a restricted set of vulnerability types.
-
-    Args:
-        allowed_types: A list of strings representing the allowed vulnerability types.
-                       If None or empty, the default RunResults model with a string type is returned.
-
-    Returns:
-        A Pydantic model class for RunResults, with ResultProperties.type restricted to an enum
-        if allowed_types is provided.
-    """
-    if not allowed_types:
-        return RunResults
-
-    RestrictedResult = create_result_model(allowed_types)
-
-    class RestrictedRunResults(RunResults):
-        results: List[RestrictedResult] = Field(description="The set of results contained in a SARIF log.")
-
-    return RestrictedRunResults
-
-
-def create_result_model(allowed_types: Optional[List[str]] = None) -> Type[Result]:
+def create_result_model(allowed_types: Optional[List[str]] = None) -> type[Result]:
     """
     Factory function to create a Result model with a restricted set of vulnerability types.
 
@@ -223,15 +236,43 @@ def create_result_model(allowed_types: Optional[List[str]] = None) -> Type[Resul
     return RestrictedResult
 
 
-def create_sarif_report(results: List[Result], tool_version: str = "1.0.0") -> SarifReport:
+def create_sarif_report(
+        results: List[Result],
+        failed_chunks: list['CodeChunkFailure'],
+        tool_version: str = "1.0.0",
+) -> SarifReport:
     """
     Create a complete SARIF report from a list of results.
 
     Args:
         results: List of SARIF Result objects
+        failed_chunks: List of CodeChunkFailure objects representing chunks that failed to be analyzed
         tool_version: Version of the scanning tool
 
     Returns:
         Complete SARIF report
     """
-    return SarifReport(runs=[Run(tool=Tool(driver=ToolComponent(name="fraim", version=tool_version)), results=results)])
+    return SarifReport(
+        runs=[
+            Run(
+                tool=Tool(driver=ToolComponent(name="fraim", version=tool_version)),
+                results=results,
+                invocations=[
+                    Invocation(
+                        execution_successful=True,
+                        toolExecutionNotifications=[
+                            Notification(
+                                level="error",
+                                descriptor=ReportingDescriptorReference(id="PARSING_ERROR"),
+                                message=Message(
+                                    text=f"Code chunk could not be analyzed due to a parsing error: {failure.reason}"
+                                ),
+                                locations=failure.chunk.locations.to_sarif(),
+                            )
+                            for failure in failed_chunks
+                        ],
+                    )
+                ],
+            ),
+        ],
+    )
