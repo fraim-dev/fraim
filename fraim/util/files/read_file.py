@@ -8,9 +8,7 @@ from pathlib import Path
 from .basepath import BasePathFS
 
 
-def read_file(
-    fs: BasePathFS, target_path: str | Path, *, offset: int | None = None, limit: int | None = None
-) -> str:
+def read_file(fs: BasePathFS, target_path: str | Path, *, offset: int | None = None, limit: int | None = None) -> str:
     """Read a file with optional line-based offset and limit.
 
     Args:

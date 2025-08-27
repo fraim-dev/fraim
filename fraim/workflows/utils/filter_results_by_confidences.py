@@ -5,7 +5,6 @@
 Utilities for filtering results by confidence.
 """
 
-
 from fraim.outputs import sarif
 
 

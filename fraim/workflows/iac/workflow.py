@@ -61,7 +61,6 @@ class IaCInput(ChunkWorkflowInput):
     """Input for the IaC workflow."""
 
 
-
 @dataclass
 class IaCCodeChunkInput:
     """Input for processing a single IaC chunk."""
