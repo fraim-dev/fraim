@@ -6,49 +6,38 @@ Utilities for workflows that process code chunks with concurrent execution.
 """
 
 import asyncio
+import logging
 from abc import abstractmethod
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Annotated, Any, TypeVar
+from typing import Annotated, TypeVar
 
-from fraim.config import Config
 from fraim.core.contextuals import CodeChunk
 from fraim.inputs.project import ProjectInput
-
-from .workflow import WorkflowInput
 
 # Type variable for generic result types
 T = TypeVar("T")
 
 
 @dataclass
-class ChunkWorkflowInput(WorkflowInput):
+class ChunkProcessingOptions:
     """Base input for chunk-based workflows."""
 
-    config: Config
-    head: Annotated[str, {"help": "Git head commit for diff input"}]
-    base: Annotated[str, {"help": "Git base commit for diff input"}]
-    location: Annotated[str, {"help": "Repository URL or path to scan"}]
+    location: Annotated[str, {"help": "Repository URL or path to scan"}] = "."
     chunk_size: Annotated[int | None, {"help": "Number of lines per chunk"}] = 500
     limit: Annotated[int | None, {"help": "Limit the number of files to scan"}] = None
+    diff: Annotated[bool, {"help": "Whether to use git diff input"}] = False
+    head: Annotated[str, {"help": "Git head commit for diff input"}] = None
+    base: Annotated[str, {"help": "Git base commit for diff input"}] = None
     globs: Annotated[
         list[str] | None,
         {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
     ] = None
     max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
 
-    diff: Annotated[
-        bool,
-        {
-            "help": (
-                "Whether to use git diff input. If --head and --base are not specified, the working tree is scanned."
-            )
-        },
-    ] = False
 
-
-class ChunkProcessingMixin:
+class ChunkProcessor:
     """
     Mixin class providing utilities for chunk-based workflows.
 
@@ -60,40 +49,35 @@ class ChunkProcessingMixin:
     over their workflow() method and error handling.
     """
 
-    def __init__(self, config: Config, *args: Any, **kwargs: Any) -> None:
-        self.config = config
-        # Note: In mixins, we often don't call super().__init__()
-        # The concrete class will handle calling the base class __init__
-
     @property
     @abstractmethod
     def file_patterns(self) -> list[str]:
         """File patterns for this workflow (e.g., ['*.py', '*.js'])."""
 
-    def setup_project_input(self, input: ChunkWorkflowInput) -> ProjectInput:
+    def setup_project_input(self, logger: logging.Logger, args: ChunkProcessingOptions) -> ProjectInput:
         """
         Set up ProjectInput from workflow input.
 
         Args:
-            input: The workflow input
+            args: The workflow input
 
         Returns:
             Configured ProjectInput instance
         """
-        effective_globs = input.globs if input.globs is not None else self.file_patterns
+        effective_globs = args.globs if args.globs is not None else self.file_patterns
         kwargs = SimpleNamespace(
-            location=input.location,
+            location=args.location,
             globs=effective_globs,
-            limit=input.limit,
-            chunk_size=input.chunk_size,
-            head=input.head,
-            base=input.base,
-            diff=input.diff,
+            limit=args.limit,
+            chunk_size=args.chunk_size,
+            head=args.head,
+            base=args.base,
+            diff=args.diff,
         )
-        return ProjectInput(config=self.config, kwargs=kwargs)
+        return ProjectInput(logger, kwargs=kwargs)
 
+    @staticmethod
     async def process_chunks_concurrently(
-        self,
         project: ProjectInput,
         chunk_processor: Callable[[CodeChunk], Awaitable[list[T]]],
         max_concurrent_chunks: int = 5,

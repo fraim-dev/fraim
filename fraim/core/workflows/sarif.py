@@ -9,10 +9,28 @@ It is used by workflows to persist and present vulnerability findings after anal
 
 import logging
 import os
+from dataclasses import dataclass
 from datetime import datetime
+from typing import Annotated
 
+from fraim.outputs import sarif
 from fraim.outputs.sarif import Result, create_sarif_report
 from fraim.reporting.reporting import Reporting
+
+
+@dataclass
+class ConfidenceFilterOptions:
+    confidence: Annotated[
+        int,
+        {
+            "help": "Minimum confidence threshold (1-10) for filtering findings (default: 7)",
+            "choices": range(1, 11),  # [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        },
+    ] = 7
+
+
+def filter_results_by_confidence(results: list[sarif.Result], confidence_threshold: int) -> list[sarif.Result]:
+    return [result for result in results if result.properties.confidence > confidence_threshold]
 
 
 def write_sarif_and_html_report(results: list[Result], repo_name: str, output_dir: str, logger: logging.Logger) -> None:
