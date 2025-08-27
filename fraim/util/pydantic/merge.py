@@ -4,7 +4,7 @@
 import inspect
 import sys
 from types import ModuleType, SimpleNamespace
-from typing import Any, Type, get_type_hints
+from typing import Any, get_type_hints
 
 from pydantic import BaseModel, create_model
 
@@ -79,7 +79,7 @@ def merge_models(
         >>> # output.Result now includes confidence and remediation fields
         >>> # for workflow-specific SARIF result processing
     """
-    merged_cache: dict[str, Type[BaseModel]] = {}
+    merged_cache: dict[str, type[BaseModel]] = {}
     result: SimpleNamespace = SimpleNamespace()
 
     # Get the calling module for registration
@@ -101,7 +101,7 @@ def merge_models(
         name: obj for name, obj in vars(overlay_module).items() if inspect.isclass(obj) and issubclass(obj, BaseModel)
     }
 
-    def resolve_model(name: str) -> Type[BaseModel]:
+    def resolve_model(name: str) -> type[BaseModel]:
         if name in merged_cache:
             return merged_cache[name]
 

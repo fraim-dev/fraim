@@ -5,16 +5,16 @@ from __future__ import annotations
 
 import fnmatch
 from collections import deque
-from dataclasses import dataclass, field
+from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Deque, Dict, Iterable, List, Optional, Union, cast
 
 from .basepath import BasePathFS
 
 
 def list_dir(
     fs: BasePathFS,
-    target_path: Union[str, Path] = ".",
+    target_path: str | Path = ".",
     *,
     ignore_globs: Iterable[str] = [],
     show_hidden: bool = False,
@@ -50,7 +50,7 @@ def list_dir(
     return "\n".join(lines)
 
 
-type Entry = Union[FileEntry, DirEntry, TruncationEntry]
+type Entry = FileEntry | DirEntry | TruncationEntry
 """
 Simple tree structure for entries that will be displayed in the list_dir output.
 
@@ -64,7 +64,7 @@ class DirEntry:
     """A node in the Entry tree representing a directory. It may contain have child entries."""
 
     name: str
-    children: List[Entry]
+    children: list[Entry]
 
 
 @dataclass
@@ -110,7 +110,7 @@ def _serialize_entry(fs: BasePathFS, root: Entry, depth: int = 0, indent: str = 
     return "\n".join(lines)
 
 
-def _create_entry(path: Path, parent: Optional[DirEntry]) -> Entry:
+def _create_entry(path: Path, parent: DirEntry | None) -> Entry:
     """Create an Entry from a path."""
 
     if parent is None:
@@ -149,16 +149,16 @@ class TraversalNode:
 
     visited: bool
 
-    entry: Optional[DirEntry]
+    entry: DirEntry | None
 
-    queue: Deque[TraversalNode]
+    queue: deque[TraversalNode]
 
     @staticmethod
-    def from_path(path: Path, *, parent: TraversalNode, entry: Optional[DirEntry] = None) -> TraversalNode:
+    def from_path(path: Path, *, parent: TraversalNode, entry: DirEntry | None = None) -> TraversalNode:
         """Create a TraversalNode from a path."""
         return TraversalNode(name=path.name, path=path, parent=parent, entry=entry, visited=False, queue=deque([]))
 
-    def visit(self, entry: Entry, children: List[Path]) -> None:
+    def visit(self, entry: Entry, children: list[Path]) -> None:
         """Record that a node was visited, setting its entry and children."""
         self.entry = entry if isinstance(entry, DirEntry) else None
         self.queue = deque([TraversalNode.from_path(path, parent=self) for path in children])
@@ -172,7 +172,7 @@ class RootTraversalNode(TraversalNode):
         super().__init__(name="", path=Path(".."), parent=self, entry=None, visited=False, queue=deque([]))
 
 
-def _traverse_path(root_path: Path, ignore_globs: Iterable[str], show_hidden: bool, max_entries: int) -> List[Entry]:
+def _traverse_path(root_path: Path, ignore_globs: Iterable[str], show_hidden: bool, max_entries: int) -> list[Entry]:
     """Traverse the root path to build an Entry tree"""
 
     # This function uses a variant of a breadth-first traversal of the root path to build an Entry tree
@@ -271,7 +271,7 @@ def _traverse_path(root_path: Path, ignore_globs: Iterable[str], show_hidden: bo
     return root_node.entry.children if root_node.entry else []
 
 
-def _get_dir_entries(dir_path: Path, ignore_globs: Iterable[str], show_hidden: bool) -> List[Path]:
+def _get_dir_entries(dir_path: Path, ignore_globs: Iterable[str], show_hidden: bool) -> list[Path]:
     """Get filtered and sorted entries for a directory."""
     if not dir_path.is_dir():
         return []

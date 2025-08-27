@@ -7,7 +7,6 @@ Configuration management for Gemini Scan.
 
 import logging
 import os
-from typing import Optional
 
 
 class Config:
@@ -22,7 +21,7 @@ class Config:
         temperature: float = 0,
         max_iterations: int = 50,
         host: str = "localhost",
-        prompt: Optional[str] = None,
+        prompt: str | None = None,
         confidence: int = 7,
         project_path: str = "",
     ):
@@ -78,7 +77,7 @@ class Config:
         }
         return provider_env_map.get(provider.lower(), f"{provider.upper()}_API_KEY")
 
-    def _get_api_key_for_model(self, model_name: str) -> Optional[str]:
+    def _get_api_key_for_model(self, model_name: str) -> str | None:
         """Get the API key for a given model from environment variables."""
         provider = self._get_provider_from_model(model_name)
         env_var = self._get_env_var_for_provider(provider)
