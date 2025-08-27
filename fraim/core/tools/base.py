@@ -17,7 +17,6 @@ class ToolError(ValueError):
     """Exception raised when tool execution fails due to invalid inputs or other errors."""
 
 
-
 class BaseTool(BaseModel, ABC):
     """Base class for all tools.
 
