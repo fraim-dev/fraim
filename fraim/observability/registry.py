@@ -5,7 +5,6 @@
 Registry for observability backends.
 """
 
-
 from .base import ObservabilityBackend
 
 

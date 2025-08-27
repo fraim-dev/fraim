@@ -14,9 +14,7 @@ from fraim.inputs.input import Input
 
 
 class Local(Input):
-    def __init__(
-        self, logger: logging.Logger, path: str, globs: list[str] | None = None, limit: int | None = None
-    ):
+    def __init__(self, logger: logging.Logger, path: str, globs: list[str] | None = None, limit: int | None = None):
         self.path = path
         self.logger = logger
         # TODO: remove hardcoded globs
