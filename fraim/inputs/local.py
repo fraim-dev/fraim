@@ -1,13 +1,12 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
-
+import logging
 import os.path
 from collections.abc import Iterator
 from pathlib import Path
 from types import TracebackType
 from typing import Self
 
-from fraim.config.config import Config
 from fraim.core.contextuals import CodeChunk
 from fraim.inputs.chunks import chunk_input
 from fraim.inputs.file import BufferedFile
@@ -15,9 +14,11 @@ from fraim.inputs.input import Input
 
 
 class Local(Input):
-    def __init__(self, config: Config, path: str, globs: list[str] | None = None, limit: int | None = None):
-        self.config = config
+    def __init__(
+        self, logger: logging.Logger, path: str, globs: list[str] | None = None, limit: int | None = None
+    ):
         self.path = path
+        self.logger = logger
         # TODO: remove hardcoded globs
         self.globs = (
             globs
@@ -47,7 +48,7 @@ class Local(Input):
         return self.path
 
     def __iter__(self) -> Iterator[CodeChunk]:
-        self.config.logger.info(f"Scanning local files: {self.path}, with globs: {self.globs}")
+        self.logger.info(f"Scanning local files: {self.path}, with globs: {self.globs}")
 
         seen = set()
         for glob_pattern in self.globs:
@@ -59,11 +60,9 @@ class Local(Input):
                 if path in seen:
                     continue
                 try:
-                    self.config.logger.info(f"Reading file: {path}")
+                    self.logger.info(f"Reading file: {path}")
                     # TODO: Avoid reading files that are too large?
-                    file = BufferedFile(
-                        os.path.relpath(path, self.config.project_path), path.read_text(encoding="utf-8")
-                    )
+                    file = BufferedFile(os.path.relpath(path, self.root_path()), path.read_text(encoding="utf-8"))
 
                     # TODO: configure file chunking in the config
                     for chunk in chunk_input(file, 100):
@@ -76,9 +75,9 @@ class Local(Input):
 
                 except Exception as e:
                     if isinstance(e, UnicodeDecodeError):
-                        self.config.logger.warning(f"Skipping file with encoding issues: {path}")
+                        self.logger.warning(f"Skipping file with encoding issues: {path}")
                         continue
-                    self.config.logger.error(f"Error reading file: {path} - {e}")
+                    self.logger.error(f"Error reading file: {path} - {e}")
                     raise e
 
     def __enter__(self) -> Self:

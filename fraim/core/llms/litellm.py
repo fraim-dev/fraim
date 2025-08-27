@@ -4,8 +4,7 @@
 """A wrapper around litellm"""
 
 import logging
-from collections.abc import Iterable
-from typing import Any, Protocol, Self
+from typing import Any, Iterable, Optional, Protocol, Self
 
 import litellm
 from litellm import ModelResponse
@@ -54,22 +53,12 @@ class Config(Protocol):
 class LiteLLM(BaseLLM):
     """A wrapper around LiteLLM"""
 
-    @classmethod
-    def from_config(cls, config: Config, max_tool_iterations: int = 10, tools: list[BaseTool] | None = None) -> Self:
-        model_params = {"temperature": config.temperature}
-        return cls(
-            model=config.model,
-            additional_model_params=model_params,
-            max_tool_iterations=max_tool_iterations,
-            tools=tools,
-        )
-
     def __init__(
         self,
         model: str,
         additional_model_params: dict[str, Any] | None = None,
         max_tool_iterations: int = 10,
-        tools: Iterable[BaseTool] | None = None,
+        tools: Optional[Iterable[BaseTool]] = None,
     ):
         self.model = model
         self.additional_model_params = additional_model_params or {}
@@ -82,7 +71,7 @@ class LiteLLM(BaseLLM):
         self.tools_dict = {tool.name: tool for tool in self.tools}
         self.tools_schema = [tool.to_openai_schema() for tool in self.tools]
 
-    def with_tools(self, tools: Iterable[BaseTool], max_tool_iterations: int | None = None) -> Self:
+    def with_tools(self, tools: Iterable[BaseTool], max_tool_iterations: Optional[int] = None) -> Self:
         if max_tool_iterations is None:
             max_tool_iterations = self.max_tool_iterations
 
