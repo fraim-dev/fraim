@@ -16,7 +16,6 @@ async def grep(
     pattern: str,
     path: str | Path = ".",
     *,
-    ripgrep_bin: str = "rg",
     timeout: int | None = 30,
     head_limit: int | None = None,
     glob: str | None = None,
@@ -61,7 +60,7 @@ async def grep(
     target_rel = target_abs.relative_to(fs.root)
 
     args = _build_cmd(
-        ripgrep_bin=ripgrep_bin,
+        ripgrep_bin="rg", # Do not allow this to be controlled by an attacker.
         pattern=pattern,
         target_rel=target_rel,
         output_mode=output_mode,
