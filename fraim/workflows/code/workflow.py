@@ -27,6 +27,25 @@ from ...core.workflows.llm_processing import LLMProcessor, LLMProcessorOptions
 from ...core.workflows.sarif import ConfidenceFilterOptions, filter_results_by_confidence, write_sarif_and_html_report
 from . import triage_sarif_overlay
 
+FILE_PATTERNS = [
+    "*.py",
+    "*.c",
+    "*.cpp",
+    "*.h",
+    "*.go",
+    "*.ts",
+    "*.js",
+    "*.java",
+    "*.rb",
+    "*.php",
+    "*.swift",
+    "*.rs",
+    "*.kt",
+    "*.scala",
+    "*.tsx",
+    "*.jsx",
+]
+
 SCANNER_PROMPTS = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__file__), "scanner_prompts.yaml"))
 TRIAGER_PROMPTS = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__file__), "triager_prompts.yaml"))
 
@@ -82,24 +101,7 @@ class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProce
     @property
     def file_patterns(self) -> list[str]:
         """Code file patterns."""
-        return [
-            "*.py",
-            "*.c",
-            "*.cpp",
-            "*.h",
-            "*.go",
-            "*.ts",
-            "*.js",
-            "*.java",
-            "*.rb",
-            "*.php",
-            "*.swift",
-            "*.rs",
-            "*.kt",
-            "*.scala",
-            "*.tsx",
-            "*.jsx",
-        ]
+        return FILE_PATTERNS
 
     @property
     def triager_step(self) -> LLMStep[TriagerInput, sarif.Result]:
