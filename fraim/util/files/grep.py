@@ -60,7 +60,7 @@ async def grep(
     target_rel = target_abs.relative_to(fs.root)
 
     args = _build_cmd(
-        ripgrep_bin="rg", # Do not allow this to be controlled by an attacker.
+        ripgrep_bin="rg",  # Do not allow this to be controlled by an attacker.
         pattern=pattern,
         target_rel=target_rel,
         output_mode=output_mode,
