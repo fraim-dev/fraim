@@ -27,6 +27,35 @@ from fraim.core.workflows.sarif import (
 )
 from fraim.outputs import sarif
 
+FILE_PATTERNS = [
+    "*.tf",
+    "*.tfvars",
+    "*.tfstate",
+    "*.yaml",
+    "*.yml",
+    "*.json",
+    "Dockerfile",
+    ".dockerfile",
+    "docker-compose.yml",
+    "docker-compose.yaml",
+    "*.k8s.yaml",
+    "*.k8s.yml",
+    "*.ansible.yaml",
+    "*.ansible.yml",
+    "*.helm.yaml",
+    "*.helm.yml",
+    "deployment.yaml",
+    "deployment.yml",
+    "service.yaml",
+    "service.yml",
+    "ingress.yaml",
+    "ingress.yml",
+    "configmap.yaml",
+    "configmap.yml",
+    "secret.yaml",
+    "secret.yml",
+]
+
 SCANNER_PROMPTS = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__file__), "scanner_prompts.yaml"))
 
 
@@ -60,34 +89,7 @@ class IaCWorkflow(Workflow[IaCWorkflowOptions, list[sarif.Result]], ChunkProcess
     @property
     def file_patterns(self) -> list[str]:
         """IaC file patterns."""
-        return [
-            "*.tf",
-            "*.tfvars",
-            "*.tfstate",
-            "*.yaml",
-            "*.yml",
-            "*.json",
-            "Dockerfile",
-            ".dockerfile",
-            "docker-compose.yml",
-            "docker-compose.yaml",
-            "*.k8s.yaml",
-            "*.k8s.yml",
-            "*.ansible.yaml",
-            "*.ansible.yml",
-            "*.helm.yaml",
-            "*.helm.yml",
-            "deployment.yaml",
-            "deployment.yml",
-            "service.yaml",
-            "service.yml",
-            "ingress.yaml",
-            "ingress.yml",
-            "configmap.yaml",
-            "configmap.yml",
-            "secret.yaml",
-            "secret.yml",
-        ]
+        return FILE_PATTERNS
 
     async def _process_single_chunk(self, chunk: CodeChunk) -> list[sarif.Result]:
         """Process a single chunk with error handling."""

@@ -416,7 +416,7 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisOptions, dict[str, Any]], Ch
         )
 
         # 5. Write output file if output_dir is configured
-        output_dir = getattr(self.config, "output_dir", None)
+        output_dir = getattr(self.args, "output_dir", None)
         if output_dir:
             import datetime
             import os
