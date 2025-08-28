@@ -7,6 +7,8 @@ from pathlib import Path
 from types import TracebackType
 from typing import Self
 
+import pathspec
+
 from fraim.core.contextuals import CodeChunk
 from fraim.inputs.chunks import chunk_input
 from fraim.inputs.file import BufferedFile
@@ -48,6 +50,13 @@ class Local(Input):
     def __iter__(self) -> Iterator[CodeChunk]:
         self.logger.info(f"Scanning local files: {self.path}, with globs: {self.globs}")
 
+        # Load .gitignore patterns if present
+        gitignore_spec = None
+        gitignore_file = Path(self.path) / ".gitignore"
+        if gitignore_file.exists():
+            with gitignore_file.open() as f:
+                gitignore_spec = pathspec.PathSpec.from_lines("gitwildmatch", f)
+
         seen = set()
         for glob_pattern in self.globs:
             for path in Path(self.path).rglob(glob_pattern):
@@ -56,6 +65,9 @@ class Local(Input):
                     continue
                 # Skip file if already seen
                 if path in seen:
+                    continue
+                # Skip git-ignored file
+                if gitignore_spec and gitignore_spec.match_file(path.relative_to(self.path).as_posix()):
                     continue
                 try:
                     self.logger.info(f"Reading file: {path}")
