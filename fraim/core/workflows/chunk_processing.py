@@ -56,10 +56,10 @@ class ChunkProcessor:
 
     def setup_project_input(self, logger: logging.Logger, args: ChunkProcessingOptions) -> ProjectInput:
         """
-        Set up ProjectInput from workflow input.
+        Set up ProjectInput from workflow options.
 
         Args:
-            args: The workflow input
+            args: Arguments to create the input.
 
         Returns:
             Configured ProjectInput instance
