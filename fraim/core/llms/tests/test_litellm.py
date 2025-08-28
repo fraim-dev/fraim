@@ -3,10 +3,12 @@
 
 """Tests for LiteLLM wrapper"""
 
+import time
 from unittest.mock import Mock, patch
 
 import pytest
 from litellm import ModelResponse
+from litellm.exceptions import RateLimitError
 from pydantic import BaseModel, Field
 
 from fraim.core.llms.litellm import LiteLLM
@@ -510,3 +512,162 @@ class TestLiteLLMIntegration:
             assert len(tool_messages) == 2
             assert tool_messages[0].tool_call_id == "call_1"
             assert tool_messages[1].tool_call_id == "call_2"
+
+
+class TestLiteLLMRateLimitRetry:
+    """Test rate limit retry functionality"""
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_retry_success_after_one_retry(self) -> None:
+        """Test successful completion after one rate limit retry"""
+        llm = LiteLLM(model="gpt-3.5-turbo", max_retries=3)
+        messages: list[Message] = [UserMessage(content="Hello")]
+
+        # Mock response that succeeds
+        mock_response = create_mock_response("Hello there!")
+
+        # Create RateLimitError without retry_after to test exponential backoff
+        rate_limit_error = RateLimitError("Rate limit exceeded", "openai", "gpt-3.5-turbo")
+
+        with patch("litellm.acompletion", side_effect=[rate_limit_error, mock_response]) as mock_completion:
+            with patch("asyncio.sleep") as mock_sleep:
+                start_time = time.time()
+                response, updated_messages, tools_executed = await llm._run_once_with_retry(messages, use_tools=False)
+                end_time = time.time()
+
+                # Verify the response
+                assert response == mock_response
+                assert updated_messages == messages
+                assert tools_executed is False
+
+                # Verify two calls were made (initial + 1 retry)
+                assert mock_completion.call_count == 2
+
+                # Verify sleep was called once with expected delay
+                mock_sleep.assert_called_once()
+                sleep_delay = mock_sleep.call_args[0][0]
+                # First retry should use base_delay + jitter (1.0 + some jitter)
+                assert 1.0 <= sleep_delay <= 2.0
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_retry_with_retry_after_header(self) -> None:
+        """Test rate limit retry respects retry_after from exception"""
+        llm = LiteLLM(model="gpt-3.5-turbo", max_retries=2)
+        messages: list[Message] = [UserMessage(content="Hello")]
+
+        mock_response = create_mock_response("Success after retry")
+
+        # Create RateLimitError with retry_after attribute
+        rate_limit_error = RateLimitError("Rate limit exceeded", "openai", "gpt-3.5-turbo")
+        # Add retry_after dynamically
+        setattr(rate_limit_error, "retry_after", 5.0)
+
+        with patch("litellm.acompletion", side_effect=[rate_limit_error, mock_response]) as mock_completion:
+            with patch("asyncio.sleep") as mock_sleep:
+                response, updated_messages, tools_executed = await llm._run_once_with_retry(messages, use_tools=False)
+
+                # Verify the response
+                assert response == mock_response
+                assert tools_executed is False
+
+                # Verify retry_after was respected
+                mock_sleep.assert_called_once_with(5.0)
+                assert mock_completion.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_retry_exponential_backoff(self) -> None:
+        """Test exponential backoff on multiple retries"""
+        llm = LiteLLM(model="gpt-3.5-turbo", max_retries=3, base_delay=1.0, max_delay=60.0)
+        messages: list[Message] = [UserMessage(content="Hello")]
+
+        mock_response = create_mock_response("Success after multiple retries")
+
+        # Create multiple RateLimitErrors followed by success
+        rate_limit_error = RateLimitError("Rate limit exceeded", "openai", "gpt-3.5-turbo")
+
+        with patch(
+            "litellm.acompletion", side_effect=[rate_limit_error, rate_limit_error, rate_limit_error, mock_response]
+        ) as mock_completion:
+            with patch("asyncio.sleep") as mock_sleep:
+                response, updated_messages, tools_executed = await llm._run_once_with_retry(messages, use_tools=False)
+
+                # Verify the response
+                assert response == mock_response
+                assert tools_executed is False
+
+                # Verify 4 calls were made (initial + 3 retries)
+                assert mock_completion.call_count == 4
+
+                # Verify exponential backoff sleep calls
+                assert mock_sleep.call_count == 3
+
+                # Check that delays are roughly exponential (with jitter)
+                sleep_calls = [call_args[0][0] for call_args in mock_sleep.call_args_list]
+
+                # First retry: base_delay * 2^0 + jitter = 1.0 + jitter
+                assert 1.0 <= sleep_calls[0] <= 2.0
+
+                # Second retry: base_delay * 2^1 + jitter = 2.0 + jitter
+                assert 2.0 <= sleep_calls[1] <= 3.0
+
+                # Third retry: base_delay * 2^2 + jitter = 4.0 + jitter
+                assert 4.0 <= sleep_calls[2] <= 5.0
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_retry_exhausted_retries(self) -> None:
+        """Test failure when all retries are exhausted"""
+        llm = LiteLLM(model="gpt-3.5-turbo", max_retries=2)
+        messages: list[Message] = [UserMessage(content="Hello")]
+
+        rate_limit_error = RateLimitError("Rate limit exceeded", "openai", "gpt-3.5-turbo")
+
+        with patch("litellm.acompletion", side_effect=rate_limit_error) as mock_completion:
+            with patch("asyncio.sleep") as mock_sleep:
+                # Should raise the original RateLimitError after exhausting retries
+                with pytest.raises(RateLimitError, match="Rate limit exceeded"):
+                    await llm._run_once_with_retry(messages, use_tools=False)
+
+                # Verify max_retries + 1 calls were made (initial + retries)
+                assert mock_completion.call_count == 3  # initial + 2 retries
+
+                # Verify sleep was called max_retries times
+                assert mock_sleep.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_retry_non_rate_limit_error_not_retried(self) -> None:
+        """Test that non-rate-limit errors are not retried"""
+        llm = LiteLLM(model="gpt-3.5-turbo", max_retries=3)
+        messages: list[Message] = [UserMessage(content="Hello")]
+
+        # Some other exception that's not a rate limit error
+        other_error = ValueError("Some other error")
+
+        with patch("litellm.acompletion", side_effect=other_error) as mock_completion:
+            with patch("asyncio.sleep") as mock_sleep:
+                # Should raise the original error without retries
+                with pytest.raises(ValueError, match="Some other error"):
+                    await llm._run_once_with_retry(messages, use_tools=False)
+
+                # Verify only one call was made (no retries)
+                assert mock_completion.call_count == 1
+
+                # Verify no sleep was called
+                mock_sleep.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_integration_with_run_method(self) -> None:
+        """Test that rate limit retry integrates properly with the main run method"""
+        llm = LiteLLM(model="gpt-3.5-turbo", max_retries=2)
+        messages: list[Message] = [UserMessage(content="Hello")]
+
+        mock_response = create_mock_response("Hello after retry!")
+        rate_limit_error = RateLimitError("Rate limit exceeded", "openai", "gpt-3.5-turbo")
+
+        with patch("litellm.acompletion", side_effect=[rate_limit_error, mock_response]) as mock_completion:
+            with patch("asyncio.sleep") as mock_sleep:
+                # Use the main run method which should handle retries
+                result = await llm.run(messages)
+
+                assert result == mock_response
+                assert mock_completion.call_count == 2
+                mock_sleep.assert_called_once()

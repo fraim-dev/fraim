@@ -7,9 +7,10 @@ import asyncio
 import logging
 import random
 from collections.abc import Iterable
-from typing import Any, List, Optional, Protocol, Self, Tuple, cast
+from typing import Any, Dict, Iterable, List, Optional, Protocol, Self, Sequence, Tuple, cast
 
 import litellm
+from litellm.exceptions import RateLimitError
 from litellm.files.main import ModelResponse
 from litellm.types.utils import ChatCompletionMessageToolCall
 
@@ -105,18 +106,15 @@ class LiteLLM(BaseLLM):
             try:
                 return await self._run_once(messages, use_tools)
 
-            except Exception as e:
-                # Check if this is a rate limiting error
-                is_rate_limit = self._is_rate_limit_error(e)
-
-                if not is_rate_limit or attempt == self.max_retries:
-                    # Not a rate limit error, or we've exhausted retries
+            except RateLimitError as e:
+                if attempt == self.max_retries:
+                    # We've exhausted retries
                     raise
 
-                # Extract retry delay from API response if available
-                retry_delay = self._extract_retry_delay(e)
+                # Use retry_after from the exception if available
+                retry_delay = getattr(e, "retry_after", None)
                 if retry_delay is None:
-                    # Use exponential backoff with jitter
+                    # Use exponential backoff with jitter as fallback
                     retry_delay = min(self.base_delay * (2**attempt) + random.uniform(0, 1), self.max_delay)
 
                 logging.getLogger().warning(
@@ -126,49 +124,6 @@ class LiteLLM(BaseLLM):
 
         # Should never reach here due to the loop logic
         raise Exception("Retry logic failed unexpectedly")
-
-    def _is_rate_limit_error(self, error: Exception) -> bool:
-        """Check if the error is a rate limiting error."""
-        error_str = str(error).lower()
-        return any(
-            phrase in error_str
-            for phrase in [
-                "rate limit",
-                "rate_limit",
-                "ratelimit",
-                "quota",
-                "resource_exhausted",
-                "429",
-                "too many requests",
-            ]
-        )
-
-    def _extract_retry_delay(self, error: Exception) -> Optional[float]:
-        """Extract retry delay from API error response."""
-        try:
-            error_str = str(error)
-
-            # Look for retry delay in Gemini/VertexAI format
-            if "retryDelay" in error_str:
-                import re
-
-                match = re.search(r'"retryDelay":\s*"(\d+)s"', error_str)
-                if match:
-                    return float(match.group(1))
-
-            # Look for Retry-After header format
-            if "retry-after" in error_str.lower():
-                import re
-
-                match = re.search(r'retry-after["\']?\s*:\s*["\']?(\d+)', error_str, re.IGNORECASE)
-                if match:
-                    return float(match.group(1))
-
-        except Exception:
-            # If we can't parse the retry delay, return None
-            pass
-
-        return None
 
     async def _run_once(self, messages: list[Message], use_tools: bool) -> tuple[ModelResponse, list[Message], bool]:
         """Execute one completion call and return response + updated messages + tools_executed flag.
@@ -248,15 +203,9 @@ def _convert_tool_calls(raw_tool_calls: list[ChatCompletionMessageToolCall] | No
     if raw_tool_calls is None:
         return []
 
-    result = []
-    for raw_tool_call in raw_tool_calls:
-        tool_call = ToolCall(
-            id=raw_tool_call.id,
-            function=Function(
-                name=raw_tool_call.function.name or "",
-                arguments=raw_tool_call.function.arguments,
-            ),
+    return [
+        ToolCall(
+            id=tc.id, function=Function(name=tc.function.name or "", arguments=tc.function.arguments), type="function"
         )
-        result.append(tool_call)
-
-    return result
+        for tc in raw_tool_calls
+    ]
