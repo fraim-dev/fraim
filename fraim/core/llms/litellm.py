@@ -4,7 +4,7 @@
 """A wrapper around litellm"""
 
 import logging
-from typing import Any, Dict, List, Optional, Protocol, Self, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Protocol, Self, Sequence, Tuple
 
 import litellm
 from litellm import ModelResponse
@@ -68,7 +68,7 @@ class LiteLLM(BaseLLM):
         model: str,
         additional_model_params: Optional[Dict[str, Any]] = None,
         max_tool_iterations: int = 10,
-        tools: Optional[Sequence[BaseTool]] = None,
+        tools: Optional[Iterable[BaseTool]] = None,
     ):
         self.model = model
         self.additional_model_params = additional_model_params or {}
@@ -77,11 +77,11 @@ class LiteLLM(BaseLLM):
         if self.max_tool_iterations < 0:
             raise ValueError("max_tool_iterations must be a non-negative integer")
 
-        self.tools = tools or []
+        self.tools = list(tools) if tools else []
         self.tools_dict = {tool.name: tool for tool in self.tools}
         self.tools_schema = [tool.to_openai_schema() for tool in self.tools]
 
-    def with_tools(self, tools: Sequence[BaseTool], max_tool_iterations: Optional[int] = None) -> Self:
+    def with_tools(self, tools: Iterable[BaseTool], max_tool_iterations: Optional[int] = None) -> Self:
         if max_tool_iterations is None:
             max_tool_iterations = self.max_tool_iterations
 

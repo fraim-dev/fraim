@@ -153,7 +153,7 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
                 ):
                     raise ValueError("project_path must be set before accessing triager_step")
 
-                triager_tools = TreeSitterTools(self.project.project_path).tools
+                triager_tools = TreeSitterTools(self.project.project_path)
                 triager_llm = self.llm.with_tools(triager_tools)
                 triager_parser = PydanticOutputParser(triage_sarif.Result)
                 self._triager_step = LLMStep(
