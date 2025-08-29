@@ -1,9 +1,33 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
-from pathlib import Path
-from typing import ContextManager, Iterator, Protocol, runtime_checkable
+from typing import ContextManager, Iterator, Protocol, runtime_checkable, Dict
 
-from langchain_community.document_loaders.parsers.language.language_parser import LANGUAGE_EXTENSIONS
+LANGUAGE_EXTENSIONS: Dict[str, str] = {
+    "py": "python",
+    "c": "c",
+    "h": "c",
+    "cpp": "cpp",
+    "go": "go",
+    "ts": "ts",
+    "js": "js",
+    "java": "java",
+    "rb": "ruby",
+    "php": "php",
+    "rs": "rust",
+    "kt": "kotlin",
+    "scala": "scala",
+    "tsx": "ts",
+
+    # Not supported by langchain: *.jsx, *.swift
+    # Not supported by fraim:
+    "cobol": "cobol",
+    "cs": "csharp",
+    "lua": "lua",
+    "pl": "perl",
+    "ex": "elixir",
+    "exs": "elixir",
+    "sql": "sql",
+}
 
 import mcp_server_tree_sitter
 

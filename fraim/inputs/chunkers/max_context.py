@@ -23,7 +23,7 @@ class MaxContextChunker(PackingFixedChunker):
         **kwargs: Additional arguments passed to the FileChunker.
     ."""
 
-    def __init__(self, model: str, chunk_fraction: float = 0.7, chunk_size=None, chunk_overlap=None, **kwargs) -> None:
+    def __init__(self, model: str, chunk_fraction: float = 0.7, **kwargs) -> None:
         # Chunk size is determined by the model's max tokens and chunk_fraction.
         chunk_size = get_max_tokens(model) * chunk_fraction
 

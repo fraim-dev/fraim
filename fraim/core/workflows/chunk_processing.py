@@ -32,8 +32,13 @@ class ChunkWorkflowInput(WorkflowInput):
     paths: Annotated[
         Optional[List[str]], {"help": "Optionally limit scanning to these paths (relative to `--location`)"}
     ] = None
-    chunk_size: Annotated[Optional[int], {"help": "Number of characters per chunk"}] = 10_000
-    chunk_overlap: Annotated[Optional[int], {"help": "Number of characters of overlap per chunk"}] = 1_000
+    chunk_size: Annotated[Optional[int], {"help": (
+        "Number of characters per chunk. Does not apply when the original, file, or project chunking methods are used."
+    )}] = 500
+    chunk_overlap: Annotated[Optional[int], {"help": (
+        "Number of characters of overlap per chunk. Does not apply when the original, file, or project chunking "
+        "methods are used."
+    )}] = None
     limit: Annotated[Optional[int], {"help": "Limit the number of files to scan"}] = None
     globs: Annotated[
         Optional[List[str]],
@@ -55,10 +60,12 @@ class ChunkWorkflowInput(WorkflowInput):
     ] = False
     chunking_method: Annotated[
         str, {
-            "help": "Method to use for chunking code files",
+            "help": (
+                "Method to use for chunking code files. Only the original chunking method is supported currently. "
+            ),
             "choices": CHUNKING_METHODS.keys(),
         }
-    ] = "fixed"
+    ] = "original"
 
 
 

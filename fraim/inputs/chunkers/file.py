@@ -8,10 +8,9 @@ from fraim.inputs.file import Files
 
 
 class FileChunker(Chunker):
-    def __init__(self, files: Files, chunk_size: int, **kwargs) -> None:
+    def __init__(self, files: Files, **kwargs) -> None:
         super().__init__(**kwargs)
         self.files = files
-        self.chunk_size = chunk_size
 
     def __iter__(self) -> Iterator[CodeChunk]:
         """Yield each file as a single chunk."""

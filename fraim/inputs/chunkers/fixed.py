@@ -12,16 +12,13 @@ from fraim.inputs.chunkers.base import Chunker
 from fraim.inputs.file import Files, File
 
 
-class FixedBaseChunker(Chunker):
-    def __init__(self, files: Files, chunk_size: int, chunk_overlap: int | None = None, **kwargs) -> None:
-        if chunk_overlap is None:
-            # Default to 10% overlap if not specified
-            chunk_overlap = int(chunk_size / 10)
-
+class FixedTokenChunker(Chunker):
+    def __init__(self, files: Files, chunk_size: int | None, chunk_overlap: int | None = None, **kwargs) -> None:
         super().__init__(**kwargs)
+
+        self.chunk_size = chunk_size if chunk_size else 3_000
+        self.chunk_overlap = chunk_overlap if chunk_overlap else int(self.chunk_size / 10)  # Default to 10% overlap
         self.files = files
-        self.chunk_size = chunk_size
-        self.chunk_overlap = chunk_overlap
 
     def __iter__(self) -> Iterator[CodeChunk]:
         with self.files as files:
@@ -44,25 +41,6 @@ class FixedBaseChunker(Chunker):
                 line_number_end_inclusive=end_line,
             )
 
-    @property
-    @abstractmethod
-    def splitter(self) -> TextSplitter:
-        pass
-
-
-class FixedCharChunker(FixedBaseChunker):
-    @property
-    def splitter(self) -> CharacterTextSplitter:
-        return CharacterTextSplitter(
-            separator="\n",
-            chunk_size=self.chunk_size,
-            chunk_overlap=self.chunk_overlap,
-            strip_whitespace=False,
-            add_start_index=True,
-        )
-
-
-class FixedTokenChunker(FixedBaseChunker):
     @property
     def splitter(self) -> RecursiveCharacterTextSplitter:
         return RecursiveCharacterTextSplitter.from_tiktoken_encoder(

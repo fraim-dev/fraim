@@ -57,14 +57,13 @@ def test_pack_files_into_multiple_chunks(project_path: str):
 
 
 def test_small_files_are_packed(project_path: str):
-    # A single file larger than the line limit of FixedCharChunker, which gets split
+    # A single file larger than the line limit of PackingFixedChunker, which gets split
     # into multiple CodeChunks, which are then packed.
     chunk_size = 500
     num_of_small_files = 3
     large_content = "a\n" * 20
     files = InMemory(*[File("small_file.py", large_content)] * num_of_small_files, root_path=project_path)
 
-    # chunk_size for FixedCharChunker (lines) is 10, so it should be split.
     # chunk_size for PackingFixedChunker (bytes) is 500, so packed chunks should be small.
     chunks = list(PackingFixedChunker(files, chunk_size=chunk_size, logger=log))
 

@@ -1,26 +1,25 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 
-from fraim.inputs.file import File
-from typing import List, Iterator
+from typing import Iterator
 
 from fraim.core.contextuals.code import CodeChunk
 from fraim.inputs.chunkers.base import Chunker
+from fraim.inputs.file import Files, File
 
 
-class ProjectInputChunker(Chunker):
-    def __init__(self, files: List[File], project_path: str, chunk_size: int, **kwargs) -> None:
+class OriginalChunker(Chunker):
+    def __init__(self, files: Files, project_path: str, chunk_size: int | None, **kwargs) -> None:
         super().__init__(**kwargs)
+
+        self.chunk_size = chunk_size if chunk_size else 500
         self.files = files
-        self.chunk_size = chunk_size
         self.project_path = project_path
+        self.chunk_size = chunk_size
 
     def __iter__(self) -> Iterator[CodeChunk]:
-        with self.files as files:
-            for file in files:
-                self.logger.info(f"Generating chunks for file: {file.path}")
-                for chunk in chunk_input(file, self.project_path, self.chunk_size):
-                    yield chunk
+        for file in self.files:
+            yield from chunk_input(file, self.chunk_size)
 
 
 # TODO: move chunking concern out of input

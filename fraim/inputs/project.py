@@ -1,16 +1,15 @@
 import os
-from pathlib import Path
 from typing import Any, Iterator, Literal, Type
 
 from fraim.config.config import Config
 from fraim.core.contextuals import Contextual
-from fraim.core.contextuals.code import CodeChunk, CodeChunks
 from fraim.inputs.chunkers import FileChunker, MaxContextChunker
 from fraim.inputs.chunkers.base import Chunker
 
-from fraim.inputs.chunkers.fixed import FixedCharChunker, FixedTokenChunker
+from fraim.inputs.chunkers.fixed import FixedTokenChunker
 from fraim.inputs.chunkers.packed_fixed import PackingFixedChunker
 from fraim.inputs.chunkers.syntactic import SyntacticChunker
+from fraim.inputs.chunkers.original import OriginalChunker
 from fraim.inputs.git import GitRemote
 from fraim.inputs.git_diff import GitDiff
 from fraim.inputs.input import Input
@@ -18,11 +17,11 @@ from fraim.inputs.local import Local
 
 CHUNKING_METHODS = {
     "syntactic": SyntacticChunker,
-    "fixed": FixedCharChunker,
     "fixed_token": FixedTokenChunker,
     "packed": PackingFixedChunker,
     "file": FileChunker,
     "project": MaxContextChunker,
+    "original": OriginalChunker,
 }
 
 
@@ -34,7 +33,7 @@ class ProjectInput:
     project_path: str
     repo_name: str
     chunker: Chunker
-    chunking_method: Literal["project", "file", "module", "packed_fixed", "fixed", "ast"] = "fixed"
+    chunking_method: Literal["syntactic", "fixed", "fixed_token", "packed", "file", "project", "original"] = "original"
 
     def __init__(self, config: Config, kwargs: Any) -> None:
         self.config = config
