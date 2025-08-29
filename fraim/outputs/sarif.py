@@ -114,7 +114,7 @@ class Result(BaseSchema):
     """A result produced by an analysis tool."""
 
     message: Message = Field(
-        description="A message that describes the result. The first sentence of the message only will be displayed when visible space is limited."
+        description="A message that describes the result. This should be short, as it's used as the title in PR comments."
     )
     level: ResultLevelEnum = Field(description="A value specifying the severity level of the result.")
     locations: List[Location] = Field(
