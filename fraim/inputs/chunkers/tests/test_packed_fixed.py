@@ -11,6 +11,7 @@ from fraim.inputs.file import File
 
 log = logging.getLogger(__name__)
 
+
 @pytest.fixture
 def project_path(tmp_path: Path) -> str:
     return str(tmp_path)
@@ -104,7 +105,13 @@ def test_empty_input(project_path: str):
 
 
 def test_single_small_file(project_path: str):
-    files = InMemory(File("single.py", "print('single')", ), root_path=project_path)
+    files = InMemory(
+        File(
+            "single.py",
+            "print('single')",
+        ),
+        root_path=project_path,
+    )
     chunks = list(PackingFixedChunker(files=files, chunk_size=1000, logger=log))
 
     assert len(chunks) == 1

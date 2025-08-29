@@ -15,6 +15,7 @@ class SyntacticChunker(FixedTokenChunker):
 
     It does not parse the code syntax, but rather uses the language-specific rules to split the text.
     """
+
     def __iter__(self) -> Iterator[CodeChunk]:
         with self.files as files:
             for file in files:

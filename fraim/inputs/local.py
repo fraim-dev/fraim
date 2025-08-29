@@ -93,9 +93,7 @@ class Local(Input):
                         try:
                             self.config.logger.info(f"Reading file: {path}")
                             # TODO: Avoid reading files that are too large?
-                            yield File(
-                                os.path.relpath(path, self.root_path), path.read_text(encoding="utf-8")
-                            )
+                            yield File(os.path.relpath(path, self.root_path), path.read_text(encoding="utf-8"))
 
                             # Add file to set of seen files, exit early if maximum reached.
                             seen.add(path)

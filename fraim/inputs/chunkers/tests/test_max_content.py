@@ -9,6 +9,7 @@ from fraim.inputs.file import File
 
 log = logging.getLogger(__name__)
 
+
 def test_max_content_chunker() -> None:
     """Test that NoneChunker yields the whole project as a single chunk."""
 
@@ -18,7 +19,7 @@ def test_max_content_chunker() -> None:
     file_2 = File(path=Path("file2.py"), body="print('Hello, from file2!')")
     files = InMemory(file_1, file_2, root_path="/project")
 
-    chunker = MaxContextChunker(files=files, model='gemini/gemini-2.5-flash', fraction=fraction, logger=log)
+    chunker = MaxContextChunker(files=files, model="gemini/gemini-2.5-flash", fraction=fraction, logger=log)
 
     chunks = list(chunker)
 
@@ -35,7 +36,7 @@ def test_max_content_chunker() -> None:
     assert chunks[0][1].line_number_end_inclusive == 1
 
 
-@patch('fraim.inputs.chunkers.max_context.get_max_tokens')
+@patch("fraim.inputs.chunkers.max_context.get_max_tokens")
 def test_max_content_chunker_overflow(mock_get_max_tokens: MagicMock) -> None:
     """Test that NoneChunker yields the whole project as a single chunk."""
 
@@ -47,7 +48,7 @@ def test_max_content_chunker_overflow(mock_get_max_tokens: MagicMock) -> None:
     file_2 = File(path="file2.py", body="a " * 120)
     files = InMemory(file_1, file_2, root_path="/project")
 
-    chunker = MaxContextChunker(files=files, model='test', fraction=fraction, logger=log)
+    chunker = MaxContextChunker(files=files, model="test", fraction=fraction, logger=log)
 
     chunks = list(chunker)
 

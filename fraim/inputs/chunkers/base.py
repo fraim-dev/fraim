@@ -11,6 +11,5 @@ class Chunker:
     def __init__(self, logger: logging.Logger, **kwargs) -> None:
         self.logger = logger
 
-
     @abstractmethod
     def __iter__(self) -> Iterator[CodeChunk]: ...

@@ -9,7 +9,7 @@ from langchain_text_splitters import CharacterTextSplitter, RecursiveCharacterTe
 
 from fraim.core.contextuals.code import CodeChunk
 from fraim.inputs.chunkers.base import Chunker
-from fraim.inputs.file import Files, File
+from fraim.inputs.file import File, Files
 
 
 class FixedTokenChunker(Chunker):

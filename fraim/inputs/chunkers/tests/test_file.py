@@ -1,6 +1,6 @@
-from fraim.inputs.chunkers.file import FileChunker
 import logging
 
+from fraim.inputs.chunkers.file import FileChunker
 from fraim.inputs.chunkers.tests.lib import InMemory
 from fraim.inputs.file import File
 

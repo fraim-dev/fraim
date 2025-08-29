@@ -5,11 +5,10 @@ from fraim.config.config import Config
 from fraim.core.contextuals import Contextual
 from fraim.inputs.chunkers import FileChunker, MaxContextChunker
 from fraim.inputs.chunkers.base import Chunker
-
 from fraim.inputs.chunkers.fixed import FixedTokenChunker
+from fraim.inputs.chunkers.original import OriginalChunker
 from fraim.inputs.chunkers.packed_fixed import PackingFixedChunker
 from fraim.inputs.chunkers.syntactic import SyntacticChunker
-from fraim.inputs.chunkers.original import OriginalChunker
 from fraim.inputs.git import GitRemote
 from fraim.inputs.git_diff import GitDiff
 from fraim.inputs.input import Input
@@ -55,7 +54,15 @@ class ProjectInput:
         if path_or_url.startswith("http://") or path_or_url.startswith("https://") or path_or_url.startswith("git@"):
             self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
             # TODO: git diff here?
-            self.files = GitRemote(self.config, url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_", exclude_globs=exclude_globs, paths=paths)
+            self.files = GitRemote(
+                self.config,
+                url=path_or_url,
+                globs=globs,
+                limit=limit,
+                prefix="fraim_scan_",
+                exclude_globs=exclude_globs,
+                paths=paths,
+            )
             self.project_path = self.files.root_path()
         else:
             # Fully resolve the path to the project
@@ -63,10 +70,18 @@ class ProjectInput:
             self.repo_name = os.path.basename(self.project_path)
             if self.diff:
                 self.files = GitDiff(
-                    self.config, self.project_path, head=self.head, base=self.base, globs=globs, limit=limit, exclude_globs=exclude_globs,
+                    self.config,
+                    self.project_path,
+                    head=self.head,
+                    base=self.base,
+                    globs=globs,
+                    limit=limit,
+                    exclude_globs=exclude_globs,
                 )
             else:
-                self.files = Local(self.config, self.project_path, globs=globs, limit=limit, exclude_globs=exclude_globs, paths=paths)
+                self.files = Local(
+                    self.config, self.project_path, globs=globs, limit=limit, exclude_globs=exclude_globs, paths=paths
+                )
 
         chunker_class = get_chunking_class(self.chunking_method)
 

@@ -211,7 +211,6 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
             )
             return []
 
-
     async def workflow(self, input: CodeInput) -> List[sarif.Result]:
         """Main Code workflow - full control over execution with multi-step processing."""
         try:

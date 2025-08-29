@@ -2,7 +2,7 @@
 # Copyright (c) 2025 Resourcely Inc.
 import dataclasses
 from abc import abstractmethod, abstractproperty
-from typing import Generic, Protocol, TypeVar, Self
+from typing import Generic, Protocol, Self, TypeVar
 
 from fraim.outputs import sarif
 
@@ -31,6 +31,7 @@ class Location:
     def __str__(self):
         return f"{self.file_path}:{self.line_number_start_inclusive}-{self.line_number_end_inclusive}"
 
+
 class Locations(list[Location]):
     def __init__(self, *locations: Location):
         super().__init__(list(locations))
@@ -41,9 +42,9 @@ class Locations(list[Location]):
     def __add__(self, other) -> Self:
         return Locations(*(list(self) + list(other)))
 
-
     def __str__(self):
-        return ', '.join([str(l) for l in self])
+        return ", ".join([str(l) for l in self])
+
 
 class Contextual(Protocol, Generic[T]):
     """A piece of content with a contextual description.
@@ -60,4 +61,3 @@ class Contextual(Protocol, Generic[T]):
     @property
     @abstractmethod
     def locations(self) -> Locations: ...
-

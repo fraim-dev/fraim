@@ -9,6 +9,7 @@ from fraim.inputs.local import Local
 
 TEST_DATA_DIR = Path(__name__).parent / "test_data"
 
+
 class MockConfig(Config):
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -24,12 +25,14 @@ def local() -> Local:
         exclude_globs=["*.min.js", "*.min.css"],
     )
 
+
 @pytest.fixture
 def project_files(local: Local) -> list[File]:
     result = list(local)
     assert len(result) > 0
     assert isinstance(result[0], File)
     return result
+
 
 @pytest.fixture
 def project_paths(project_files: list[File]) -> list[str]:
@@ -38,8 +41,10 @@ def project_paths(project_files: list[File]) -> list[str]:
     assert isinstance(result[0], str)
     return result
 
+
 def test_local_globs(project_paths: list[str]):
-    assert 'included.py' in project_paths
+    assert "included.py" in project_paths
+
 
 def test_local_exclude_globs(project_paths: list[str]):
-    assert 'excluded.min.js' not in project_paths
+    assert "excluded.min.js" not in project_paths

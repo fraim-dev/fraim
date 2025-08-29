@@ -27,8 +27,4 @@ class MaxContextChunker(PackingFixedChunker):
         # Chunk size is determined by the model's max tokens and chunk_fraction.
         chunk_size = get_max_tokens(model) * chunk_fraction
 
-        super().__init__(
-            chunk_size=int(chunk_size),
-            chunk_overlap=0,
-            **kwargs
-        )
+        super().__init__(chunk_size=int(chunk_size), chunk_overlap=0, **kwargs)

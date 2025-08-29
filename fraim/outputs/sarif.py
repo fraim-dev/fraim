@@ -5,6 +5,7 @@
 SARIF (Static Analysis Results Interchange Format) Pydantic models.
 Used for generating standardized vulnerability reports.
 """
+
 from enum import Enum
 from typing import List, Literal, Optional
 
@@ -235,6 +236,7 @@ def create_result_model(allowed_types: Optional[List[str]] = None) -> type[Resul
 
     return RestrictedResult
 
+
 def create_run_model(allowed_types: Optional[List[str]] = None) -> type[Run]:
     """
     Factory function to create a Run model with a restricted set of vulnerability types.
@@ -254,10 +256,11 @@ def create_run_model(allowed_types: Optional[List[str]] = None) -> type[Run]:
 
     return RestrictedRun
 
+
 def create_sarif_report(
-        results: List[Result],
-        failed_chunks: list['CodeChunkFailure'],
-        tool_version: str = "1.0.0",
+    results: List[Result],
+    failed_chunks: list["CodeChunkFailure"],
+    tool_version: str = "1.0.0",
 ) -> SarifReport:
     """
     Create a complete SARIF report from a list of results.
