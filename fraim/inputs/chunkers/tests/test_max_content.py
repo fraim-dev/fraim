@@ -15,13 +15,11 @@ def test_max_content_chunker() -> None:
 
     fraction = 0.7
 
-    file_1 = File(path=Path("file1.py"), body="print('Hello, from file1!')")
-    file_2 = File(path=Path("file2.py"), body="print('Hello, from file2!')")
+    file_1 = File(path="file1.py", body="print('Hello, from file1!')")
+    file_2 = File(path="file2.py", body="print('Hello, from file2!')")
     files = InMemory(file_1, file_2, root_path="/project")
 
-    chunker = MaxContextChunker(files=files, model="gemini/gemini-2.5-flash", fraction=fraction, logger=log)
-
-    chunks = list(chunker)
+    chunks = list(MaxContextChunker(files=files, model="gemini/gemini-2.5-flash", fraction=fraction, logger=log).packed_chunks())
 
     assert len(chunks) == 1
     assert len(chunks[0]) == 2
@@ -48,9 +46,7 @@ def test_max_content_chunker_overflow(mock_get_max_tokens: MagicMock) -> None:
     file_2 = File(path="file2.py", body="a " * 120)
     files = InMemory(file_1, file_2, root_path="/project")
 
-    chunker = MaxContextChunker(files=files, model="test", fraction=fraction, logger=log)
-
-    chunks = list(chunker)
+    chunks = list(MaxContextChunker(files=files, model="test", fraction=fraction, logger=log).packed_chunks())
 
     assert len(chunks) == 2
     assert isinstance(chunks[0], CodeChunks)

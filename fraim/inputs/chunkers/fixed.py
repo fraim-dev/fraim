@@ -3,24 +3,25 @@
 import re
 from abc import abstractmethod
 from bisect import bisect_right
-from typing import Iterator
+from typing import Iterator, Any
 
 from langchain_text_splitters import CharacterTextSplitter, RecursiveCharacterTextSplitter, TextSplitter
 
+from fraim.core.contextuals import Contextual
 from fraim.core.contextuals.code import CodeChunk
 from fraim.inputs.chunkers.base import Chunker
 from fraim.inputs.file import File, Files
 
 
 class FixedTokenChunker(Chunker):
-    def __init__(self, files: Files, chunk_size: int | None, chunk_overlap: int | None = None, **kwargs) -> None:
+    def __init__(self, files: Files, chunk_size: int | None, chunk_overlap: int | None = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
         self.chunk_size = chunk_size if chunk_size else 3_000
         self.chunk_overlap = chunk_overlap if chunk_overlap else int(self.chunk_size / 10)  # Default to 10% overlap
         self.files = files
 
-    def __iter__(self) -> Iterator[CodeChunk]:
+    def __iter__(self) -> Iterator[Contextual[str]]:
         with self.files as files:
             for file in files:
                 yield from self.split_file(self.splitter, file)

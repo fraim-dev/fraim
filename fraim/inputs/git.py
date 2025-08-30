@@ -9,6 +9,7 @@ from typing import Iterator, List, Optional, Type
 
 from fraim.config.config import Config
 from fraim.core.contextuals import CodeChunk
+from fraim.inputs.file import File
 from fraim.inputs.input import Input
 from fraim.inputs.local import Local
 
@@ -22,6 +23,7 @@ class GitRemote(Input):
         exclude_globs: Optional[List[str]] = None,
         limit: Optional[int] = None,
         prefix: Optional[str] = None,
+        paths: Optional[List[str]] = None,
     ):
         self.config = config
         self.url = url
@@ -30,6 +32,7 @@ class GitRemote(Input):
         self.limit = limit
         self.tempdir = TemporaryDirectory(prefix=prefix)
         self.path = self.tempdir.name
+        self.paths = paths
 
     def root_path(self) -> str:
         return Path(self.path).absolute().name
@@ -42,13 +45,13 @@ class GitRemote(Input):
     ) -> None:
         self.tempdir.cleanup()
 
-    def __iter__(self) -> Iterator[CodeChunk]:
+    def __iter__(self) -> Iterator[File]:
         self.config.logger.debug("Starting git repository input iterator")
 
         # Clone remote repository to a local directory, delegate to file iterator.
         self._clone_to_path()
-        for chunk in Local(self.config, self.path, self.globs, self.limit, self.exclude_globs):
-            yield chunk
+        for file in Local(self.config, self.path, self.paths, self.globs, self.limit, self.exclude_globs):
+            yield file
 
     def _clone_to_path(self) -> None:
         if not _is_directory_empty(self.path):

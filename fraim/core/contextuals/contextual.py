@@ -28,7 +28,7 @@ class Location:
             )
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.file_path}:{self.line_number_start_inclusive}-{self.line_number_end_inclusive}"
 
 
@@ -39,10 +39,7 @@ class Locations(list[Location]):
     def to_sarif(self) -> list[sarif.Location]:
         return [location.to_sarif() for location in self]
 
-    def __add__(self, other) -> Self:
-        return Locations(*(list(self) + list(other)))
-
-    def __str__(self):
+    def __str__(self) -> str:
         return ", ".join([str(l) for l in self])
 
 

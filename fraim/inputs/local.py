@@ -17,19 +17,19 @@ class Local(Input):
     def __init__(
         self,
         config: Config,
-        root_path: Path,
+        root_path: str,
         paths: Optional[list[str]] = None,
         globs: Optional[List[str]] = None,
         limit: Optional[int] = None,
         exclude_globs: Optional[List[str]] = None,
     ):
         self.config = config
-        self.root_path = root_path
+        self._root_path = Path(root_path)
 
         if paths:
-            self.paths = [Path(self.root_path) / p for p in paths]
+            self.paths = [Path(self._root_path) / p for p in paths]
         else:
-            self.paths = [self.root_path]
+            self.paths = [self._root_path]
 
         # TODO: remove hardcoded globs
         self.globs = (
@@ -58,7 +58,7 @@ class Local(Input):
         self.limit = limit
 
     def root_path(self) -> str:
-        return self.path
+        return str(self._root_path)
 
     def __iter__(self) -> Iterator[File]:
         self.config.logger.info(f"Scanning local files: {self.root_path}, with globs: {self.globs}")
@@ -70,8 +70,9 @@ class Local(Input):
                 f"Scanning local files: {subpath}, with globs: {self.globs}, exclude globs: {self.exclude_globs}"
             )
             for glob_pattern in self.globs:
+                paths: Iterator[Path]
                 if subpath.is_file():
-                    paths = [subpath]
+                    paths = iter([subpath])
                 else:
                     paths = subpath.rglob(glob_pattern)
 
@@ -93,7 +94,7 @@ class Local(Input):
                         try:
                             self.config.logger.info(f"Reading file: {path}")
                             # TODO: Avoid reading files that are too large?
-                            yield File(os.path.relpath(path, self.root_path), path.read_text(encoding="utf-8"))
+                            yield File(os.path.relpath(path, self._root_path), path.read_text(encoding="utf-8"))
 
                             # Add file to set of seen files, exit early if maximum reached.
                             seen.add(path)

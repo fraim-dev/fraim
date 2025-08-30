@@ -7,7 +7,7 @@ from fraim.inputs.file import File
 log = logging.getLogger(__name__)
 
 
-def test_file_chunker():
+def test_file_chunker() -> None:
     """Test that NoneChunker yields the whole project as a single chunk."""
     files = InMemory(File(path="file1.py", body="print('Hello, World!')"), root_path="/project")
 

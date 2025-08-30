@@ -1,15 +1,15 @@
 import logging
 from abc import abstractmethod
-from typing import Iterator
+from typing import Any, Iterator
 
-from fraim.core.contextuals import CodeChunk
+from fraim.core.contextuals import CodeChunk, Contextual
 
 
 class Chunker:
     """Base class for chunkers."""
 
-    def __init__(self, logger: logging.Logger, **kwargs) -> None:
+    def __init__(self, logger: logging.Logger, **kwargs: Any) -> None:
         self.logger = logger
 
     @abstractmethod
-    def __iter__(self) -> Iterator[CodeChunk]: ...
+    def __iter__(self) -> Iterator[Contextual[str]]: ...

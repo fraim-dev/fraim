@@ -32,8 +32,6 @@ LANGUAGE_EXTENSIONS: Dict[str, str] = {
 # Copyright (c) 2025 Resourcely Inc.
 from pathlib import Path
 
-import mcp_server_tree_sitter
-
 
 class File:
     def __init__(self, path: str, body: str):

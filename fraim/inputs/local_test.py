@@ -11,7 +11,7 @@ TEST_DATA_DIR = Path(__name__).parent / "test_data"
 
 
 class MockConfig(Config):
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
         self.project_path = TEST_DATA_DIR
 
@@ -20,7 +20,7 @@ class MockConfig(Config):
 def local() -> Local:
     return Local(
         config=MockConfig(),
-        root_path=TEST_DATA_DIR,
+        root_path=str(TEST_DATA_DIR),
         globs=["*.py"],
         exclude_globs=["*.min.js", "*.min.css"],
     )
@@ -42,9 +42,9 @@ def project_paths(project_files: list[File]) -> list[str]:
     return result
 
 
-def test_local_globs(project_paths: list[str]):
+def test_local_globs(project_paths: list[str]) -> None:
     assert "included.py" in project_paths
 
 
-def test_local_exclude_globs(project_paths: list[str]):
+def test_local_exclude_globs(project_paths: list[str]) -> None:
     assert "excluded.min.js" not in project_paths

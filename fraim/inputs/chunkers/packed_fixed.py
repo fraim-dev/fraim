@@ -2,8 +2,8 @@
 # Copyright (c) 2025 Resourcely Inc.
 from typing import Iterator, List
 
-from fraim.core.contextuals.code import CodeChunks
-from fraim.inputs.chunkers.fixed import FixedTokenChunker
+from fraim.core.contextuals import Contextual
+from fraim.core.contextuals.code import CodeChunk, CodeChunks
 from fraim.inputs.chunkers.syntactic import SyntacticChunker
 
 
@@ -22,15 +22,18 @@ class PackingFixedChunker(SyntacticChunker):
        itself in its own chunk, violating the size limit to uphold rule #1.
     """
 
-    def __iter__(self) -> Iterator[CodeChunks]:
+    def __iter__(self) -> Iterator[Contextual[str]]:
+        yield from self.packed_chunks()
+
+
+    def packed_chunks(self) -> Iterator[CodeChunks]:
         """
         Yields packed `CodeChunks`, each close to `chunk_size` without splitting files.
         """
-
         current_pack = CodeChunks()
 
         # Ensure smaller files are combined up to chunk_size, preserving order.
-        for file_chunk in super().__iter__():
+        for file_chunk in super().chunks():
             # Case 2: The current pack is empty. Add the first chunk.
             if not current_pack:
                 current_pack.append(file_chunk)

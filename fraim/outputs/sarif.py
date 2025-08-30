@@ -222,12 +222,13 @@ def create_result_model(allowed_types: Optional[List[str]] = None) -> type[Resul
     if not allowed_types:
         return Result
 
-    VulnTypeEnum = Enum("VulnTypeEnum", {t: t for t in allowed_types})
+    # The type annotations here are for pydantic, may take some more digging to get these to work with mypy.
+    VulnTypeEnum = Enum("VulnTypeEnum", {t: t for t in allowed_types})  # type: ignore
 
     class RestrictedResultProperties(ResultProperties):
         type: VulnTypeEnum = Field(
             description="Type of vulnerability (e.g., 'SQL Injection', 'XSS', 'Command Injection', etc.)"
-        )
+        )  # type: ignore
 
     class RestrictedResult(Result):
         properties: RestrictedResultProperties = Field(
@@ -251,15 +252,16 @@ def create_run_model(allowed_types: Optional[List[str]] = None) -> type[Run]:
     """
     RestrictedResultModel = create_result_model(allowed_types)
 
+    # The type annotations here are for pydantic, may take some more digging to get these to work with mypy.
     class RestrictedRun(Run):
-        results: List[RestrictedResultModel] = Field(description="The set of results contained in a SARIF log.")
+        results: List[RestrictedResultModel] = Field(description="The set of results contained in a SARIF log.")  # type: ignore
 
     return RestrictedRun
 
 
 def create_sarif_report(
     results: List[Result],
-    failed_chunks: list["CodeChunkFailure"],
+    failed_chunks: list["CodeChunkFailure"],  # type: ignore[name-defined] # to avoid circular import
     tool_version: str = "1.0.0",
 ) -> SarifReport:
     """

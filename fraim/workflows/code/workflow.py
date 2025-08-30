@@ -27,6 +27,7 @@ from fraim.workflows.registry import workflow
 from fraim.workflows.utils import filter_results_by_confidence, write_sarif_and_html_report
 
 from . import triage_sarif_overlay
+from ...outputs.sarif import Run
 
 FILE_PATTERNS = [
     "*.py",
@@ -112,7 +113,7 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
             ],
         )
         scanner_parser = PydanticOutputParser(sast_workflow_run_results_class)
-        self.scanner_step: LLMStep[SASTInput, sast_workflow_run_results_class] = LLMStep(
+        self.scanner_step: LLMStep[SASTInput, Run] = LLMStep(
             self.llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser
         )
 

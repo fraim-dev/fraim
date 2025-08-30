@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Any, Iterator, Literal, Type
 
 from fraim.config.config import Config
@@ -80,7 +81,12 @@ class ProjectInput:
                 )
             else:
                 self.files = Local(
-                    self.config, self.project_path, globs=globs, limit=limit, exclude_globs=exclude_globs, paths=paths
+                    self.config,
+                    self.project_path,
+                    globs=globs,
+                    limit=limit,
+                    exclude_globs=exclude_globs,
+                    paths=paths,
                 )
 
         chunker_class = get_chunking_class(self.chunking_method)
@@ -100,6 +106,6 @@ class ProjectInput:
 
 def get_chunking_class(chunking_method: str) -> Type[Chunker]:
     try:
-        return CHUNKING_METHODS.get(chunking_method)
+        return CHUNKING_METHODS[chunking_method]
     except KeyError:
         raise ValueError(f"Unsupported chunking method: {chunking_method}")

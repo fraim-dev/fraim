@@ -5,10 +5,9 @@
 
 import asyncio
 from abc import ABC, abstractmethod
-from typing import Any, Generic, List, Protocol, TypeVar
+from typing import Any, Generic, Protocol, TypeVar
 
 from fraim.config import Config
-from fraim.outputs import sarif
 
 
 class WorkflowInput(Protocol):

@@ -17,7 +17,7 @@ def project_path(tmp_path: Path) -> str:
     return str(tmp_path)
 
 
-def test_pack_multiple_small_files_into_one_chunk(project_path: str):
+def test_pack_multiple_small_files_into_one_chunk(project_path: str) -> None:
     # Two small files that should be packed into a single chunk.
     files = InMemory(
         File("file1.py", "print('hello')"),
@@ -26,8 +26,7 @@ def test_pack_multiple_small_files_into_one_chunk(project_path: str):
     )
 
     # Set chunk_size large enough to hold both files.
-    chunker = PackingFixedChunker(files, chunk_size=1000, logger=log)
-    chunks = list(chunker)
+    chunks = list(PackingFixedChunker(files, chunk_size=1000, logger=log).packed_chunks())
 
     assert len(chunks) == 1
     assert len(chunks[0]) == 2
@@ -35,7 +34,7 @@ def test_pack_multiple_small_files_into_one_chunk(project_path: str):
     assert chunks[0][1].file_path == "file2.py"
 
 
-def test_pack_files_into_multiple_chunks(project_path: str):
+def test_pack_files_into_multiple_chunks(project_path: str) -> None:
     # Three files, first two fit in one chunk, the third in a new one.
     files = InMemory(
         File("file1.py", "print('file1')"),
@@ -46,8 +45,7 @@ def test_pack_files_into_multiple_chunks(project_path: str):
 
     # Set chunk_size so that first two files fit, but adding the third exceeds it.
     # A single chunk is ~150 chars. Let's set it to 350 to fit two.
-    chunker = PackingFixedChunker(files, chunk_size=350, chunk_overlap=100, logger=log)
-    chunks = list(chunker)
+    chunks = list(PackingFixedChunker(files, chunk_size=350, chunk_overlap=100, logger=log).packed_chunks())
 
     assert len(chunks) == 2
     assert len(chunks[0]) == 2  # First two files
@@ -57,7 +55,7 @@ def test_pack_files_into_multiple_chunks(project_path: str):
     assert chunks[1][0].file_path == "file3.py"
 
 
-def test_small_files_are_packed(project_path: str):
+def test_small_files_are_packed(project_path: str) -> None:
     # A single file larger than the line limit of PackingFixedChunker, which gets split
     # into multiple CodeChunks, which are then packed.
     chunk_size = 500
@@ -66,7 +64,7 @@ def test_small_files_are_packed(project_path: str):
     files = InMemory(*[File("small_file.py", large_content)] * num_of_small_files, root_path=project_path)
 
     # chunk_size for PackingFixedChunker (bytes) is 500, so packed chunks should be small.
-    chunks = list(PackingFixedChunker(files, chunk_size=chunk_size, logger=log))
+    chunks = list(PackingFixedChunker(files, chunk_size=chunk_size, logger=log).packed_chunks())
 
     # PackingFixedChunker with byte chunk_size=500 will receive these two CodeChunk.
     # The first CodeChunk is added. The second one is checked.
@@ -82,29 +80,27 @@ def test_small_files_are_packed(project_path: str):
     assert chunks[0][1].line_number_end_inclusive > 1
 
 
-def test_single_large_file_violates_chunk_size(project_path: str):
+def test_single_large_file_violates_chunk_size(project_path: str) -> None:
     # A single file chunk that is larger than the packing chunk_size.
     # The chunker should yield it by itself.
     content = "a" * 500
     files = InMemory(File("very_large_file.py", content), root_path=project_path)
 
     # Set chunk_size for PackingFixedChunker (bytes) smaller than the file content.
-    chunker = PackingFixedChunker(files, chunk_size=400, chunk_lines=1000, logger=log)
-    chunks = list(chunker)
+    chunks = list(PackingFixedChunker(files, chunk_size=400, chunk_lines=1000, logger=log).packed_chunks())
 
     assert len(chunks) == 1
     assert len(chunks[0]) == 1
     assert len(str(chunks[0])) > 400
 
 
-def test_empty_input(project_path: str):
+def test_empty_input(project_path: str) -> None:
     files = InMemory(root_path=project_path)
-    chunker = PackingFixedChunker(files=files, chunk_size=1000, logger=log)
-    chunks = list(chunker)
+    chunks = list(PackingFixedChunker(files=files, chunk_size=1000, logger=log).packed_chunks())
     assert len(chunks) == 0
 
 
-def test_single_small_file(project_path: str):
+def test_single_small_file(project_path: str) -> None:
     files = InMemory(
         File(
             "single.py",
@@ -112,7 +108,7 @@ def test_single_small_file(project_path: str):
         ),
         root_path=project_path,
     )
-    chunks = list(PackingFixedChunker(files=files, chunk_size=1000, logger=log))
+    chunks = list(PackingFixedChunker(files=files, chunk_size=1000, logger=log).packed_chunks())
 
     assert len(chunks) == 1
     assert len(chunks[0]) == 1

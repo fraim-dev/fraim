@@ -36,12 +36,12 @@ class CodeChunk(Contextual[str]):
     def __str__(self) -> str:
         return f'<code_chunk file_path="{self.file_path}" line_number_start_inclusive="{self.line_number_start_inclusive}" line_number_end_inclusive="{self.line_number_end_inclusive}">\n{self.content}\n</code_chunk>'
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
 
 class CodeChunks(list[CodeChunk], Contextual[str]):
-    def __init__(self, all_files: list[CodeChunk] = None):
+    def __init__(self, all_files: list[CodeChunk] | None = None):
         all_files = all_files or []
         super().__init__(all_files)
 
@@ -50,16 +50,24 @@ class CodeChunks(list[CodeChunk], Contextual[str]):
         return list(set([c.file_path for c in self]))
 
     @property
+    def content(self) -> str:  # type: ignore[override]
+        return "\n\n".join([c.content for c in self])
+
+    @property
+    def description(self) -> str:  # type: ignore[override]
+        return f"Code chunks from: {self.file_paths}"
+
+    @property
     def locations(self) -> Locations:
-        locations = Locations()
+        locations: list[Location] = []
         for chunk in self:
             locations = locations + chunk.locations
-        return locations
+        return Locations(*locations)
 
     def __str__(self) -> str:
         return f"<code_chunks>{'\n'.join(str(chunk) for chunk in self)}</code_chunks>"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
 

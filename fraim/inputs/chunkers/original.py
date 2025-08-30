@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
-
-from typing import Iterator
+import logging
+from typing import Any, Iterator
 
 from fraim.core.contextuals.code import CodeChunk
 from fraim.inputs.chunkers.base import Chunker
@@ -9,13 +9,14 @@ from fraim.inputs.file import File, Files
 
 
 class OriginalChunker(Chunker):
-    def __init__(self, files: Files, project_path: str, chunk_size: int | None, **kwargs) -> None:
-        super().__init__(**kwargs)
+    def __init__(
+        self, files: Files, project_path: str, chunk_size: int | None, logger: logging.Logger, **kwargs: dict[str, Any]
+    ) -> None:
+        super().__init__(logger=logger, **kwargs)
 
         self.chunk_size = chunk_size if chunk_size else 500
         self.files = files
         self.project_path = project_path
-        self.chunk_size = chunk_size
 
     def __iter__(self) -> Iterator[CodeChunk]:
         for file in self.files:
