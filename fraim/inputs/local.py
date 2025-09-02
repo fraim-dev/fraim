@@ -9,7 +9,7 @@ from typing import Iterator, List, Optional, Type
 from typing_extensions import Self
 
 from fraim.config.config import Config
-from fraim.inputs.file import File
+from fraim.core.contextuals import CodeChunk
 from fraim.inputs.input import Input
 
 
@@ -60,7 +60,7 @@ class Local(Input):
     def root_path(self) -> str:
         return str(self._root_path)
 
-    def __iter__(self) -> Iterator[File]:
+    def __iter__(self) -> Iterator[CodeChunk]:
         self.config.logger.info(f"Scanning local files: {self.root_path}, with globs: {self.globs}")
 
         seen = set()
@@ -94,7 +94,13 @@ class Local(Input):
                         try:
                             self.config.logger.info(f"Reading file: {path}")
                             # TODO: Avoid reading files that are too large?
-                            yield File(os.path.relpath(path, self._root_path), path.read_text(encoding="utf-8"))
+                            content = path.read_text(encoding="utf-8")
+                            yield CodeChunk(
+                                file_path=os.path.relpath(path, self._root_path),
+                                content=content,
+                                line_number_start_inclusive=1,
+                                line_number_end_inclusive=len(content),
+                            )
 
                             # Add file to set of seen files, exit early if maximum reached.
                             seen.add(path)

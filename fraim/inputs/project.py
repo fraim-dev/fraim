@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any, Iterator, Literal, Type
 
 from fraim.config.config import Config
-from fraim.core.contextuals import Contextual
+from fraim.core.contextuals import Contextual, CodeChunk
 from fraim.inputs.chunkers import FileChunker, MaxContextChunker
 from fraim.inputs.chunkers.base import Chunker
 from fraim.inputs.chunkers.fixed import FixedTokenChunker
@@ -27,7 +27,7 @@ CHUNKING_METHODS = {
 
 class ProjectInput:
     config: Config
-    files: Input
+    input: Input
     chunk_size: int
     chunk_overlap: int = 0
     project_path: str
@@ -55,7 +55,7 @@ class ProjectInput:
         if path_or_url.startswith("http://") or path_or_url.startswith("https://") or path_or_url.startswith("git@"):
             self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
             # TODO: git diff here?
-            self.files = GitRemote(
+            self.input = GitRemote(
                 self.config,
                 url=path_or_url,
                 globs=globs,
@@ -64,13 +64,13 @@ class ProjectInput:
                 exclude_globs=exclude_globs,
                 paths=paths,
             )
-            self.project_path = self.files.root_path()
+            self.project_path = self.input.root_path()
         else:
             # Fully resolve the path to the project
             self.project_path = os.path.abspath(path_or_url)
             self.repo_name = os.path.basename(self.project_path)
             if self.diff:
-                self.files = GitDiff(
+                self.input = GitDiff(
                     self.config,
                     self.project_path,
                     head=self.head,
@@ -80,7 +80,7 @@ class ProjectInput:
                     exclude_globs=exclude_globs,
                 )
             else:
-                self.files = Local(
+                self.input = Local(
                     self.config,
                     self.project_path,
                     globs=globs,
@@ -92,7 +92,7 @@ class ProjectInput:
         chunker_class = get_chunking_class(self.chunking_method)
 
         self.chunker = chunker_class(
-            files=self.files,
+            input=self.input,
             project_path=self.project_path,
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,

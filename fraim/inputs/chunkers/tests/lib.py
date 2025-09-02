@@ -1,18 +1,18 @@
 from types import TracebackType
 from typing import Iterator, Optional, Self
 
-from fraim.inputs.file import File, Files
+from fraim.core.contextuals import CodeChunk
 
 
 class InMemory:
-    def __init__(self, *files: File, root_path: str):
+    def __init__(self, *files: CodeChunk, root_path: str):
         self._files = files
         self._root_path = root_path
 
     def root_path(self) -> str:
         return self._root_path
 
-    def __iter__(self) -> Iterator[File]:
+    def __iter__(self) -> Iterator[CodeChunk]:
         yield from self._files
 
     def __enter__(self) -> Self:

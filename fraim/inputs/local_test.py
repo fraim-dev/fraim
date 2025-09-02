@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from fraim.config import Config
-from fraim.inputs.file import File
+from fraim.core.contextuals import CodeChunk
 from fraim.inputs.local import Local
 
 TEST_DATA_DIR = Path(__name__).parent / "test_data"
@@ -27,16 +27,16 @@ def local() -> Local:
 
 
 @pytest.fixture
-def project_files(local: Local) -> list[File]:
+def project_files(local: Local) -> list[CodeChunk]:
     result = list(local)
     assert len(result) > 0
-    assert isinstance(result[0], File)
+    assert isinstance(result[0], CodeChunk)
     return result
 
 
 @pytest.fixture
-def project_paths(project_files: list[File]) -> list[str]:
-    result = [p.path for p in project_files]
+def project_paths(project_files: list[CodeChunk]) -> list[str]:
+    result = [p.file_path for p in project_files]
     assert len(result) > 0
     assert isinstance(result[0], str)
     return result

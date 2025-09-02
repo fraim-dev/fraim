@@ -4,21 +4,17 @@ from typing import Iterator, Any
 
 from fraim.core.contextuals.code import CodeChunk
 from fraim.inputs.chunkers.base import Chunker
-from fraim.inputs.file import Files
+from fraim.inputs.input import Input
 
 
 class FileChunker(Chunker):
-    def __init__(self, files: Files, **kwargs: Any) -> None:
+    def __init__(self, input: Input, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.files = files
+        self.input = input
 
     def __iter__(self) -> Iterator[CodeChunk]:
         """Yield each file as a single chunk."""
 
-        for file in self.files:
-            yield CodeChunk(
-                content=file.body,
-                file_path=str(file.path),
-                line_number_start_inclusive=1,
-                line_number_end_inclusive=len(file.body.splitlines()),
-            )
+        with self.input as input:
+            for file in input:
+                yield file

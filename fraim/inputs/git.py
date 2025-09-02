@@ -9,7 +9,6 @@ from typing import Iterator, List, Optional, Type
 
 from fraim.config.config import Config
 from fraim.core.contextuals import CodeChunk
-from fraim.inputs.file import File
 from fraim.inputs.input import Input
 from fraim.inputs.local import Local
 
@@ -45,13 +44,18 @@ class GitRemote(Input):
     ) -> None:
         self.tempdir.cleanup()
 
-    def __iter__(self) -> Iterator[File]:
+    def __iter__(self) -> Iterator[CodeChunk]:
         self.config.logger.debug("Starting git repository input iterator")
 
         # Clone remote repository to a local directory, delegate to file iterator.
         self._clone_to_path()
         for file in Local(self.config, self.path, self.paths, self.globs, self.limit, self.exclude_globs):
-            yield file
+            yield CodeChunk(
+                file_path=file.file_path,
+                content=file.content,
+                line_number_start_inclusive=1,
+                line_number_end_inclusive=len(file.content),
+            )
 
     def _clone_to_path(self) -> None:
         if not _is_directory_empty(self.path):

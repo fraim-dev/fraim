@@ -22,7 +22,7 @@ class SyntacticChunker(FixedTokenChunker):
 
     # Chunks is kept separate from iterator so we have a type annotation that returns the concrete class
     def chunks(self) -> Iterator[CodeChunk]:
-        with self.files as files:
+        with self.input as files:
             for file in files:
                 if file.language is None:
                     yield from self.split_file(self.splitter, file)
