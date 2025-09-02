@@ -25,7 +25,6 @@ class PackingFixedChunker(SyntacticChunker):
     def __iter__(self) -> Iterator[Contextual[str]]:
         yield from self.packed_chunks()
 
-
     def packed_chunks(self) -> Iterator[CodeChunks]:
         """
         Yields packed `CodeChunks`, each close to `chunk_size` without splitting files.

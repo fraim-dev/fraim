@@ -1,7 +1,7 @@
 import logging
 from unittest.mock import MagicMock, patch
 
-from fraim.core.contextuals.code import CodeChunks, CodeChunk
+from fraim.core.contextuals.code import CodeChunk, CodeChunks
 from fraim.inputs.chunkers.max_context import MaxContextChunker
 from fraim.inputs.chunkers.tests.lib import InMemory
 
@@ -14,19 +14,22 @@ def test_max_content_chunker() -> None:
     fraction = 0.7
 
     file_1 = CodeChunk(
-        file_path="file1.py", content="print('Hello, from file1!')",
+        file_path="file1.py",
+        content="print('Hello, from file1!')",
         line_number_start_inclusive=1,
         line_number_end_inclusive=1,
     )
     file_2 = CodeChunk(
-        file_path="file2.py", content="print('Hello, from file2!')",
+        file_path="file2.py",
+        content="print('Hello, from file2!')",
         line_number_start_inclusive=1,
         line_number_end_inclusive=1,
     )
-    _input = InMemory(file_1, file_2, root_path='/project')
+    _input = InMemory(file_1, file_2, root_path="/project")
 
     chunks = list(
-        MaxContextChunker(input=_input, model="gemini/gemini-2.5-flash", fraction=fraction, logger=log).packed_chunks())
+        MaxContextChunker(input=_input, model="gemini/gemini-2.5-flash", fraction=fraction, logger=log).packed_chunks()
+    )
 
     assert len(chunks) == 1
     assert len(chunks[0]) == 2
@@ -50,16 +53,18 @@ def test_max_content_chunker_overflow(mock_get_max_tokens: MagicMock) -> None:
     mock_get_max_tokens.return_value = 100 / fraction  # So that chunk_size becomes 100
 
     file_1 = CodeChunk(
-        file_path="file1.py", content="print('Hello, from file1!')",
+        file_path="file1.py",
+        content="print('Hello, from file1!')",
         line_number_start_inclusive=1,
         line_number_end_inclusive=1,
     )
     file_2 = CodeChunk(
-        file_path="file2.py", content="a " * 120,
+        file_path="file2.py",
+        content="a " * 120,
         line_number_start_inclusive=1,
         line_number_end_inclusive=1,
     )
-    _input = InMemory(file_1, file_2, root_path='/project')
+    _input = InMemory(file_1, file_2, root_path="/project")
 
     chunks = list(MaxContextChunker(input=_input, model="test", fraction=fraction, logger=log).packed_chunks())
 

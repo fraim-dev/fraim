@@ -207,8 +207,7 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, list[sarif.Result]]
         except Exception as e:
             self.failed_chunks.append(CodeChunkFailure(chunk=chunk, reason=str(e)))
             self.config.logger.error(
-                f"Failed to process chunk {str(chunk.locations)}: {e!s}. "
-                "Skipping this chunk and continuing with scan."
+                f"Failed to process chunk {str(chunk.locations)}: {e!s}. Skipping this chunk and continuing with scan."
             )
             return []
 

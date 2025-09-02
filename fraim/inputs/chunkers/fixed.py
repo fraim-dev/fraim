@@ -2,7 +2,7 @@
 # Copyright (c) 2025 Resourcely Inc.
 import re
 from bisect import bisect_right
-from typing import Iterator, Any
+from typing import Any, Iterator
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter, TextSplitter
 

@@ -11,7 +11,8 @@ def test_file_chunker() -> None:
     """Test that NoneChunker yields the whole project as a single chunk."""
     _input = InMemory(
         CodeChunk(
-            file_path="file1.py", content="print('Hello, World!')",
+            file_path="file1.py",
+            content="print('Hello, World!')",
             line_number_start_inclusive=1,
             line_number_end_inclusive=1,
         ),

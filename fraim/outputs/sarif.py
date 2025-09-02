@@ -208,9 +208,9 @@ class SarifReport(BaseSchema):
 
 
 def create_sarif_report(
-        results: list[Result],
-        failed_chunks: list["CodeChunkFailure"],  # type: ignore[name-defined] # to avoid circular import
-        tool_version: str = "1.0.0",
+    results: list[Result],
+    failed_chunks: list["CodeChunkFailure"],  # type: ignore[name-defined] # to avoid circular import
+    tool_version: str = "1.0.0",
 ) -> SarifReport:
     """
     Create a complete SARIF report from a list of results.
@@ -247,6 +247,7 @@ def create_sarif_report(
             ),
         ],
     )
+
 
 def create_result_model(allowed_types: list[str] | None = None) -> type[Result]:
     """

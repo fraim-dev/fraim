@@ -3,7 +3,7 @@ from collections.abc import Iterator
 from typing import Any, Literal
 
 from fraim.config.config import Config
-from fraim.core.contextuals import Contextual, CodeChunk
+from fraim.core.contextuals import CodeChunk, Contextual
 from fraim.inputs.chunkers import FileChunker, MaxContextChunker
 from fraim.inputs.chunkers.base import Chunker
 from fraim.inputs.chunkers.fixed import FixedTokenChunker

@@ -43,7 +43,7 @@ class ChunkWorkflowInput(WorkflowInput):
         list[str] | None, {"help": "Optionally limit scanning to these paths (relative to `--location`)"}
     ] = None
     chunk_overlap: Annotated[
-        int|None,
+        int | None,
         {
             "help": (
                 "Number of characters of overlap per chunk. Does not apply when the original, file, or project chunking "
