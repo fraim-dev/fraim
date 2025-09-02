@@ -26,6 +26,9 @@ format:
 lint:
 	uv run ruff check .
 
+lint-fix:
+	uv run ruff check --fix .
+
 typecheck:
 	uv run mypy fraim/
 

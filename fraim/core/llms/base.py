@@ -5,7 +5,7 @@
 
 import asyncio
 from abc import ABC, abstractmethod
-from typing import List, Optional, Self
+from typing import Self
 
 # Standardize on the OpenAI ModelResponse type
 from litellm import ModelResponse
@@ -18,13 +18,13 @@ class BaseLLM(ABC):
     """Base class for LLMs"""
 
     @abstractmethod
-    def with_tools(self, tools: List["BaseTool"], max_tool_iterations: Optional[int] = None) -> Self:
+    def with_tools(self, tools: list["BaseTool"], max_tool_iterations: int | None = None) -> Self:
         """Return a copy of the LLM with the given tools registered"""
 
     @abstractmethod
-    async def run(self, prompt: List[Message]) -> ModelResponse:
+    async def run(self, prompt: list[Message]) -> ModelResponse:
         """Call the LLM asynchronously"""
 
-    def run_sync(self, prompt: List[Message]) -> ModelResponse:
+    def run_sync(self, prompt: list[Message]) -> ModelResponse:
         """Call the LLM"""
         return asyncio.run(self.run(prompt))

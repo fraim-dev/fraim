@@ -2,11 +2,10 @@
 # Copyright (c) 2025 Resourcely Inc.
 
 import os.path
+from collections.abc import Iterator
 from pathlib import Path
 from types import TracebackType
-from typing import Iterator, List, Optional, Type
-
-from typing_extensions import Self
+from typing import Self
 
 from fraim.config.config import Config
 from fraim.core.contextuals import CodeChunk
@@ -16,7 +15,7 @@ from fraim.inputs.input import Input
 
 
 class Local(Input):
-    def __init__(self, config: Config, path: str, globs: Optional[List[str]] = None, limit: Optional[int] = None):
+    def __init__(self, config: Config, path: str, globs: list[str] | None = None, limit: int | None = None):
         self.config = config
         self.path = path
         # TODO: remove hardcoded globs
@@ -86,6 +85,6 @@ class Local(Input):
         return self
 
     def __exit__(
-        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None
     ) -> None:
         pass

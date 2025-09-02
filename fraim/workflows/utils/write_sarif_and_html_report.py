@@ -10,7 +10,6 @@ It is used by workflows to persist and present vulnerability findings after anal
 import logging
 import os
 from datetime import datetime
-from typing import List
 
 from fraim.core.contextuals import CodeChunkFailure
 from fraim.outputs.sarif import Result, create_sarif_report
@@ -18,7 +17,7 @@ from fraim.reporting.reporting import Reporting
 
 
 def write_sarif_and_html_report(
-    results: List[Result],
+    results: list[Result],
     repo_name: str,
     output_dir: str,
     logger: logging.Logger,
@@ -44,10 +43,10 @@ def write_sarif_and_html_report(
             f.write(report.model_dump_json(by_alias=True, indent=2, exclude_none=True))
         logger.info(f"Wrote SARIF report ({total_results} results) to {sarif_output_file}")
     except Exception as e:
-        logger.error(f"Failed to write SARIF report to {sarif_output_file}: {str(e)}")
+        logger.error(f"Failed to write SARIF report to {sarif_output_file}: {e!s}")
     # Write HTML report file (independent of SARIF write)
     try:
         Reporting.generate_html_report(sarif_report=report, repo_name=repo_name, output_path=html_output_file)
         logger.info(f"Wrote HTML report ({total_results} results) to {html_output_file}")
     except Exception as e:
-        logger.error(f"Failed to write HTML report to {html_output_file}: {str(e)}")
+        logger.error(f"Failed to write HTML report to {html_output_file}: {e!s}")

@@ -6,7 +6,8 @@ SARIF (Static Analysis Results Interchange Format) Pydantic models.
 Used for generating standardized vulnerability reports.
 """
 
-from typing import Any, List, Literal, Optional
+from typing import Literal
+
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -39,7 +40,7 @@ class Region(BaseSchema):
 
     startLine: int = Field(description="The line number of the first character in the region.")
     endLine: int = Field(description="The line number of the last character in the region.")
-    snippet: Optional[ArtifactContent] = Field(
+    snippet: ArtifactContent | None = Field(
         default=None, description="The portion of the artifact contents within the specified region."
     )
 
@@ -49,7 +50,7 @@ class PhysicalLocation(BaseSchema):
 
     artifactLocation: ArtifactLocation = Field(description="The location of the artifact.")
     region: Region = Field(description="Specifies a portion of the artifact.")
-    contextRegion: Optional[Region] = Field(
+    contextRegion: Region | None = Field(
         default=None,
         description="Specifies a portion of the artifact that encloses the region. Allows a viewer to display additional context around the region.",
     )
@@ -73,7 +74,7 @@ class ThreadFlowLocation(BaseSchema):
     location: Location = Field(
         description="The location visited by an analysis tool while simulating or monitoring the execution of a program."
     )
-    kinds: List[str] = Field(
+    kinds: list[str] = Field(
         description="A set of distinct strings that categorize the thread flow location. Well-known kinds include 'acquire', 'release', 'enter', 'exit', 'call', 'return', 'branch', 'implicit', 'false', 'true', 'caution', 'danger', 'unknown', 'unreachable', 'taint', 'function', 'handler', 'lock', 'memory', 'resource', 'scope', and 'value'."
     )
 
@@ -82,7 +83,7 @@ class ThreadFlow(BaseSchema):
     """Describes a sequence of code locations that specify a path through a single thread of execution such as an operating system or fiber."""
 
     message: Message = Field(description="A message relevant to the thread flow.")
-    locations: List[ThreadFlowLocation] = Field(
+    locations: list[ThreadFlowLocation] = Field(
         min_length=1,
         description="An array of one or more unique threadFlowLocation objects, each of which describes a location in a threadFlow.",
     )
@@ -92,7 +93,7 @@ class CodeFlow(BaseSchema):
     """A set of threadFlows which together describe a pattern of code execution relevant to detecting a result."""
 
     message: Message = Field(description="A message relevant to the code flow.")
-    threadFlows: List[ThreadFlow] = Field(
+    threadFlows: list[ThreadFlow] = Field(
         min_length=1,
         description="An array of one or more unique threadFlow objects, each of which describes the progress of a program through a thread of execution.",
     )
@@ -119,14 +120,14 @@ class Result(BaseSchema):
         description="A message that describes the result. The first sentence of the message only will be displayed when visible space is limited."
     )
     level: ResultLevelEnum = Field(description="A value specifying the severity level of the result.")
-    locations: List[Location] = Field(
+    locations: list[Location] = Field(
         min_length=1,
         description="The set of locations where the result was detected. Specify only one location unless the problem indicated by the result can only be corrected by making a change at every specified location..",
     )
     properties: ResultProperties = Field(
         description="Key/value pairs that provide additional information about the result."
     )
-    codeFlows: Optional[List[CodeFlow]] = Field(
+    codeFlows: list[CodeFlow] | None = Field(
         default=None,
         description="An array of zero or more unique codeFlow objects, each of which describes a pattern of execution relevant to detecting the result.",
     )
@@ -181,7 +182,7 @@ class Invocation(BaseSchema):
 class RunResults(BaseSchema):
     """Describes just the results of a single run of an analysis tool."""
 
-    results: List[Result] = Field(description="The set of results contained in a SARIF log.")
+    results: list[Result] = Field(description="The set of results contained in a SARIF log.")
 
 
 class Run(RunResults):
@@ -205,11 +206,11 @@ class SarifReport(BaseSchema):
         alias="$schema",
         description="The URI of the JSON schema corresponding to the version of the SARIF specification that the log file complies with.",
     )
-    runs: List[Run] = Field(description="The set of runs contained in a SARIF log.")
+    runs: list[Run] = Field(description="The set of runs contained in a SARIF log.")
 
 
 def create_sarif_report(
-    results: List[Result],
+    results: list[Result],
     failed_chunks: list[CodeChunkFailure],
     tool_version: str = "1.0.0",
 ) -> SarifReport:
