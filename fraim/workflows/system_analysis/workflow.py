@@ -393,7 +393,7 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
 
         return " ".join(summary_parts)
 
-    async def workflow(self, input: SystemAnalysisInput) -> Dict[str, Any]:
+    async def workflow(self, input: SystemAnalysisInput) -> dict[str, Any]:
         """Main System Analysis workflow."""
         try:
             self.config.logger.info("Starting System Analysis workflow")
@@ -402,7 +402,7 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
             project = self.setup_project_input(input)
 
             # 2. Create a closure that captures business_context and focus_areas
-            async def chunk_processor(chunk: CodeChunk) -> list[SystemAnalysisResult]:
+            async def chunk_processor(chunk: Contextual[str]) -> list[SystemAnalysisResult]:
                 return await self._process_single_chunk(chunk, input.business_context, input.focus_areas)
 
             # 3. Process chunks concurrently using mixin utility

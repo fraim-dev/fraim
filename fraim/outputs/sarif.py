@@ -6,7 +6,8 @@ SARIF (Static Analysis Results Interchange Format) Pydantic models.
 Used for generating standardized vulnerability reports.
 """
 
-from typing import Literal
+from enum import Enum
+from typing import Any, List, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -206,7 +207,6 @@ class SarifReport(BaseSchema):
     runs: list[Run] = Field(description="The set of runs contained in a SARIF log.")
 
 
-def create_sarif_report(results: list[Result], tool_version: str = "1.0.0") -> SarifReport:
 def create_sarif_report(
         results: list[Result],
         failed_chunks: list["CodeChunkFailure"],  # type: ignore[name-defined] # to avoid circular import
@@ -264,12 +264,12 @@ def create_result_model(allowed_types: list[str] | None = None) -> type[Result]:
         return Result
 
     # The type annotations here are for pydantic, may take some more digging to get these to work with mypy.
-    VulnTypeEnum = Enum("VulnTypeEnum", {t: t for t in allowed_types})  # type: ignore
+    VulnTypeEnum = Enum("VulnTypeEnum", {t: t for t in allowed_types})  # type: ignore[misc]
 
     class RestrictedResultProperties(ResultProperties):
-        type: VulnTypeEnum = Field(
+        type: VulnTypeEnum = Field(  # type: ignore[valid-type,assignment]
             description="Type of vulnerability (e.g., 'SQL Injection', 'XSS', 'Command Injection', etc.)"
-        )  # type: ignore
+        )
 
     class RestrictedResult(Result):
         properties: RestrictedResultProperties = Field(
@@ -295,6 +295,8 @@ def create_run_model(allowed_types: list[str] | None = None) -> type[Run]:
 
     # The type annotations here are for pydantic, may take some more digging to get these to work with mypy.
     class RestrictedRun(Run):
-        results: List[RestrictedResultModel] = Field(description="The set of results contained in a SARIF log.")  # type: ignore
+        results: List[RestrictedResultModel] = Field(  # type: ignore[valid-type]
+            description="The set of results contained in a SARIF log."
+        )
 
     return RestrictedRun

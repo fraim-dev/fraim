@@ -104,7 +104,7 @@ class ChunkProcessingMixin:
         pass
 
     @property
-    def exclude_file_patterns(self) -> List[str]:
+    def exclude_file_patterns(self) -> list[str]:
         """File patterns for this workflow (e.g., ['*.py', '*.js'])."""
         return [
             "*.min.js",

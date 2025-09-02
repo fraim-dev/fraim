@@ -65,7 +65,7 @@ class IaCInput(ChunkWorkflowInput):
 class IaCCodeChunkInput:
     """Input for processing a single IaC chunk."""
 
-    code: CodeChunk
+    code: Contextual[str]
     config: Config
 
 

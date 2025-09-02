@@ -13,7 +13,7 @@ TEST_DATA_DIR = Path(__name__).parent / "test_data"
 class MockConfig(Config):
     def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
-        self.project_path = TEST_DATA_DIR
+        self.project_path = str(TEST_DATA_DIR)
 
 
 @pytest.fixture
