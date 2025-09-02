@@ -27,7 +27,7 @@ from fraim.workflows.registry import workflow
 from fraim.workflows.utils import filter_results_by_confidence, write_sarif_and_html_report
 
 from . import triage_sarif_overlay
-from ...outputs.sarif import Run
+from fraim.outputs.sarif import Run
 
 FILE_PATTERNS = [
     "*.py",
@@ -206,7 +206,7 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
 
         except Exception as e:
             self.failed_chunks.append(CodeChunkFailure(chunk=chunk, reason=str(e)))
-            self.config.logger.exception(
+            self.config.logger.error(
                 f"Failed to process chunk {str(chunk.locations)}: {str(e)}. "
                 "Skipping this chunk and continuing with scan."
             )
@@ -240,5 +240,5 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
             return results
 
         except Exception as e:
-            self.config.logger.exception(f"Error during code scan: {str(e)}")
+            self.config.logger.error(f"Error during code scan: {str(e)}")
             raise e

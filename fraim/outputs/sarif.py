@@ -206,6 +206,46 @@ class SarifReport(BaseSchema):
     )
     runs: List[Run] = Field(description="The set of runs contained in a SARIF log.")
 
+def create_sarif_report(
+        results: List[Result],
+        failed_chunks: list["CodeChunkFailure"],  # type: ignore[name-defined] # to avoid circular import
+        tool_version: str = "1.0.0",
+) -> SarifReport:
+    """
+    Create a complete SARIF report from a list of results.
+
+    Args:
+        results: List of SARIF Result objects
+        failed_chunks: List of CodeChunkFailure objects representing chunks that failed to be analyzed
+        tool_version: Version of the scanning tool
+
+    Returns:
+        Complete SARIF report
+    """
+    return SarifReport(
+        runs=[
+            Run(
+                tool=Tool(driver=ToolComponent(name="fraim", version=tool_version)),
+                results=results,
+                invocations=[
+                    Invocation(
+                        execution_successful=True,
+                        toolExecutionNotifications=[
+                            Notification(
+                                level="error",
+                                descriptor=ReportingDescriptorReference(id="PARSING_ERROR"),
+                                message=Message(
+                                    text=f"Code chunk could not be analyzed due to a parsing error: {failure.reason}"
+                                ),
+                                locations=failure.chunk.locations.to_sarif(),
+                            )
+                            for failure in failed_chunks
+                        ],
+                    )
+                ],
+            ),
+        ],
+    )
 
 def create_result_model(allowed_types: Optional[List[str]] = None) -> type[Result]:
     """
@@ -257,45 +297,3 @@ def create_run_model(allowed_types: Optional[List[str]] = None) -> type[Run]:
         results: List[RestrictedResultModel] = Field(description="The set of results contained in a SARIF log.")  # type: ignore
 
     return RestrictedRun
-
-
-def create_sarif_report(
-    results: List[Result],
-    failed_chunks: list["CodeChunkFailure"],  # type: ignore[name-defined] # to avoid circular import
-    tool_version: str = "1.0.0",
-) -> SarifReport:
-    """
-    Create a complete SARIF report from a list of results.
-
-    Args:
-        results: List of SARIF Result objects
-        failed_chunks: List of CodeChunkFailure objects representing chunks that failed to be analyzed
-        tool_version: Version of the scanning tool
-
-    Returns:
-        Complete SARIF report
-    """
-    return SarifReport(
-        runs=[
-            Run(
-                tool=Tool(driver=ToolComponent(name="fraim", version=tool_version)),
-                results=results,
-                invocations=[
-                    Invocation(
-                        execution_successful=True,
-                        toolExecutionNotifications=[
-                            Notification(
-                                level="error",
-                                descriptor=ReportingDescriptorReference(id="PARSING_ERROR"),
-                                message=Message(
-                                    text=f"Code chunk could not be analyzed due to a parsing error: {failure.reason}"
-                                ),
-                                locations=failure.chunk.locations.to_sarif(),
-                            )
-                            for failure in failed_chunks
-                        ],
-                    )
-                ],
-            ),
-        ],
-    )
