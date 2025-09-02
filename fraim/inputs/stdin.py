@@ -1,10 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 
+from collections.abc import Iterator
 from types import TracebackType
-from typing import Iterator, Optional, Type
-
-from typing_extensions import Self
+from typing import Self
 
 from fraim.config import Config
 from fraim.core.contextuals import CodeChunk
@@ -30,8 +29,8 @@ class StandardInput(Input):
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_value: Optional[BaseException],
-        traceback: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         pass

@@ -4,14 +4,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional, Union
 
 from .basepath import BasePathFS
 
 
-def read_file(
-    fs: BasePathFS, target_path: Union[str, Path], *, offset: Optional[int] = None, limit: Optional[int] = None
-) -> str:
+def read_file(fs: BasePathFS, target_path: str | Path, *, offset: int | None = None, limit: int | None = None) -> str:
     """Read a file with optional line-based offset and limit.
 
     Args:

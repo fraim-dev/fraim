@@ -66,20 +66,19 @@ def parse_json_tolerant(s: str) -> Any:
                 in_escape = not in_escape
             else:
                 in_escape = False
-        else:
-            if char == '"':
-                in_string = True
-            elif char == "{":
-                stack.append("}")
-            elif char == "[":
-                stack.append("]")
-            elif char == "}" or char == "]":
-                if not stack:
-                    raise json.JSONDecodeError(f"Unexpected closing delimiter ${char}.", s, idx)
-                elif stack[-1] == char:
-                    stack.pop()
-                else:
-                    raise json.JSONDecodeError(f"Mismatched closing delimiter ${char}. Expected ${stack[-1]}.", s, idx)
+        elif char == '"':
+            in_string = True
+        elif char == "{":
+            stack.append("}")
+        elif char == "[":
+            stack.append("]")
+        elif char == "}" or char == "]":
+            if not stack:
+                raise json.JSONDecodeError(f"Unexpected closing delimiter ${char}.", s, idx)
+            if stack[-1] == char:
+                stack.pop()
+            else:
+                raise json.JSONDecodeError(f"Mismatched closing delimiter ${char}. Expected ${stack[-1]}.", s, idx)
 
         new_s += char
 
@@ -118,9 +117,8 @@ def parse_json_markdown(s: str) -> Any | None:
         match = _json_code_block_re.search(s)
         if match:
             return parse_json_tolerant(match.group(2))
-        else:
-            # Otherwise, re-raise the original error
-            raise e
+        # Otherwise, re-raise the original error
+        raise e
 
 
 def is_string_end(s: str, i: int) -> bool:

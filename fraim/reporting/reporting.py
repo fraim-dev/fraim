@@ -7,11 +7,11 @@ import logging
 import os
 import secrets
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from fraim.outputs.sarif import ArtifactContent, PhysicalLocation, Region, Result, SarifReport
+from fraim.outputs.sarif import PhysicalLocation, Region, Result, SarifReport
 
 # TODO: Relate to the config logger
 logger = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ class Reporting:
         template = self.jinja_env.get_template("report_template.html")
         return template.render(**template_context)
 
-    def _process_sarif_data(self, sarif_report: SarifReport) -> Dict[str, Any]:
+    def _process_sarif_data(self, sarif_report: SarifReport) -> dict[str, Any]:
         runs = sarif_report.runs
         if not runs:
             raise ValueError("SARIF report must contain at least one run")
@@ -123,7 +123,7 @@ class Reporting:
             "type_options": self._build_filter_options(all_types, tab_data, "type"),
         }
 
-    def _build_detail_content(self, result: Result) -> Dict[str, Any]:
+    def _build_detail_content(self, result: Result) -> dict[str, Any]:
         description = result.message.text or ""
         code_lines = self._get_code_lines(result)
         properties = self._get_additional_properties(result)
@@ -151,7 +151,7 @@ class Reporting:
             "formatted_properties": properties,
         }
 
-    def _get_code_lines(self, result: Result) -> List[Dict[str, Any]]:
+    def _get_code_lines(self, result: Result) -> list[dict[str, Any]]:
         """Extract code lines with metadata from SARIF result."""
         if not result.locations:
             return []
@@ -161,7 +161,7 @@ class Reporting:
             return []
 
         # Try contextRegion first, but only if it has a valid snippet
-        region: Optional[Region] = None
+        region: Region | None = None
         if location.contextRegion and location.contextRegion.snippet:
             region = location.contextRegion
         elif location.region and location.region.snippet:
@@ -194,7 +194,7 @@ class Reporting:
 
         return code_lines
 
-    def _get_additional_properties(self, result: Result) -> List[Dict[str, Any]]:
+    def _get_additional_properties(self, result: Result) -> list[dict[str, Any]]:
         if not result.properties:
             return []
 
@@ -265,8 +265,7 @@ class Reporting:
         file_uri = location.artifactLocation.uri or UNKNOWN
 
         # Strip file:// prefix and validate
-        if file_uri.startswith("file://"):
-            file_uri = file_uri[7:]
+        file_uri = file_uri.removeprefix("file://")
 
         # Basic security check for path traversal
         if "../" in file_uri or "..\\" in file_uri:
@@ -278,7 +277,7 @@ class Reporting:
         level = sarif_level.lower()
         return level if level in ("error", "warning", "note", "none") else UNKNOWN
 
-    def _build_filter_options(self, values: set, tab_data: List[Dict], field: str) -> List[Dict[str, Any]]:
+    def _build_filter_options(self, values: set, tab_data: list[dict], field: str) -> list[dict[str, Any]]:
         options = []
 
         if field == "severity":

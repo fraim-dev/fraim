@@ -3,7 +3,7 @@
 
 """A message for an LLM"""
 
-from typing import List, Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -52,7 +52,7 @@ class AssistantMessage(Message):
     """An assistant message for an LLM"""
 
     role: Literal["assistant"] = "assistant"
-    tool_calls: Optional[List[ToolCall]] = None
+    tool_calls: list[ToolCall] | None = None
 
 
 class ToolMessage(Message):

@@ -2,8 +2,9 @@
 # Copyright (c) 2025 Resourcely Inc.
 
 import inspect
+from collections.abc import Callable, Iterator
 from textwrap import dedent
-from typing import Any, Callable, ClassVar, Iterator, List, Optional, Self, Type
+from typing import Any, ClassVar, Optional, Self
 
 from pydantic import BaseModel, Field, create_model
 
@@ -31,7 +32,7 @@ class FilesystemTools:
         self.project_path = project_path
         self.fs = BasePathFS(project_path)
 
-        self.tools: List[BaseTool] = [
+        self.tools: list[BaseTool] = [
             GrepTool.create(self.fs),
             ListDirTool.create(self.fs),
             ReadFileTool.create(self.fs),
@@ -48,7 +49,7 @@ class FilesystemBaseTool(BaseTool):
     Automatically passes the BasePathFS to the tool function.
     """
 
-    tool_func: ClassVar[Optional[Callable[..., Any]]] = None
+    tool_func: ClassVar[Callable[..., Any] | None] = None
     fs: BasePathFS = Field(exclude=True)
 
     @classmethod
@@ -76,8 +77,7 @@ class FilesystemBaseTool(BaseTool):
             # Check if the function is async or sync
             if inspect.iscoroutinefunction(tool_func):
                 return await tool_func(self.fs, **kwargs)
-            else:
-                return tool_func(self.fs, **kwargs)
+            return tool_func(self.fs, **kwargs)
         except (FileNotFoundError, PermissionError, NotADirectoryError, IsADirectoryError, ValueError) as e:
             raise ToolError(str(e)) from e
 
@@ -97,7 +97,7 @@ class GrepTool(FilesystemBaseTool):
                                  - `count` - show the number of matches in each file
                               - By default patterns are matched against single lines. Use the multiline parameter to match across multiple lines.
                               """)
-    args_schema: Type[BaseModel] = create_model(
+    args_schema: type[BaseModel] = create_model(
         "GrepArgs",
         pattern=(
             str,
@@ -172,11 +172,11 @@ class ListDirTool(FilesystemBaseTool):
                               
                               Returns a hierarchical listing in breadth-first order with proper indentation and directory markers.
                               """)
-    args_schema: Type[BaseModel] = create_model(
+    args_schema: type[BaseModel] = create_model(
         "ListDirArgs",
         target_path=(str, Field(description="Path to the directory to list. Use '.' for the root directory.")),
         ignore_globs=(
-            Optional[List[str]],
+            Optional[list[str]],
             Field(
                 default=[], description="List of glob patterns to ignore (e.g. ['*.log', 'node_modules']). (optional)"
             ),
@@ -199,7 +199,7 @@ class ReadFileTool(FilesystemBaseTool):
 
                               Returns file content as string, optionally limited by offset and limit.
                               """)
-    args_schema: Type[BaseModel] = create_model(
+    args_schema: type[BaseModel] = create_model(
         "ReadFileArgs",
         target_path=(str, Field(description="Path to the file to read")),
         offset=(
