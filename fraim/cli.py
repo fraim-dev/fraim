@@ -6,6 +6,7 @@ import dataclasses
 import logging
 import multiprocessing as mp
 import os
+from importlib.metadata import version
 from pathlib import Path
 
 from fraim.config.config import Config
@@ -174,6 +175,9 @@ def cli() -> int:
     )
 
     parser.add_argument("--show-logs", type=bool, default=True, help="Prints logs to standard error output")
+    parser.add_argument(
+        "--version", action="version", version=version("fraim"), help="Show the version number and exit"
+    )
 
     parsed_args = parser.parse_args()
 

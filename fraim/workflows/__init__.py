@@ -13,6 +13,7 @@ from . import registry as WorkflowRegistry
 
 # Import all workflows to trigger their registration
 from .code import workflow as code_workflow
+from .dry_run import workflow as dry_run_workflow
 from .iac import workflow as iac_workflow
 from .system_analysis import workflow as system_analysis_workflow
 

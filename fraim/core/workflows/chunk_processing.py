@@ -13,8 +13,8 @@ from types import SimpleNamespace
 from typing import Annotated, Any, TypeVar
 
 from fraim.config import Config
-from fraim.core.contextuals import CodeChunk
-from fraim.inputs.project import ProjectInput
+from fraim.core.contextuals import Contextual
+from fraim.inputs.project import CHUNKING_METHODS, ProjectInput
 
 from .workflow import WorkflowInput
 
@@ -30,9 +30,32 @@ class ChunkWorkflowInput(WorkflowInput):
     head: Annotated[str, {"help": "Git head commit for diff input"}]
     base: Annotated[str, {"help": "Git base commit for diff input"}]
     location: Annotated[str, {"help": "Repository URL or path to scan"}]
-    chunk_size: Annotated[int | None, {"help": "Number of lines per chunk"}] = 500
+    chunk_size: Annotated[
+        int | None,
+        {
+            "help": (
+                "Number of characters per chunk. Does not apply when the original, file, or project chunking methods are used."
+            )
+        },
+    ] = 500
     limit: Annotated[int | None, {"help": "Limit the number of files to scan"}] = None
+    paths: Annotated[
+        list[str] | None, {"help": "Optionally limit scanning to these paths (relative to `--location`)"}
+    ] = None
+    chunk_overlap: Annotated[
+        int | None,
+        {
+            "help": (
+                "Number of characters of overlap per chunk. Does not apply when the original, file, or project chunking "
+                "methods are used."
+            )
+        },
+    ] = None
     globs: Annotated[
+        list[str] | None,
+        {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
+    ] = None
+    exclude_globs: Annotated[
         list[str] | None,
         {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
     ] = None
@@ -46,6 +69,15 @@ class ChunkWorkflowInput(WorkflowInput):
             )
         },
     ] = False
+    chunking_method: Annotated[
+        str,
+        {
+            "help": (
+                "Method to use for chunking code files. Only the original chunking method is supported currently. "
+            ),
+            "choices": CHUNKING_METHODS.keys(),
+        },
+    ] = "original"
 
 
 class ChunkProcessingMixin:
@@ -69,6 +101,15 @@ class ChunkProcessingMixin:
     @abstractmethod
     def file_patterns(self) -> list[str]:
         """File patterns for this workflow (e.g., ['*.py', '*.js'])."""
+        pass
+
+    @property
+    def exclude_file_patterns(self) -> list[str]:
+        """File patterns for this workflow (e.g., ['*.py', '*.js'])."""
+        return [
+            "*.min.js",
+            "*.min.css",
+        ]
 
     def setup_project_input(self, input: ChunkWorkflowInput) -> ProjectInput:
         """
@@ -81,11 +122,17 @@ class ChunkProcessingMixin:
             Configured ProjectInput instance
         """
         effective_globs = input.globs if input.globs is not None else self.file_patterns
+        exclude_effective_globs = input.exclude_globs if input.exclude_globs is not None else self.exclude_file_patterns
+
         kwargs = SimpleNamespace(
             location=input.location,
+            paths=input.paths,
             globs=effective_globs,
+            exclude_globs=exclude_effective_globs,
             limit=input.limit,
             chunk_size=input.chunk_size,
+            chunk_overlap=input.chunk_overlap,
+            chunking_method=input.chunking_method,
             head=input.head,
             base=input.base,
             diff=input.diff,
@@ -95,7 +142,7 @@ class ChunkProcessingMixin:
     async def process_chunks_concurrently(
         self,
         project: ProjectInput,
-        chunk_processor: Callable[[CodeChunk], Awaitable[list[T]]],
+        chunk_processor: Callable[[Contextual[str]], Awaitable[list[T]]],
         max_concurrent_chunks: int = 5,
     ) -> list[T]:
         """
@@ -114,7 +161,7 @@ class ChunkProcessingMixin:
         # Create semaphore to limit concurrent chunk processing
         semaphore = asyncio.Semaphore(max_concurrent_chunks)
 
-        async def process_chunk_with_semaphore(chunk: CodeChunk) -> list[T]:
+        async def process_chunk_with_semaphore(chunk: Contextual[str]) -> list[T]:
             """Process a chunk with semaphore to limit concurrency."""
             async with semaphore:
                 return await chunk_processor(chunk)

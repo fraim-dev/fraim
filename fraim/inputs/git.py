@@ -6,6 +6,7 @@ import subprocess
 from collections.abc import Iterator
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Iterator, List, Optional, Type
 
 from fraim.config.config import Config
 from fraim.core.contextuals import CodeChunk
@@ -19,15 +20,19 @@ class GitRemote(Input):
         config: Config,
         url: str,
         globs: list[str] | None = None,
+        exclude_globs: list[str] | None = None,
         limit: int | None = None,
         prefix: str | None = None,
+        paths: List[str] | None = None,
     ):
         self.config = config
         self.url = url
         self.globs = globs
+        self.exclude_globs = exclude_globs
         self.limit = limit
         self.tempdir = TemporaryDirectory(prefix=prefix)
         self.path = self.tempdir.name
+        self.paths = paths
 
     def root_path(self) -> str:
         return Path(self.path).absolute().name
@@ -45,8 +50,13 @@ class GitRemote(Input):
 
         # Clone remote repository to a local directory, delegate to file iterator.
         self._clone_to_path()
-        for chunk in Local(self.config, self.path, self.globs, self.limit):
-            yield chunk
+        for file in Local(self.config, self.path, self.paths, self.globs, self.limit, self.exclude_globs):
+            yield CodeChunk(
+                file_path=file.file_path,
+                content=file.content,
+                line_number_start_inclusive=1,
+                line_number_end_inclusive=len(file.content),
+            )
 
     def _clone_to_path(self) -> None:
         if not _is_directory_empty(self.path):

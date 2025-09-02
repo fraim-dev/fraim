@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from fraim.config import Config
-from fraim.core.contextuals import CodeChunk
+from fraim.core.contextuals import CodeChunk, CodeChunkFailure, Contextual
 from fraim.core.llms.litellm import LiteLLM
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
@@ -65,7 +65,7 @@ class IaCInput(ChunkWorkflowInput):
 class IaCCodeChunkInput:
     """Input for processing a single IaC chunk."""
 
-    code: CodeChunk
+    code: Contextual[str]
     config: Config
 
 
@@ -77,6 +77,7 @@ class IaCWorkflow(ChunkProcessingMixin, Workflow[IaCInput, list[sarif.Result]]):
         super().__init__(config, *args, **kwargs)
 
         # Construct an LLM instance
+        self.failed_chunks: list[CodeChunkFailure] = []
         llm = LiteLLM.from_config(config)
 
         # Construct the Scanner Step
@@ -90,11 +91,11 @@ class IaCWorkflow(ChunkProcessingMixin, Workflow[IaCInput, list[sarif.Result]]):
         """IaC file patterns."""
         return FILE_PATTERNS
 
-    async def _process_single_chunk(self, chunk: CodeChunk) -> list[sarif.Result]:
+    async def _process_single_chunk(self, chunk: Contextual[str]) -> list[sarif.Result]:
         """Process a single chunk with error handling."""
         try:
             # 1. Scan the code for vulnerabilities.
-            self.config.logger.info(f"Scanning code for vulnerabilities: {Path(chunk.file_path)}")
+            self.config.logger.info(f"Scanning code for vulnerabilities: {str(chunk.locations)}")
             iac_input = IaCCodeChunkInput(code=chunk, config=self.config)
             vulns = await self.scanner_step.run(iac_input)
 
@@ -104,9 +105,9 @@ class IaCWorkflow(ChunkProcessingMixin, Workflow[IaCInput, list[sarif.Result]]):
 
             return high_confidence_vulns
         except Exception as e:
+            self.failed_chunks.append(CodeChunkFailure(chunk=chunk, reason=str(e)))
             self.config.logger.error(
-                f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {e!s}. "
-                "Skipping this chunk and continuing with scan."
+                f"Failed to process chunk {str(chunk.locations)}: {e!s}. Skipping this chunk and continuing with scan."
             )
             return []
 
@@ -129,6 +130,7 @@ class IaCWorkflow(ChunkProcessingMixin, Workflow[IaCInput, list[sarif.Result]]):
                 repo_name=project.repo_name,
                 output_dir=self.config.output_dir,
                 logger=self.config.logger,
+                failed_chunks=self.failed_chunks,
             )
 
             return results
