@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 
-from typing import ContextManager, Iterator, Protocol, runtime_checkable
+from collections.abc import Iterator
+from typing import ContextManager, Protocol, runtime_checkable
 
 from fraim.core.contextuals import CodeChunk
 

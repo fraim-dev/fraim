@@ -9,9 +9,9 @@ for security misconfigurations and compliance issues.
 """
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated, Any, List, Optional
+from typing import Any
 
 from fraim.config import Config
 from fraim.core.contextuals import CodeChunk, CodeChunkFailure, Contextual
@@ -60,19 +60,17 @@ SCANNER_PROMPTS = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__file__
 class IaCInput(ChunkWorkflowInput):
     """Input for the IaC workflow."""
 
-    pass
-
 
 @dataclass
 class IaCCodeChunkInput:
     """Input for processing a single IaC chunk."""
 
-    code: Contextual[str]
+    code: CodeChunk
     config: Config
 
 
 @workflow("iac")
-class IaCWorkflow(ChunkProcessingMixin, Workflow[IaCInput, List[sarif.Result]]):
+class IaCWorkflow(ChunkProcessingMixin, Workflow[IaCInput, list[sarif.Result]]):
     """Analyzes IaC files for security vulnerabilities, compliance issues, and best practice deviations."""
 
     def __init__(self, config: Config, *args: Any, **kwargs: Any) -> None:
@@ -89,11 +87,11 @@ class IaCWorkflow(ChunkProcessingMixin, Workflow[IaCInput, List[sarif.Result]]):
         )
 
     @property
-    def file_patterns(self) -> List[str]:
+    def file_patterns(self) -> list[str]:
         """IaC file patterns."""
         return FILE_PATTERNS
 
-    async def _process_single_chunk(self, chunk: Contextual[str]) -> List[sarif.Result]:
+    async def _process_single_chunk(self, chunk: Contextual[str]) -> list[sarif.Result]:
         """Process a single chunk with error handling."""
         try:
             # 1. Scan the code for vulnerabilities.
@@ -109,12 +107,12 @@ class IaCWorkflow(ChunkProcessingMixin, Workflow[IaCInput, List[sarif.Result]]):
         except Exception as e:
             self.failed_chunks.append(CodeChunkFailure(chunk=chunk, reason=str(e)))
             self.config.logger.error(
-                f"Failed to process chunk {str(chunk.locations)}: {str(e)}. "
+                f"Failed to process chunk {str(chunk.locations)}: {e!s}. "
                 "Skipping this chunk and continuing with scan."
             )
             return []
 
-    async def workflow(self, input: IaCInput) -> List[sarif.Result]:
+    async def workflow(self, input: IaCInput) -> list[sarif.Result]:
         """Main IaC workflow - full control over execution."""
         try:
             # 1. Setup project input using utility
@@ -139,5 +137,5 @@ class IaCWorkflow(ChunkProcessingMixin, Workflow[IaCInput, List[sarif.Result]]):
             return results
 
         except Exception as e:
-            self.config.logger.error(f"Error during IaC scan: {str(e)}")
+            self.config.logger.error(f"Error during IaC scan: {e!s}")
             raise e

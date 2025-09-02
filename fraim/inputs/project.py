@@ -1,6 +1,6 @@
 import os
-from pathlib import Path
-from typing import Any, Iterator, Literal, Type
+from collections.abc import Iterator
+from typing import Any, Literal
 
 from fraim.config.config import Config
 from fraim.core.contextuals import Contextual, CodeChunk
@@ -104,7 +104,7 @@ class ProjectInput:
         return iter(self.chunker)
 
 
-def get_chunking_class(chunking_method: str) -> Type[Chunker]:
+def get_chunking_class(chunking_method: str) -> type[Chunker]:
     try:
         return CHUNKING_METHODS[chunking_method]
     except KeyError:

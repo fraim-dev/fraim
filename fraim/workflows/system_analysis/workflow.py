@@ -11,7 +11,7 @@ This workflow addresses the Project Overview section of threat assessment questi
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated, Any, Dict, List, Optional
+from typing import Annotated, Any
 
 from pydantic import BaseModel
 
@@ -107,7 +107,7 @@ class SystemAnalysisInput(ChunkWorkflowInput):
     business_context: Annotated[str, {"help": "Additional business context to consider during analysis"}] = ""
 
     focus_areas: Annotated[
-        Optional[List[str]],
+        list[str] | None,
         {"help": "Specific areas to focus on (e.g., authentication, data_processing, api_endpoints)"},
     ] = None
 
@@ -124,24 +124,24 @@ class SystemAnalysisResult(BaseModel):
     """Structured result from system analysis."""
 
     system_purpose: str
-    intended_users: List[str]
+    intended_users: list[str]
     business_context: str
-    key_features: List[str]
-    user_roles: List[str]
-    external_integrations: List[str]
-    data_types: List[str]
+    key_features: list[str]
+    user_roles: list[str]
+    external_integrations: list[str]
+    data_types: list[str]
 
 
 class FinalAnalysisResult(BaseModel):
     """Final aggregated and deduplicated system analysis result."""
 
     system_purpose: str
-    intended_users: List[str]
+    intended_users: list[str]
     business_context: str
-    key_features: List[str]
-    user_roles: List[str]
-    external_integrations: List[str]
-    data_types: List[str]
+    key_features: list[str]
+    user_roles: list[str]
+    external_integrations: list[str]
+    data_types: list[str]
 
 
 @dataclass
@@ -151,8 +151,8 @@ class SystemAnalysisChunkInput:
     code: Contextual[str]
     config: Config
     business_context: str = ""
-    focus_areas: Optional[List[str]] = None
-    previous_findings: Optional[Dict[str, List[str]]] = None
+    focus_areas: list[str] | None = None
+    previous_findings: dict[str, list[str]] | None = None
 
 
 @dataclass
@@ -160,12 +160,12 @@ class FinalDedupInput:
     """Input for final deduplication step."""
 
     # List of individual results with file_name added
-    analysis_results: List[Dict[str, Any]]
+    analysis_results: list[dict[str, Any]]
     config: Config
 
 
 @workflow("system_analysis")
-class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput, Dict[str, Any]]):
+class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput, dict[str, Any]]):
     """
     Analyzes codebase and documentation to extract system purpose, intended users, and business context.
 
@@ -202,13 +202,13 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
         )
 
     @property
-    def file_patterns(self) -> List[str]:
+    def file_patterns(self) -> list[str]:
         """File patterns for system analysis."""
         return FILE_PATTERNS
 
     async def _process_single_chunk(
-        self, chunk: Contextual[str], business_context: str = "", focus_areas: Optional[List[str]] = None
-    ) -> List[SystemAnalysisResult]:
+        self, chunk: Contextual[str], business_context: str = "", focus_areas: list[str] | None = None
+    ) -> list[SystemAnalysisResult]:
         """Process a single chunk using two-step analysis: assessment then analysis."""
         try:
             self.config.logger.debug(f"Processing chunk: {str(chunk.locations)}")
@@ -243,10 +243,10 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
             return [result]
 
         except Exception as e:
-            self.config.logger.error(f"Failed to process chunk {str(chunk.locations)}: {str(e)}")
+            self.config.logger.error(f"Failed to process chunk {str(chunk.locations)}: {e!s}")
             return []
 
-    async def _aggregate_results(self, chunk_results: List[SystemAnalysisResult]) -> Dict[str, Any]:
+    async def _aggregate_results(self, chunk_results: list[SystemAnalysisResult]) -> dict[str, Any]:
         """Aggregate results from multiple chunks using LLM-based deduplication."""
 
         if not chunk_results:
@@ -319,11 +319,11 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
             }
 
         except Exception as e:
-            self.config.logger.error(f"Failed to run final deduplication: {str(e)}")
+            self.config.logger.error(f"Failed to run final deduplication: {e!s}")
             # Fallback to simple aggregation if LLM step fails
             return self._simple_fallback_aggregation(chunk_results)
 
-    def _simple_fallback_aggregation(self, chunk_results: List[SystemAnalysisResult]) -> Dict[str, Any]:
+    def _simple_fallback_aggregation(self, chunk_results: list[SystemAnalysisResult]) -> dict[str, Any]:
         """Simple fallback aggregation when LLM deduplication fails."""
         all_purposes = [r.system_purpose for r in chunk_results if r.system_purpose.strip()]
         all_users = []
@@ -367,7 +367,7 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
         }
 
     def _create_analysis_summary(
-        self, purpose: str, users: List[str], features: List[str], roles: List[str], files_analyzed: int
+        self, purpose: str, users: list[str], features: list[str], roles: list[str], files_analyzed: int
     ) -> str:
         """Create a human-readable summary of the analysis."""
 
@@ -402,7 +402,7 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
             project = self.setup_project_input(input)
 
             # 2. Create a closure that captures business_context and focus_areas
-            async def chunk_processor(chunk: Contextual[str]) -> List[SystemAnalysisResult]:
+            async def chunk_processor(chunk: CodeChunk) -> list[SystemAnalysisResult]:
                 return await self._process_single_chunk(chunk, input.business_context, input.focus_areas)
 
             # 3. Process chunks concurrently using mixin utility
@@ -442,5 +442,5 @@ class SystemAnalysisWorkflow(ChunkProcessingMixin, Workflow[SystemAnalysisInput,
             return final_result
 
         except Exception as e:
-            self.config.logger.error(f"Error during system analysis: {str(e)}")
+            self.config.logger.error(f"Error during system analysis: {e!s}")
             raise e

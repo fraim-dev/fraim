@@ -1,6 +1,6 @@
 import argparse
 import os
-from typing import Dict, TypedDict
+from typing import TypedDict
 
 
 class ProviderDetails(TypedDict):
@@ -20,7 +20,7 @@ def validate_cli_args(args: argparse.Namespace) -> None:
 def validate_model_api_key(model: str) -> None:
     """Validate that the model and API key match."""
     # Map providers to their expected environment variables
-    provider_details: Dict[str, ProviderDetails] = {
+    provider_details: dict[str, ProviderDetails] = {
         "openai": {
             "env_var": "OPENAI_API_KEY",
             "example_model": "openai/gpt-4",
@@ -68,6 +68,5 @@ def validate_model_api_key(model: str) -> None:
                     f"The selected model is {model}, but you provided an API key for {other_provider_display} ({other_env_var}). "
                     f"Specify a {other_provider_display} model (Ex: --model={example_model}) or provide an API key for {provider_display} ({expected_env_var})."
                 )
-        else:
-            # No API key provided at all
-            raise ValueError(f"Please provide your API key for model {model} via the env var {expected_env_var}")
+        # No API key provided at all
+        raise ValueError(f"Please provide your API key for model {model} via the env var {expected_env_var}")

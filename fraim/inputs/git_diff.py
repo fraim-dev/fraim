@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
+from collections.abc import Iterator
 from types import TracebackType
-from typing import Iterator, List, Optional, Type
 
 from git import Repo
 from unidiff import PatchSet
@@ -9,6 +9,7 @@ from unidiff import PatchSet
 from fraim.config.config import Config
 from fraim.core.contextuals import CodeChunk
 from fraim.inputs.input import Input
+
 
 # TODO: Git remote input? Wrap git input?
 class GitDiff(Input):
@@ -18,9 +19,9 @@ class GitDiff(Input):
         path: str,
         head: str | None,
         base: str | None,
-        globs: Optional[List[str]] = None,
-        limit: Optional[int] = None,
-        exclude_globs: Optional[List[str]] = None,
+        globs: list[str] | None = None,
+        exclude_globs: list[str] | None = None,
+        limit: int | None = None,
     ):
         self.config = config
         self.globs = globs
@@ -35,10 +36,10 @@ class GitDiff(Input):
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
-    ) -> Optional[bool]:
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> bool | None:
         return None
 
     def root_path(self) -> str:

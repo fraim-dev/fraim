@@ -3,7 +3,7 @@
 
 """Tests for the simplify.py module."""
 
-from typing import Any, Dict
+from typing import Any
 
 from fraim.util.jsonschema.simplify import _deep_merge, simplify_json_schema
 
@@ -246,7 +246,7 @@ class TestSimplifyJsonSchema:
 
     def test_deep_copy_ensures_no_mutation(self) -> None:
         """Test that the original schema is never mutated."""
-        original_schema: Dict[str, Any] = {
+        original_schema: dict[str, Any] = {
             "anyOf": [{"type": "string"}],
             "nested": {"value": [1, 2, 3]},
             "description": "Original",

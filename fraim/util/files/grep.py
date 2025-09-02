@@ -6,7 +6,7 @@ from __future__ import annotations
 import asyncio
 import os
 from pathlib import Path
-from typing import Iterable, Literal, Optional, Union
+from typing import Literal
 
 from .basepath import BasePathFS
 
@@ -14,17 +14,16 @@ from .basepath import BasePathFS
 async def grep(
     fs: BasePathFS,
     pattern: str,
-    path: Union[str, Path] = ".",
+    path: str | Path = ".",
     *,
-    ripgrep_bin: str = "rg",
-    timeout: Optional[int] = 30,
-    head_limit: Optional[int] = None,
-    glob: Optional[str] = None,
+    timeout: int | None = 30,
+    head_limit: int | None = None,
+    glob: str | None = None,
     output_mode: Literal["content", "files_with_matches", "count"] = "content",
-    file_type: Optional[str] = None,
-    context_before: Optional[int] = None,  # -B
-    context_after: Optional[int] = None,  # -A
-    context_around: Optional[int] = None,  # -C
+    file_type: str | None = None,
+    context_before: int | None = None,  # -B
+    context_after: int | None = None,  # -A
+    context_around: int | None = None,  # -C
     case_insensitive: bool = False,  # -i
     multiline: bool = False,
 ) -> str:
@@ -61,7 +60,7 @@ async def grep(
     target_rel = target_abs.relative_to(fs.root)
 
     args = _build_cmd(
-        ripgrep_bin=ripgrep_bin,
+        ripgrep_bin="rg",  # Do not allow this to be controlled by an attacker.
         pattern=pattern,
         target_rel=target_rel,
         output_mode=output_mode,
@@ -114,11 +113,10 @@ async def grep(
     # ripgrep returns 0 if matches found, 1 if none, >1 on error
     if returncode == 0:
         return results
-    elif returncode == 1:
+    if returncode == 1:
         return ""  # no matches
-    else:
-        # On actual errors, surface stderr
-        raise ValueError(f"ripgrep failed with return code {returncode}: {errors}")
+    # On actual errors, surface stderr
+    raise ValueError(f"ripgrep failed with return code {returncode}: {errors}")
 
 
 def _build_cmd(
@@ -126,11 +124,11 @@ def _build_cmd(
     pattern: str,
     target_rel: Path,
     output_mode: Literal["content", "files_with_matches", "count"],
-    file_type: Optional[str],
-    glob: Optional[str],
-    context_before: Optional[int],
-    context_after: Optional[int],
-    context_around: Optional[int],
+    file_type: str | None,
+    glob: str | None,
+    context_before: int | None,
+    context_after: int | None,
+    context_around: int | None,
     case_insensitive: bool,
     multiline: bool,
 ) -> list[str]:
@@ -158,14 +156,13 @@ def _build_cmd(
                 args.extend(["-B", str(context_before)])
             if context_after is not None:
                 args.extend(["-A", str(context_after)])
-    else:
-        # Context options are not supported for non-content modes
-        if context_before is not None or context_after is not None or context_around is not None:
-            raise ValueError(
-                f"Context options (-B/-A/-C) are only supported with output_mode='content', "
-                f"but got output_mode='{output_mode}'. "
-                f"Remove context options or use output_mode='content'."
-            )
+    # Context options are not supported for non-content modes
+    elif context_before is not None or context_after is not None or context_around is not None:
+        raise ValueError(
+            f"Context options (-B/-A/-C) are only supported with output_mode='content', "
+            f"but got output_mode='{output_mode}'. "
+            f"Remove context options or use output_mode='content'."
+        )
 
     # Case sensitivity
     if case_insensitive:
@@ -192,7 +189,7 @@ def _build_cmd(
     return args
 
 
-async def _head(stream: asyncio.StreamReader, count: Optional[int]) -> bytes:
+async def _head(stream: asyncio.StreamReader, count: int | None) -> bytes:
     """Return the first N lines of the stream.
 
     Args:

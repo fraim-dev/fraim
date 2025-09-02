@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
+
+from collections.abc import Iterator
 import logging
 from typing import Any, Iterator
 

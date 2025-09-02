@@ -2,11 +2,10 @@
 # Copyright (c) 2025 Resourcely Inc.
 
 import os.path
+from collections.abc import Iterator
 from pathlib import Path
 from types import TracebackType
-from typing import Iterator, List, Optional, Type
-
-from typing_extensions import Self
+from typing import Self
 
 from fraim.config.config import Config
 from fraim.core.contextuals import CodeChunk
@@ -18,10 +17,10 @@ class Local(Input):
         self,
         config: Config,
         root_path: str,
-        paths: Optional[list[str]] = None,
-        globs: Optional[List[str]] = None,
-        limit: Optional[int] = None,
-        exclude_globs: Optional[List[str]] = None,
+        paths: list[str] | None = None,
+        globs: list[str] | None = None,
+        limit: int | None = None,
+        exclude_globs: list[str] | None = None,
     ):
         self.config = config
         self._root_path = Path(root_path)
@@ -118,6 +117,6 @@ class Local(Input):
         return self
 
     def __exit__(
-        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None
     ) -> None:
         pass

@@ -4,7 +4,7 @@
 """Parser that retries with LLM help when parsing fails"""
 
 from textwrap import dedent
-from typing import Any, Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 
 from litellm.types.utils import StreamingChoices
 
@@ -54,7 +54,7 @@ class RetryOnErrorOutputParser(BaseOutputParser[T], Generic[T]):
         """Delegate to the wrapped parser"""
         return self.parser.output_prompt_instructions()
 
-    async def parse(self, text: str, context: Optional[ParseContext] = None) -> T:
+    async def parse(self, text: str, context: ParseContext | None = None) -> T:
         """
         Parse the text, retrying with LLM help if parsing fails.
 

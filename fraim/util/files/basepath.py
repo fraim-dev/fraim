@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Union
 
 
 class BasePathFS:
@@ -18,7 +17,7 @@ class BasePathFS:
     If any check fails, a FileNotFoundError is raised.
     """
 
-    def __init__(self, path: Union[str, Path]) -> None:
+    def __init__(self, path: str | Path) -> None:
         base_path = Path(path).resolve()
 
         if not base_path.exists():
@@ -29,7 +28,7 @@ class BasePathFS:
 
         self.root: Path = base_path
 
-    def resolve(self, path: Union[str, Path], *, must_exist: bool = False) -> Path:
+    def resolve(self, path: str | Path, *, must_exist: bool = False) -> Path:
         """Return an absolute, resolved path confined to root.
 
         If must_exist is True, ensure the path exists before returning.
@@ -47,7 +46,7 @@ class BasePathFS:
             raise FileNotFoundError(f"Path does not exist: {candidate}")
         return candidate
 
-    def relative_to_root(self, p: Union[str, Path]) -> Path:
+    def relative_to_root(self, p: str | Path) -> Path:
         """Return p as a path relative to the base path root (after resolution)."""
         rp = self.resolve(p)
         return rp.relative_to(self.root)

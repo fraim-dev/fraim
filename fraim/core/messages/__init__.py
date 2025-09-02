@@ -11,4 +11,4 @@ from fraim.core.messages.message import (
     UserMessage,
 )
 
-__all__ = ["Message", "AssistantMessage", "SystemMessage", "ToolMessage", "UserMessage", "ToolCall", "Function"]
+__all__ = ["AssistantMessage", "Function", "Message", "SystemMessage", "ToolCall", "ToolMessage", "UserMessage"]

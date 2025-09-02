@@ -7,9 +7,10 @@ Utilities for workflows that process code chunks with concurrent execution.
 
 import asyncio
 from abc import abstractmethod
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Annotated, Any, Awaitable, Callable, List, Optional, Set, TypeVar
+from typing import Annotated, Any, TypeVar
 
 from fraim.config import Config
 from fraim.core.contextuals import Contextual
@@ -29,19 +30,20 @@ class ChunkWorkflowInput(WorkflowInput):
     head: Annotated[str, {"help": "Git head commit for diff input"}]
     base: Annotated[str, {"help": "Git base commit for diff input"}]
     location: Annotated[str, {"help": "Repository URL or path to scan"}]
-    paths: Annotated[
-        Optional[List[str]], {"help": "Optionally limit scanning to these paths (relative to `--location`)"}
-    ] = None
     chunk_size: Annotated[
-        Optional[int],
+        int | None,
         {
             "help": (
                 "Number of characters per chunk. Does not apply when the original, file, or project chunking methods are used."
             )
         },
     ] = 500
+    limit: Annotated[int | None, {"help": "Limit the number of files to scan"}] = None
+    paths: Annotated[
+        list[str] | None, {"help": "Optionally limit scanning to these paths (relative to `--location`)"}
+    ] = None
     chunk_overlap: Annotated[
-        Optional[int],
+        int|None,
         {
             "help": (
                 "Number of characters of overlap per chunk. Does not apply when the original, file, or project chunking "
@@ -49,13 +51,12 @@ class ChunkWorkflowInput(WorkflowInput):
             )
         },
     ] = None
-    limit: Annotated[Optional[int], {"help": "Limit the number of files to scan"}] = None
     globs: Annotated[
-        Optional[List[str]],
+        list[str] | None,
         {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
     ] = None
     exclude_globs: Annotated[
-        Optional[List[str]],
+        list[str] | None,
         {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
     ] = None
     max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
@@ -98,7 +99,7 @@ class ChunkProcessingMixin:
 
     @property
     @abstractmethod
-    def file_patterns(self) -> List[str]:
+    def file_patterns(self) -> list[str]:
         """File patterns for this workflow (e.g., ['*.py', '*.js'])."""
         pass
 
@@ -141,9 +142,9 @@ class ChunkProcessingMixin:
     async def process_chunks_concurrently(
         self,
         project: ProjectInput,
-        chunk_processor: Callable[[Contextual[str]], Awaitable[List[T]]],
+        chunk_processor: Callable[[Contextual[str]], Awaitable[list[T]]],
         max_concurrent_chunks: int = 5,
-    ) -> List[T]:
+    ) -> list[T]:
         """
         Process chunks concurrently using the provided processor function.
 
@@ -155,18 +156,18 @@ class ChunkProcessingMixin:
         Returns:
             Combined results from all chunks
         """
-        results: List[T] = []
+        results: list[T] = []
 
         # Create semaphore to limit concurrent chunk processing
         semaphore = asyncio.Semaphore(max_concurrent_chunks)
 
-        async def process_chunk_with_semaphore(chunk: Contextual[str]) -> List[T]:
+        async def process_chunk_with_semaphore(chunk: Contextual[str]) -> list[T]:
             """Process a chunk with semaphore to limit concurrency."""
             async with semaphore:
                 return await chunk_processor(chunk)
 
         # Process chunks as they stream in from the ProjectInput iterator
-        active_tasks: Set[asyncio.Task] = set()
+        active_tasks: set[asyncio.Task] = set()
 
         for chunk in project:
             # Create task for this chunk and add to active tasks

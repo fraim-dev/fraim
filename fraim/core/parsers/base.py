@@ -6,7 +6,7 @@
 import asyncio
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Generic, List, Optional, TypeVar
+from typing import Generic, TypeVar
 
 from fraim.core.llms.base import BaseLLM
 from fraim.core.messages import Message
@@ -19,7 +19,7 @@ class ParseContext:
     """Context object containing LLM and conversation history for parsers that need retry functionality"""
 
     llm: BaseLLM
-    messages: List[Message]
+    messages: list[Message]
 
 
 class BaseOutputParser(ABC, Generic[T]):
@@ -31,10 +31,10 @@ class BaseOutputParser(ABC, Generic[T]):
         """Return a prompt instruction for the output of an LLM call"""
 
     @abstractmethod
-    async def parse(self, text: str, context: Optional[ParseContext] = None) -> T:
+    async def parse(self, text: str, context: ParseContext | None = None) -> T:
         """Parse the output of an LLM call"""
 
-    def parse_sync(self, text: str, context: Optional[ParseContext] = None) -> T:
+    def parse_sync(self, text: str, context: ParseContext | None = None) -> T:
         """Parse the output of an LLM call"""
         return asyncio.run(self.parse(text, context))
 
@@ -42,7 +42,7 @@ class BaseOutputParser(ABC, Generic[T]):
 class OutputParserError(ValueError):
     """Error raised by output parsers when parsing fails."""
 
-    def __init__(self, msg: str, explanation: Optional[str] = None, raw_output: Optional[str] = None):
+    def __init__(self, msg: str, explanation: str | None = None, raw_output: str | None = None):
         """
         Args:
             msg: Brief description of the error
