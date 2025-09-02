@@ -46,10 +46,8 @@ FILE_PATTERNS = [
     "*.jsx",
 ]
 
-SCANNER_PROMPTS = PromptTemplate.from_yaml(os.path.join(
-    os.path.dirname(__file__), "scanner_prompts.yaml"))
-TRIAGER_PROMPTS = PromptTemplate.from_yaml(os.path.join(
-    os.path.dirname(__file__), "triager_prompts.yaml"))
+SCANNER_PROMPTS = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__file__), "scanner_prompts.yaml"))
+TRIAGER_PROMPTS = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__file__), "triager_prompts.yaml"))
 
 triage_sarif = merge_models(sarif, triage_sarif_overlay)
 
@@ -58,8 +56,7 @@ triage_sarif = merge_models(sarif, triage_sarif_overlay)
 class SASTWorkflowOptions(ChunkProcessingOptions, LLMProcessorOptions, ConfidenceFilterOptions):
     """Input for the Code workflow."""
 
-    output: Annotated[str, {
-        "help": "Path to save the output HTML report"}] = "fraim_output"
+    output: Annotated[str, {"help": "Path to save the output HTML report"}] = "fraim_output"
 
     max_concurrent_triagers: Annotated[
         int, {"help": "Maximum number of triager requests per chunk to run concurrently"}
@@ -98,8 +95,7 @@ class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProce
             self.llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser
         )
         # Keep triager step as lazy since it depends on project setup
-        self._triager_step: Optional[LLMStep[TriagerInput,
-                                             sarif.Result]] = None
+        self._triager_step: Optional[LLMStep[TriagerInput, sarif.Result]] = None
         self._triager_lock = threading.Lock()
 
     @property
@@ -125,8 +121,7 @@ class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProce
                     or not hasattr(self.project, "project_path")
                     or self.project.project_path is None
                 ):
-                    raise ValueError(
-                        "project_path must be set before accessing triager_step")
+                    raise ValueError("project_path must be set before accessing triager_step")
 
                 triager_tools = TreeSitterTools(self.project.project_path)
                 triager_llm = self.llm.with_tools(triager_tools)
@@ -144,18 +139,15 @@ class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProce
         """Process a single chunk with multi-step processing and error handling."""
         try:
             # 1. Scan the code for potential vulnerabilities.
-            self.logger.debug(
-                "Scanning the code for potential vulnerabilities")
+            self.logger.debug("Scanning the code for potential vulnerabilities")
             potential_vulns = await self.scanner_step.run(SASTInput(code=chunk))
 
             # 2. Filter vulnerabilities by confidence.
             self.logger.debug("Filtering vulnerabilities by confidence")
-            high_confidence_vulns = filter_results_by_confidence(
-                potential_vulns.results, self.args.confidence)
+            high_confidence_vulns = filter_results_by_confidence(potential_vulns.results, self.args.confidence)
 
             # 3. Triage the high-confidence vulns with limited concurrency.
-            self.logger.debug(
-                "Triaging high-confidence vulns with limited concurrency")
+            self.logger.debug("Triaging high-confidence vulns with limited concurrency")
 
             # Create semaphore to limit concurrent triager requests
             triager_semaphore = asyncio.Semaphore(max_concurrent_triagers)
@@ -168,14 +160,11 @@ class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProce
             triaged_results = await asyncio.gather(*[triage_with_semaphore(vuln) for vuln in high_confidence_vulns])
 
             # Filter out None results from failed triaging attempts
-            triaged_vulns = [
-                result for result in triaged_results if result is not None]
+            triaged_vulns = [result for result in triaged_results if result is not None]
 
             # 4. Filter the triaged vulnerabilities by confidence
-            self.logger.debug(
-                "Filtering the triaged vulnerabilities by confidence")
-            high_confidence_triaged_vulns = filter_results_by_confidence(
-                triaged_vulns, self.args.confidence)
+            self.logger.debug("Filtering the triaged vulnerabilities by confidence")
+            high_confidence_triaged_vulns = filter_results_by_confidence(triaged_vulns, self.args.confidence)
 
             return high_confidence_triaged_vulns
 

@@ -13,6 +13,7 @@ __author__ = "Fraim Contributors"
 __license__ = "MIT"
 
 __all__ = [
+    "ScanArgs",
     "__version__",
     "cli",
 ]

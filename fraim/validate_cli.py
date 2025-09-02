@@ -78,4 +78,4 @@ def validate_model_api_key(parser: argparse.ArgumentParser, args: argparse.Names
                     f"Specify a {other_provider_display} model (Ex: --model={example_model}) or provide an API key for {provider_display} ({expected_env_var})."
                 )
         # No API key provided at all
-        parser.error(f"Please provide your API key for model {model} via the env var {expected_env_var}")
+        raise ValueError(f"Please provide your API key for model {model} via the env var {expected_env_var}")

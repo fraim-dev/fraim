@@ -58,7 +58,7 @@ class LiteLLM(BaseLLM):
         model: str,
         additional_model_params: dict[str, Any] | None = None,
         max_tool_iterations: int = 10,
-        tools: Optional[Iterable[BaseTool]] = None,
+        tools: Iterable[BaseTool] | None = None,
     ):
         self.model = model
         self.additional_model_params = additional_model_params or {}
@@ -71,7 +71,7 @@ class LiteLLM(BaseLLM):
         self.tools_dict = {tool.name: tool for tool in self.tools}
         self.tools_schema = [tool.to_openai_schema() for tool in self.tools]
 
-    def with_tools(self, tools: Iterable[BaseTool], max_tool_iterations: Optional[int] = None) -> Self:
+    def with_tools(self, tools: Iterable[BaseTool], max_tool_iterations: int | None = None) -> Self:
         if max_tool_iterations is None:
             max_tool_iterations = self.max_tool_iterations
 
