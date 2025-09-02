@@ -24,6 +24,7 @@ class SyntacticChunker(FixedTokenChunker):
     def chunks(self) -> Iterator[CodeChunk]:
         with self.input as files:
             for file in files:
+                file: CodeChunk
                 if file.language is None:
                     yield from self.split_file(self.splitter, file)
                 else:

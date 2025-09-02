@@ -1,8 +1,35 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 import dataclasses
+from pathlib import Path
 
 from fraim.core.contextuals.contextual import Contextual, Location, Locations
+
+LANGUAGE_EXTENSIONS: dict[str, str] = {
+    "py": "python",
+    "c": "c",
+    "h": "c",
+    "cpp": "cpp",
+    "go": "go",
+    "ts": "ts",
+    "js": "js",
+    "java": "java",
+    "rb": "ruby",
+    "php": "php",
+    "rs": "rust",
+    "kt": "kotlin",
+    "scala": "scala",
+    "tsx": "ts",
+    # Not supported by langchain: *.jsx, *.swift
+    # Not supported by fraim:
+    "cobol": "cobol",
+    "cs": "csharp",
+    "lua": "lua",
+    "pl": "perl",
+    "ex": "elixir",
+    "exs": "elixir",
+    "sql": "sql",
+}
 
 
 # TODO: Consider CodeDiff, other types of Contextuals
@@ -32,6 +59,10 @@ class CodeChunk(Contextual[str]):
                 line_number_end_inclusive=self.line_number_end_inclusive,
             )
         )
+
+    @property
+    def language(self) -> str | None:
+        return LANGUAGE_EXTENSIONS.get(str(Path(self.file_path).suffix), None)
 
     def __str__(self) -> str:
         return f'<code_chunk file_path="{self.file_path}" line_number_start_inclusive="{self.line_number_start_inclusive}" line_number_end_inclusive="{self.line_number_end_inclusive}">\n{self.content}\n</code_chunk>'

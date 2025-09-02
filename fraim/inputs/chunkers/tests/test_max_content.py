@@ -1,7 +1,6 @@
 import logging
 from unittest.mock import MagicMock, patch
 
-import pytest
 from fraim.core.contextuals.code import CodeChunks, CodeChunk
 from fraim.inputs.chunkers.max_context import MaxContextChunker
 from fraim.inputs.chunkers.tests.lib import InMemory
@@ -62,7 +61,7 @@ def test_max_content_chunker_overflow(mock_get_max_tokens: MagicMock) -> None:
     )
     _input = InMemory(file_1, file_2, root_path='/project')
 
-    chunks = list(MaxContextChunker(files=_input, model="test", fraction=fraction, logger=log).packed_chunks())
+    chunks = list(MaxContextChunker(input=_input, model="test", fraction=fraction, logger=log).packed_chunks())
 
     assert len(chunks) == 2
     assert isinstance(chunks[0], CodeChunks)
