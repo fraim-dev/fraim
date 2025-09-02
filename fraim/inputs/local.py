@@ -60,7 +60,7 @@ class Local(Input):
         return str(self._root_path)
 
     def __iter__(self) -> Iterator[CodeChunk]:
-        self.config.logger.info(f"Scanning local files: {self.root_path}, with globs: {self.globs}")
+        self.config.logger.info(f"Scanning local files: {self.root_path()}, with globs: {self.globs}")
 
         seen = set()
         for subpath in self.paths:
