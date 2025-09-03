@@ -3,7 +3,6 @@
 
 """Tests for LiteLLM wrapper"""
 
-from typing import List, Optional
 from unittest.mock import Mock, patch
 
 import pytest
@@ -39,7 +38,7 @@ class ErrorTool(BaseTool):
         return "Success"
 
 
-def create_mock_response(content: str = "Test response", tool_calls: Optional[List[ToolCall]] = None) -> ModelResponse:
+def create_mock_response(content: str = "Test response", tool_calls: list[ToolCall] | None = None) -> ModelResponse:
     """Helper to create mock ModelResponse objects"""
     mock_response = Mock(spec=ModelResponse)
     mock_message = Mock()
@@ -158,7 +157,7 @@ class TestLiteLLMPrepareCompletionParams:
     def test_prepare_params_without_tools(self) -> None:
         """Test parameter preparation without tools"""
         llm = LiteLLM(model="gpt-3.5-turbo", additional_model_params={"temperature": 0.7})
-        messages: List[Message] = [UserMessage(content="Hello")]
+        messages: list[Message] = [UserMessage(content="Hello")]
 
         params = llm._prepare_completion_params(messages, use_tools=False)
 
@@ -171,7 +170,7 @@ class TestLiteLLMPrepareCompletionParams:
         """Test parameter preparation with tools"""
         mock_tool = MockTool(name="mock_tool", description="A mock tool for testing", args_schema=MockArgs)
         llm = LiteLLM(model="gpt-3.5-turbo", tools=[mock_tool])
-        messages: List[Message] = [UserMessage(content="Hello")]
+        messages: list[Message] = [UserMessage(content="Hello")]
 
         params = llm._prepare_completion_params(messages, use_tools=True)
 
@@ -185,7 +184,7 @@ class TestLiteLLMPrepareCompletionParams:
     def test_prepare_params_with_multiple_message_types(self) -> None:
         """Test parameter preparation with different message types"""
         llm = LiteLLM(model="gpt-3.5-turbo")
-        messages: List[Message] = [
+        messages: list[Message] = [
             SystemMessage(content="You are a helpful assistant"),
             UserMessage(content="Hello"),
             AssistantMessage(content="Hi there!"),
@@ -201,7 +200,7 @@ class TestLiteLLMPrepareCompletionParams:
         """Test parameter preparation with tools disabled even when LLM has tools"""
         mock_tool = MockTool(name="mock_tool", description="A mock tool for testing", args_schema=MockArgs)
         llm = LiteLLM(model="gpt-3.5-turbo", tools=[mock_tool])
-        messages: List[Message] = [UserMessage(content="Hello")]
+        messages: list[Message] = [UserMessage(content="Hello")]
 
         params = llm._prepare_completion_params(messages, use_tools=False)
 
@@ -219,7 +218,7 @@ class TestLiteLLMRunOnce:
     async def test_run_once_without_tool_calls(self) -> None:
         """Test _run_once when LLM doesn't make tool calls"""
         llm = LiteLLM(model="gpt-3.5-turbo")
-        messages: List[Message] = [UserMessage(content="Hello")]
+        messages: list[Message] = [UserMessage(content="Hello")]
         mock_response = create_mock_response("Hello there!")
 
         with patch("litellm.acompletion", return_value=mock_response) as mock_completion:
@@ -235,7 +234,7 @@ class TestLiteLLMRunOnce:
         """Test _run_once when LLM makes tool calls"""
         mock_tool = MockTool(name="mock_tool", description="A mock tool for testing", args_schema=MockArgs)
         llm = LiteLLM(model="gpt-3.5-turbo", tools=[mock_tool])
-        messages: List[Message] = [UserMessage(content="Use the mock tool")]
+        messages: list[Message] = [UserMessage(content="Use the mock tool")]
 
         tool_call = ToolCall(
             id="call_123", function=Function(name="mock_tool", arguments='{"value": 42}'), type="function"
@@ -265,7 +264,7 @@ class TestLiteLLMRunOnce:
     async def test_run_once_with_empty_content(self) -> None:
         """Test _run_once when LLM returns empty content"""
         llm = LiteLLM(model="gpt-3.5-turbo")
-        messages: List[Message] = [UserMessage(content="Hello")]
+        messages: list[Message] = [UserMessage(content="Hello")]
         mock_response = create_mock_response("")
 
         with patch("litellm.acompletion", return_value=mock_response):
@@ -280,7 +279,7 @@ class TestLiteLLMRunOnce:
         """Test _run_once when tool execution fails"""
         error_tool = ErrorTool(name="error_tool", description="A tool that raises errors", args_schema=ErrorArgs)
         llm = LiteLLM(model="gpt-3.5-turbo", tools=[error_tool])
-        messages: List[Message] = [UserMessage(content="Use the error tool")]
+        messages: list[Message] = [UserMessage(content="Use the error tool")]
 
         tool_call = ToolCall(
             id="call_error", function=Function(name="error_tool", arguments='{"should_error": true}'), type="function"
@@ -303,7 +302,7 @@ class TestLiteLLMRun:
     async def test_run_without_tools(self) -> None:
         """Test run method without tool calls"""
         llm = LiteLLM(model="gpt-3.5-turbo")
-        messages: List[Message] = [UserMessage(content="Hello")]
+        messages: list[Message] = [UserMessage(content="Hello")]
         mock_response = create_mock_response("Hello there!")
 
         with patch("litellm.acompletion", return_value=mock_response) as mock_completion:
@@ -317,7 +316,7 @@ class TestLiteLLMRun:
         """Test run method with one tool call iteration"""
         mock_tool = MockTool(name="mock_tool", description="A mock tool for testing", args_schema=MockArgs)
         llm = LiteLLM(model="gpt-3.5-turbo", tools=[mock_tool], max_tool_iterations=5)
-        messages: List[Message] = [UserMessage(content="Use the tool")]
+        messages: list[Message] = [UserMessage(content="Use the tool")]
 
         # First call with tool calls
         tool_call = ToolCall(
@@ -339,7 +338,7 @@ class TestLiteLLMRun:
         """Test run method when max tool iterations is reached"""
         mock_tool = MockTool(name="mock_tool", description="A mock tool for testing", args_schema=MockArgs)
         llm = LiteLLM(model="gpt-3.5-turbo", tools=[mock_tool], max_tool_iterations=2)
-        messages: List[Message] = [UserMessage(content="Keep using tools")]
+        messages: list[Message] = [UserMessage(content="Keep using tools")]
 
         # Create tool call that keeps triggering
         tool_call = ToolCall(
@@ -368,7 +367,7 @@ class TestLiteLLMRun:
         """Test run method with zero max iterations"""
         mock_tool = MockTool(name="mock_tool", description="A mock tool for testing", args_schema=MockArgs)
         llm = LiteLLM(model="gpt-3.5-turbo", tools=[mock_tool], max_tool_iterations=0)
-        messages: List[Message] = [UserMessage(content="Hello")]
+        messages: list[Message] = [UserMessage(content="Hello")]
         mock_response = create_mock_response("Response without tools")
 
         with patch("litellm.acompletion", return_value=mock_response) as mock_completion:
@@ -384,7 +383,7 @@ class TestLiteLLMRun:
     async def test_run_preserves_original_messages(self) -> None:
         """Test that run method doesn't modify the original messages list"""
         llm = LiteLLM(model="gpt-3.5-turbo")
-        original_messages: List[Message] = [UserMessage(content="Hello")]
+        original_messages: list[Message] = [UserMessage(content="Hello")]
         messages_copy = original_messages.copy()
         mock_response = create_mock_response("Hello there!")
 
@@ -397,7 +396,7 @@ class TestLiteLLMRun:
     async def test_run_with_litellm_exception(self) -> None:
         """Test run method when litellm.acompletion raises an exception"""
         llm = LiteLLM(model="gpt-3.5-turbo")
-        messages: List[Message] = [UserMessage(content="Hello")]
+        messages: list[Message] = [UserMessage(content="Hello")]
 
         with patch("litellm.acompletion", side_effect=Exception("API Error")):
             with pytest.raises(Exception, match="API Error"):
@@ -419,7 +418,7 @@ class TestLiteLLMIntegration:
             additional_model_params={"temperature": 0.5},
         )
 
-        messages: List[Message] = [
+        messages: list[Message] = [
             SystemMessage(content="You are a helpful assistant"),
             UserMessage(content="Use both tools"),
         ]
@@ -489,7 +488,7 @@ class TestLiteLLMIntegration:
         """Test handling multiple tool calls in a single LLM response"""
         mock_tool = MockTool(name="mock_tool", description="A mock tool for testing", args_schema=MockArgs)
         llm = LiteLLM(model="gpt-3.5-turbo", tools=[mock_tool])
-        messages: List[Message] = [UserMessage(content="Use the tool twice")]
+        messages: list[Message] = [UserMessage(content="Use the tool twice")]
 
         # Multiple tool calls in one response
         tool_calls = [

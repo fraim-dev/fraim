@@ -6,7 +6,6 @@ Langfuse observability backend.
 """
 
 import os
-from typing import Dict, List
 
 from ..base import ObservabilityBackend
 
@@ -22,11 +21,11 @@ class LangfuseBackend(ObservabilityBackend):
         """Return a short description for CLI help."""
         return "LLM observability and analytics platform"
 
-    def get_required_env_vars(self) -> List[str]:
+    def get_required_env_vars(self) -> list[str]:
         """Return list of required environment variables."""
         return ["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY"]
 
-    def get_optional_env_vars(self) -> Dict[str, str]:
+    def get_optional_env_vars(self) -> dict[str, str]:
         """Return dict of optional env vars with their defaults."""
         return {"LANGFUSE_HOST": "http://localhost:3000"}
 
@@ -41,7 +40,7 @@ class LangfuseBackend(ObservabilityBackend):
 
         return True
 
-    def setup_callbacks(self) -> List[str]:
+    def setup_callbacks(self) -> list[str]:
         """Return the callback names for litellm."""
         return ["langfuse"]
 

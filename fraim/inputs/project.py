@@ -1,7 +1,6 @@
 import os
-from pathlib import Path
-from types import TracebackType
-from typing import Any, Generator, Iterator, Optional, Type
+from collections.abc import Iterator
+from typing import Any
 
 from fraim.config.config import Config
 from fraim.core.contextuals.code import CodeChunk
@@ -19,8 +18,7 @@ class ProjectInput:
     chunk_size: int
     project_path: str
     repo_name: str
-    chunker: Type["ProjectInputFileChunker"]
-    _files_context_active: bool
+    chunker: type["ProjectInputFileChunker"]
 
     def __init__(self, config: Config, kwargs: Any) -> None:
         self.config = config

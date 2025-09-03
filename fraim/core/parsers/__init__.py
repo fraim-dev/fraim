@@ -8,4 +8,4 @@ from fraim.core.parsers.json import JsonOutputParser
 from fraim.core.parsers.pydantic import PydanticOutputParser
 from fraim.core.parsers.retry import RetryOnErrorOutputParser
 
-__all__ = ["ParseContext", "JsonOutputParser", "PydanticOutputParser", "RetryOnErrorOutputParser"]
+__all__ = ["JsonOutputParser", "ParseContext", "PydanticOutputParser", "RetryOnErrorOutputParser"]

@@ -5,7 +5,7 @@
 
 import json
 from textwrap import dedent
-from typing import Generic, NoReturn, Optional, Type, TypeVar
+from typing import Generic, NoReturn, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
@@ -30,7 +30,7 @@ class PydanticOutputParser(JsonOutputParser, Generic[TBaseModel]):
         OutputParserError: If the text is not valid JSON or does not match the model schema
     """
 
-    def __init__(self, model: Type[TBaseModel]):
+    def __init__(self, model: type[TBaseModel]):
         self.model = model
 
     def output_prompt_instructions(self) -> str:
@@ -44,7 +44,7 @@ class PydanticOutputParser(JsonOutputParser, Generic[TBaseModel]):
         </output_format>
         """)
 
-    async def parse(self, text: str, context: Optional[ParseContext] = None) -> TBaseModel:
+    async def parse(self, text: str, context: ParseContext | None = None) -> TBaseModel:
         json_obj = await super().parse(text, context)
         try:
             return self.model.model_validate(json_obj)

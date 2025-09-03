@@ -5,7 +5,7 @@
 
 import json
 import logging
-from typing import Any, Dict, List, Optional, Type
+from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
@@ -13,7 +13,7 @@ from fraim.core.messages import ToolCall, ToolMessage
 from fraim.core.tools.base import BaseTool, ToolError
 
 
-async def execute_tool_calls(tool_calls: List[ToolCall], available_tools: Dict[str, BaseTool]) -> List[ToolMessage]:
+async def execute_tool_calls(tool_calls: list[ToolCall], available_tools: dict[str, BaseTool]) -> list[ToolMessage]:
     """Execute multiple tool calls and return list of ToolMessage results.
 
     Args:
@@ -23,14 +23,14 @@ async def execute_tool_calls(tool_calls: List[ToolCall], available_tools: Dict[s
     Returns:
         List of ToolMessage objects with results or errors
     """
-    results: List[ToolMessage] = []
+    results: list[ToolMessage] = []
     for tool_call in tool_calls:
         result = await execute_tool_call(tool_call, available_tools)
         results.append(result)
     return results
 
 
-async def execute_tool_call(tool_call: ToolCall, available_tools: Dict[str, BaseTool]) -> ToolMessage:
+async def execute_tool_call(tool_call: ToolCall, available_tools: dict[str, BaseTool]) -> ToolMessage:
     """Execute a single tool call and return ToolMessage result.
 
     Args:
@@ -53,13 +53,13 @@ async def execute_tool_call(tool_call: ToolCall, available_tools: Dict[str, Base
 
     try:
         result = await tool.run(**args_dict)
-        logging.getLogger().debug(f"Tool call result: {tool.name}: {str(result)}")
+        logging.getLogger().debug(f"Tool call result: {tool.name}: {result!s}")
         return ToolMessage(content=str(result), tool_call_id=tool_call.id)
     except ToolError as e:
         return ToolMessage(content=f"Error: {e}", tool_call_id=tool_call.id)
 
 
-def _deserialize_arguments(arguments: str, schema: Optional[Type[BaseModel]]) -> Dict[str, Any]:
+def _deserialize_arguments(arguments: str, schema: type[BaseModel] | None) -> dict[str, Any]:
     """Deserialize tool arguments using schema if available, otherwise fallback to JSON.
 
     Args:
@@ -79,7 +79,6 @@ def _deserialize_arguments(arguments: str, schema: Optional[Type[BaseModel]]) ->
         # Use Pydantic schema for proper validation and type conversion
         validated_model = schema.model_validate_json(arguments)
         return validated_model.model_dump()
-    else:
-        # Fallback to generic JSON parsing
-        parsed_result: Dict[str, Any] = json.loads(arguments)
-        return parsed_result
+    # Fallback to generic JSON parsing
+    parsed_result: dict[str, Any] = json.loads(arguments)
+    return parsed_result
