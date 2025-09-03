@@ -15,7 +15,7 @@ from fraim.core.llms.base import BaseLLM
 from fraim.core.messages import Message, SystemMessage, UserMessage
 from fraim.core.parsers.base import BaseOutputParser, ParseContext
 from fraim.core.parsers.retry import RetryOnErrorOutputParser
-from fraim.core.prompts import PromptTemplate
+from fraim.core.prompts.template import PromptTemplate, PromptTemplateError
 from fraim.core.steps.base import BaseStep
 from fraim.core.tools import BaseTool
 
@@ -42,7 +42,7 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
     ):
         """Creates a step that calls an LLM with a system prompt and a user prompt.
 
-        The system prompt is rendered with the static inputs and the output prompt instructions.
+        The system prompt is rendered with the static inputs, output prompt instructions.
 
         The user prompt is rendered with the static inputs and the dynamic inputs passed to the `run` method.
         If there are any unused dynamic inputs, they are automatically added to the end of the user prompt.
@@ -80,19 +80,36 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
         self._system_message = self._render_system_message()
 
     def _render_system_message(self) -> SystemMessage:
-        """Render the system prompt with the static inputs and the output prompt instructions"""
+        """Render the system prompt with the static inputs, output prompt instructions
+
+        Raises:
+            ValueError: If any tags in the system prompt template are not provided in static_inputs
+        """
         inputs = self.static_inputs.copy()
 
-        if OUTPUT_FORMAT_KEY in self.system_prompt.used_variables():
-            inputs[OUTPUT_FORMAT_KEY] = self.parser.output_prompt_instructions()
-            rendered, _ = self.system_prompt.render(inputs)
-            return SystemMessage(content=rendered)
-        # If the system prompt doesn't use the output format key, add it to the end of the prompt
-        # automatically.
-        rendered, _ = self.system_prompt.render(inputs)
-        output_instructions = self.parser.output_prompt_instructions()
-        content = f"${rendered}\n<output_format>${output_instructions}</output_format>"
-        return SystemMessage(content=content)
+        # Get all variables used in the template
+        used_vars = self.system_prompt.used_variables()
+
+        # Check if all required variables are provided (except OUTPUT_FORMAT_KEY which is handled separately)
+        missing_vars = set(var for var in used_vars if var != OUTPUT_FORMAT_KEY and var not in inputs)
+        if missing_vars:
+            raise ValueError(f"The following tags in the system prompt were not provided: {missing_vars}")
+
+        try:
+            if OUTPUT_FORMAT_KEY in used_vars:
+                inputs[OUTPUT_FORMAT_KEY] = self.parser.output_prompt_instructions()
+                rendered, _ = self.system_prompt.render(inputs)
+                return SystemMessage(content=rendered)
+            else:
+                # If the system prompt doesn't use the output format key, add it to the end of the prompt
+                # automatically.
+                rendered, _ = self.system_prompt.render(inputs)
+                output_instructions = self.parser.output_prompt_instructions()
+                content = f"{rendered}\n<output_format>{output_instructions}</output_format>"
+                return SystemMessage(content=content)
+        except PromptTemplateError as e:
+            # Convert PromptTemplateError to ValueError for consistency
+            raise ValueError(f"Failed to render system prompt: {e}") from e
 
     def _render_user_message(self, input: dict[str, Any]) -> UserMessage:
         """Render the user prompt with the static inputs and the dynamic inputs
