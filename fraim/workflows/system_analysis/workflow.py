@@ -22,6 +22,7 @@ from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
 from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor, Workflow
 from fraim.core.workflows.llm_processing import LLMProcessor, LLMProcessorOptions
+from fraim.core.workflows.write_json_output import write_json_output
 
 # File patterns for system analysis - focusing on documentation and key configuration files
 FILE_PATTERNS = [
@@ -416,24 +417,6 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisOptions, dict[str, Any]], Ch
         )
 
         # 5. Write output file if output_dir is configured
-        output_dir = getattr(self.args, "output_dir", None)
-        if output_dir:
-            import datetime
-            import os
-
-            os.makedirs(output_dir, exist_ok=True)
-            app_name = getattr(self.args, "project_path", "application")  # TODO: Fix
-            app_name = os.path.basename(app_name.rstrip(os.sep)) or "application"
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_filename = f"system_analysis_{app_name}_{timestamp}.json"
-            output_path = os.path.join(output_dir, output_filename)
-            try:
-                import json
-
-                with open(output_path, "w", encoding="utf-8") as f:
-                    json.dump(final_result, f, indent=2)
-                self.logger.info(f"System analysis results written to {output_path}")
-            except Exception as write_exc:
-                self.logger.error(f"Failed to write system analysis results: {write_exc}")
+        write_json_output(results=final_result, workflow_name="system_analysis", config=self.args)
 
         return final_result
