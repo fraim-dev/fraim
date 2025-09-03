@@ -46,11 +46,17 @@ class ContainerConfig(BaseModel):
 class InfrastructureComponent(BaseModel):
     name: str = Field(description="Name or identifier of the infrastructure component")
     type: str = Field(
-        description="Type of infrastructure component: load_balancer|database|cache|queue|storage|cdn|proxy|other"
+        description="Type of infrastructure component: api_gateway|load_balancer|database|cache|queue|storage|cdn|proxy|compute|serverless_function|monitoring|network_security|dns|scheduler|security_policy|other"
     )
     provider: str = Field(description="Cloud provider or platform: aws|azure|gcp|on_premise|other")
     service_name: str = Field(description="Specific service name (e.g., RDS, Redis, S3, CloudFront)")
     configuration: str = Field(description="Configuration details or settings for the component")
+    discovery_method: str = Field(
+        description="How the infrastructure was discovered: concrete|inferred", default="concrete"
+    )
+    file_source: str | None = Field(
+        default=None, description="Specific file where this infrastructure component is defined"
+    )
     availability_zone: str | None = Field(
         default=None, description="Availability zone or region where the component is deployed"
     )
@@ -77,12 +83,6 @@ class InfrastructureAnalysisResult(BaseModel):
 
 
 @dataclass
-class DedupInput:
-    findings_summary: list[dict[str, Any]]
-    config: Config
-
-
-@dataclass
 class InfrastructureDiscoveryInput(ChunkWorkflowInput):
     """Input for the Infrastructure Discovery workflow."""
 
@@ -92,6 +92,17 @@ class InfrastructureDiscoveryInput(ChunkWorkflowInput):
 
     include_secrets: Annotated[bool, {"help": "Include analysis of environment variables and secrets"}] = True
 
+    discovery_method_filter: Annotated[
+        str | None,
+        {
+            "help": "Filter by discovery method: 'concrete' (only explicitly defined), 'inferred' (only referenced), or None (both)"
+        },
+    ] = "concrete"
+
+    intelligent_test_detection: Annotated[
+        bool, {"help": "Use LLM-based intelligent test file detection to exclude test files during processing"}
+    ] = True
+
 
 @dataclass
 class AgentInput:
@@ -99,3 +110,5 @@ class AgentInput:
 
     code: CodeChunk
     config: Config
+    focus_environments: list[str] | None = None
+    include_secrets: bool = True

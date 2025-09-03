@@ -45,8 +45,8 @@ INFRASTRUCTURE_FILE_PATTERNS = [
     "Cargo.toml",
     "composer.json",
     "Gemfile",
-    "Makefile",
-    "makefile",
+    # "Makefile",  # Temporarily disabled due to LLM processing issues
+    # "makefile",
     "*.mk",
     # Orchestration and CI/CD files
     ".github/workflows/*.yml",

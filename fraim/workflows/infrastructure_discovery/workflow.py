@@ -8,27 +8,19 @@ Analyzes infrastructure and deployment configurations to identify container conf
 orchestration patterns, scaling policies, and deployment strategies.
 """
 
-import os
-from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from fraim.config import Config
 from fraim.core.contextuals import CodeChunk
 from fraim.core.llms.litellm import LiteLLM
-from fraim.core.steps.llm import LLMStep
 from fraim.core.workflows import ChunkProcessingMixin, Workflow
 from fraim.workflows.registry import workflow
 from fraim.workflows.utils import write_json_output
 
+from .aggregation import InfrastructureResultAggregator
 from .file_patterns import INFRASTRUCTURE_FILE_PATTERNS
-from .steps import create_dedup_step, create_infrastructure_step
-from .types import (
-    AgentInput,
-    DedupInput,
-    InfrastructureAnalysisResult,
-    InfrastructureDiscoveryInput,
-)
-from .utils import create_infrastructure_summary
+from .processing import InfrastructureChunkProcessor
+from .types import InfrastructureAnalysisResult, InfrastructureDiscoveryInput
 
 
 @workflow("infrastructure_discovery")
@@ -45,116 +37,50 @@ class InfrastructureDiscoveryWorkflow(ChunkProcessingMixin, Workflow[Infrastruct
     def __init__(self, config: Config, *args: Any, **kwargs: Any) -> None:
         super().__init__(config, *args, **kwargs)
 
-        # Initialize LLM and infrastructure analysis step
+        # Initialize LLM for processing components
         self.llm = LiteLLM.from_config(self.config)
 
-        # Infrastructure analysis step
-        self.infrastructure_step: LLMStep[AgentInput, InfrastructureAnalysisResult] = create_infrastructure_step(
-            self.llm
-        )
+        # Store project path when available
+        self._project_path: str | None = None
 
-        # Keep deduplication step as lazy since it depends on project setup for tools
-        self._dedup_step: Optional[LLMStep[DedupInput, InfrastructureAnalysisResult]] = None
-        # Store project path early when it's still valid
-        self._project_path: Optional[str] = None
+        # Initialize processing and aggregation components
+        self.chunk_processor: InfrastructureChunkProcessor | None = None
+        self.result_aggregator: InfrastructureResultAggregator | None = None
 
     @property
     def file_patterns(self) -> list[str]:
         """File patterns for infrastructure discovery."""
         return INFRASTRUCTURE_FILE_PATTERNS
 
-    @property
-    def dedup_step(self) -> LLMStep[DedupInput, InfrastructureAnalysisResult]:
-        """Lazily initialize the deduplication step with tools."""
-        if self._dedup_step is None:
-            self._dedup_step = create_dedup_step(self.llm, self.config, self._project_path)
-        return self._dedup_step
+    def _initialize_processors(self) -> None:
+        """Initialize processing and aggregation components."""
+        if self.chunk_processor is None:
+            self.chunk_processor = InfrastructureChunkProcessor(self.config, self.llm, self._project_path)
+
+        if self.result_aggregator is None:
+            self.result_aggregator = InfrastructureResultAggregator(self.config)
 
     async def _process_single_chunk(
-        self, chunk: CodeChunk, focus_environments: list[str] | None = None, include_secrets: bool = True
+        self,
+        chunk: CodeChunk,
+        focus_environments: list[str] | None = None,
+        include_secrets: bool = True,
+        intelligent_test_detection: bool = True,
     ) -> list[InfrastructureAnalysisResult]:
         """Process a single chunk for infrastructure analysis."""
-        try:
-            self.config.logger.debug(f"Processing infrastructure chunk: {Path(chunk.file_path)}")
-
-            chunk_input = AgentInput(
-                code=chunk,
-                config=self.config,
-            )
-
-            # Run infrastructure analysis
-            result = await self.infrastructure_step.run(chunk_input)
-            return [result]
-
-        except Exception as e:
-            self.config.logger.error(
-                f"Failed to process infrastructure chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {str(e)}"
-            )
-            return []
-
-    async def _aggregate_results(self, chunk_results: list[InfrastructureAnalysisResult]) -> dict[str, Any]:
-        """Aggregate infrastructure results from multiple chunks."""
-
-        if not chunk_results:
-            self.config.logger.warning("No infrastructure chunks processed successfully")
-            return {
-                "container_configs": [],
-                "infrastructure_components": [],
-                "deployment_environments": [],
-                "confidence_score": 0.0,
-                "analysis_summary": "No infrastructure files found or processed",
-                "files_analyzed": 0,
-                "total_chunks_processed": 0,
-            }
-
-        # Use LLM for intelligent deduplication instead of simple name matching
-        deduplicated_results = await self._llm_deduplicate_results(chunk_results)
-
-        unique_containers = deduplicated_results.container_configs
-        unique_components = deduplicated_results.infrastructure_components
-        unique_environments = deduplicated_results.deployment_environments
-
-        # Calculate confidence based on number of files and quality of findings
-        confidence_score = min(0.9, 0.4 + (len(chunk_results) * 0.1) + (len(unique_containers) * 0.05))
-
-        analysis_summary = create_infrastructure_summary(
-            unique_containers, unique_components, unique_environments, len(chunk_results)
+        # Delegate to the chunk processor
+        assert self.chunk_processor is not None  # Should be initialized
+        return await self.chunk_processor.process_single_chunk(
+            chunk, focus_environments, include_secrets, intelligent_test_detection
         )
 
-        return {
-            "container_configs": [config.model_dump() for config in unique_containers],
-            "infrastructure_components": [component.model_dump() for component in unique_components],
-            "deployment_environments": [env.model_dump() for env in unique_environments],
-            "confidence_score": confidence_score,
-            "analysis_summary": analysis_summary,
-            "files_analyzed": len(chunk_results),
-            "total_chunks_processed": len(chunk_results),
-        }
-
-    async def _llm_deduplicate_results(
-        self, chunk_results: list[InfrastructureAnalysisResult]
-    ) -> InfrastructureAnalysisResult:
-        """Use LLM to intelligently deduplicate infrastructure findings."""
-
-        # Prepare findings for LLM analysis
-        findings_summary = []
-        for i, result in enumerate(chunk_results):
-            findings_summary.append(
-                {
-                    "chunk_id": f"chunk_{i + 1}",
-                    "container_configs": [config.model_dump() for config in result.container_configs],
-                    "infrastructure_components": [comp.model_dump() for comp in result.infrastructure_components],
-                    "deployment_environments": [env.model_dump() for env in result.deployment_environments],
-                }
-            )
-
-        self.config.logger.debug(f"Running LLM deduplication on {len(chunk_results)} chunks")
-
-        dedup_input = DedupInput(findings_summary=findings_summary, config=self.config)
-
-        deduplicated_result = await self.dedup_step.run(dedup_input)
-        self.config.logger.debug(f"LLM deduplication completed successfully")
-        return deduplicated_result
+    async def _aggregate_results(
+        self, chunk_results: list[InfrastructureAnalysisResult], input: InfrastructureDiscoveryInput
+    ) -> dict[str, Any]:
+        """Aggregate infrastructure results from multiple chunks."""
+        # Delegate to the result aggregator
+        assert self.result_aggregator is not None  # Should be initialized
+        return await self.result_aggregator.aggregate_results(chunk_results, input)
 
     async def workflow(self, input: InfrastructureDiscoveryInput) -> dict[str, Any]:
         """Main Infrastructure Discovery workflow."""
@@ -171,17 +97,22 @@ class InfrastructureDiscoveryWorkflow(ChunkProcessingMixin, Workflow[Infrastruct
                 # Capture project path while it's still valid
                 self._project_path = project.project_path
 
+                # Initialize processing and aggregation components
+                self._initialize_processors()
+
                 # 2. Create a closure that captures workflow parameters
                 async def chunk_processor(chunk: CodeChunk) -> list[InfrastructureAnalysisResult]:
-                    return await self._process_single_chunk(chunk, input.focus_environments, input.include_secrets)
+                    return await self._process_single_chunk(
+                        chunk, input.focus_environments, input.include_secrets, input.intelligent_test_detection
+                    )
 
                 # 3. Process chunks concurrently using mixin utility
                 chunk_results = await self.process_chunks_concurrently(
                     project=project, chunk_processor=chunk_processor, max_concurrent_chunks=input.max_concurrent_chunks
                 )
 
-                # 4. Aggregate results (now temp directory is still available for tools)
-                final_result = await self._aggregate_results(chunk_results)
+                # 4. Aggregate results
+                final_result = await self._aggregate_results(chunk_results, input)
 
             self.config.logger.info(
                 f"Infrastructure Discovery completed. Analyzed {final_result['files_analyzed']} files. "

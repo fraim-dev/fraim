@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from types import TracebackType
 from typing import Any, Generator, Iterator, Optional, Type
 
 from fraim.config.config import Config
@@ -39,8 +40,7 @@ class ProjectInput:
         if path_or_url.startswith("http://") or path_or_url.startswith("https://") or path_or_url.startswith("git@"):
             self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
             # TODO: git diff here?
-            self.input = GitRemote(
-                self.config, url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_")
+            self.input = GitRemote(self.config, url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_")
             self.project_path = self.input.root_path()
         else:
             # Fully resolve the path to the project
@@ -51,11 +51,21 @@ class ProjectInput:
                     self.config, self.project_path, head=self.head, base=self.base, globs=globs, limit=limit
                 )
             else:
-                self.input = Local(
-                    self.config, self.project_path, globs=globs, limit=limit)
+                self.input = Local(self.config, self.project_path, globs=globs, limit=limit)
 
     def __iter__(self) -> Iterator[CodeChunk]:
         yield from self.input
+
+    def __enter__(self) -> "ProjectInput":
+        """Enter the context manager by delegating to the underlying input."""
+        self.input.__enter__()
+        return self
+
+    def __exit__(
+        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+    ) -> None:
+        """Exit the context manager by delegating to the underlying input."""
+        self.input.__exit__(exc_type, exc_val, exc_tb)
 
 
 class ProjectInputFileChunker:
