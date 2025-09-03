@@ -1,9 +1,8 @@
 import logging
 import os
 from collections.abc import Iterator
-from typing import Any, Optional
+from typing import Any
 
-from fraim.config.config import Config
 from fraim.core.contextuals.code import CodeChunk
 from fraim.inputs.chunks import chunk_input
 from fraim.inputs.file import BufferedFile
@@ -38,7 +37,7 @@ class ProjectInput:
         if path_or_url.startswith("http://") or path_or_url.startswith("https://") or path_or_url.startswith("git@"):
             self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
             # TODO: git diff here?
-            self.input = GitRemote(logger=self.logger, url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_")
+            self.input = GitRemote(url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_")
             self.project_path = self.input.root_path()
         else:
             # Fully resolve the path to the project
