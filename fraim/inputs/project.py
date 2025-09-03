@@ -1,3 +1,4 @@
+import logging
 import os
 from collections.abc import Iterator
 from typing import Any, Optional
@@ -30,7 +31,6 @@ class ProjectInput:
         self.head = kwargs.head
         self.diff = kwargs.diff
         self.chunker = ProjectInputFileChunker
-        self._files_context_active = False
 
         if path_or_url is None:
             raise ValueError("Location is required")
@@ -51,24 +51,6 @@ class ProjectInput:
 
     def __iter__(self) -> Iterator[CodeChunk]:
         yield from self.input
-
-    def cleanup(self) -> None:
-        """Explicitly cleanup project resources (e.g., temporary directories)."""
-        if self._files_context_active:
-            try:
-                self.files.__exit__(None, None, None)
-            except Exception as e:
-                self.logger.warning(f"Error during project cleanup: {e}")
-            finally:
-                self._files_context_active = False
-
-    def __enter__(self) -> "ProjectInput":
-        """Context manager entry."""
-        return self
-
-    def __exit__(self, exc_type: Optional[type], exc_val: Optional[Exception], exc_tb: Optional[Any]) -> None:
-        """Context manager exit - cleanup resources."""
-        self.cleanup()
 
 
 class ProjectInputFileChunker:

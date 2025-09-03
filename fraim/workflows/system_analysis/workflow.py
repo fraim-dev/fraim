@@ -22,7 +22,7 @@ from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
 from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor, Workflow
 from fraim.core.workflows.llm_processing import LLMProcessor, LLMProcessorOptions
-from fraim.workflows.utils import write_json_output
+from fraim.core.workflows.write_json_output import write_json_output
 
 # File patterns for system analysis - focusing on documentation and key configuration files
 FILE_PATTERNS = [

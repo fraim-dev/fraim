@@ -14,7 +14,6 @@ from pydantic import BaseModel, Field
 
 from fraim.config import Config
 from fraim.core.contextuals import CodeChunk
-from fraim.core.workflows import ChunkWorkflowInput
 
 
 class EnvironmentVariable(BaseModel):
@@ -83,7 +82,7 @@ class InfrastructureAnalysisResult(BaseModel):
 
 
 @dataclass
-class InfrastructureDiscoveryInput(ChunkWorkflowInput):
+class InfrastructureDiscoveryInput:
     """Input for the Infrastructure Discovery workflow."""
 
     focus_environments: Annotated[
