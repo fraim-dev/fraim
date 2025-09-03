@@ -28,15 +28,15 @@ from .types import InfrastructureAnalysisResult, InfrastructureDiscoveryInput
 class _ConfigAdapter(Config):
     """Adapter to make InfrastructureDiscoveryOptions compatible with Config interface."""
 
-    def __init__(self, options: 'InfrastructureDiscoveryOptions', logger: logging.Logger):
+    def __init__(self, options: "InfrastructureDiscoveryOptions", logger: logging.Logger):
         # Initialize Config parent with required parameters
         super().__init__(
             logger=logger,
             model=options.model,
             temperature=options.temperature,
             output_dir=options.output,
-            confidence=getattr(options, 'confidence', 7),
-            project_path=getattr(options, 'project_path', '')
+            confidence=getattr(options, "confidence", 7),
+            project_path=getattr(options, "project_path", ""),
         )
         self.options = options
 
@@ -46,19 +46,14 @@ class _ConfigAdapter(Config):
 class InfrastructureDiscoveryOptions(ChunkProcessingOptions, LLMProcessorOptions):
     """Options for the Infrastructure Discovery workflow."""
 
-    output: Annotated[str, {
-        "help": "Path to save the output JSON report"}] = "fraim_output"
-    focus_environments: Annotated[list[str] | None, {
-        "help": "Specific environments to focus on"}] = None
-    include_secrets: Annotated[bool, {
-        "help": "Whether to include secret analysis"}] = True
-    intelligent_test_detection: Annotated[bool, {
-        "help": "Whether to use intelligent test detection"}] = True
+    output: Annotated[str, {"help": "Path to save the output JSON report"}] = "fraim_output"
+    focus_environments: Annotated[list[str] | None, {"help": "Specific environments to focus on"}] = None
+    include_secrets: Annotated[bool, {"help": "Whether to include secret analysis"}] = True
+    intelligent_test_detection: Annotated[bool, {"help": "Whether to use intelligent test detection"}] = True
 
 
 class InfrastructureDiscoveryWorkflow(
-    Workflow[InfrastructureDiscoveryOptions,
-             dict[str, Any]], ChunkProcessor, LLMProcessor
+    Workflow[InfrastructureDiscoveryOptions, dict[str, Any]], ChunkProcessor, LLMProcessor
 ):
     """
     Analyzes infrastructure and deployment configurations to extract:
@@ -92,13 +87,11 @@ class InfrastructureDiscoveryWorkflow(
         """Initialize processing and aggregation components."""
         if self.chunk_processor is None:
             config_adapter = _ConfigAdapter(self.args, self.logger)
-            self.chunk_processor = InfrastructureChunkProcessor(
-                config_adapter, self.llm, self._project_path)
+            self.chunk_processor = InfrastructureChunkProcessor(config_adapter, self.llm, self._project_path)
 
         if self.result_aggregator is None:
             config_adapter = _ConfigAdapter(self.args, self.logger)
-            self.result_aggregator = InfrastructureResultAggregator(
-                config_adapter)
+            self.result_aggregator = InfrastructureResultAggregator(config_adapter)
 
     async def _process_single_chunk(
         self,
@@ -154,7 +147,7 @@ class InfrastructureDiscoveryWorkflow(
             discovery_input = InfrastructureDiscoveryInput(
                 focus_environments=self.args.focus_environments,
                 include_secrets=self.args.include_secrets,
-                intelligent_test_detection=self.args.intelligent_test_detection
+                intelligent_test_detection=self.args.intelligent_test_detection,
             )
             final_result = await self._aggregate_results(chunk_results, discovery_input)
 
@@ -165,12 +158,10 @@ class InfrastructureDiscoveryWorkflow(
 
             # 5. Write output file if output_dir is configured
             config_adapter = _ConfigAdapter(self.args, self.logger)
-            write_json_output(
-                results=final_result, workflow_name="infrastructure_discovery", config=config_adapter)
+            write_json_output(results=final_result, workflow_name="infrastructure_discovery", config=config_adapter)
 
             return final_result
 
         except Exception as e:
-            self.logger.error(
-                f"Error during infrastructure discovery: {str(e)}")
+            self.logger.error(f"Error during infrastructure discovery: {str(e)}")
             raise e

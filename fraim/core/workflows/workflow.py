@@ -28,14 +28,11 @@ class Workflow(ABC, Generic[Options, Result]):
             for base in getattr(c, "__orig_bases__", ()):
                 if get_origin(base) is Workflow:
                     opt = get_args(base)[0]
-                    # handle Annotated[T, ...] etc.
-                    unwrapped = get_origin(opt) or opt
+                    unwrapped = get_origin(opt) or opt  # handle Annotated[T, ...] etc.
                     if isinstance(unwrapped, type):
                         return cast(
-                            "type[Options]",
-                            unwrapped,
-                            # Tell the type checker this is specifically type[Options]
-                        )
+                            "type[Options]", unwrapped
+                        )  # Tell the type checker this is specifically type[Options]
                     return None
             c = c.__base__
         return None
