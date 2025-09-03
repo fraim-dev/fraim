@@ -3,7 +3,7 @@
 
 """Tests for tool execution utilities"""
 
-from typing import Any, Dict, Optional, Type
+from typing import Any
 
 import pytest
 from pydantic import BaseModel, Field
@@ -25,7 +25,7 @@ class MultiplyTool(BaseTool):
 
     name: str = "multiply"
     description: str = "Multiply two numbers"
-    args_schema: Type[BaseModel] = MultiplyArgs
+    args_schema: type[BaseModel] = MultiplyArgs
 
     async def _run(self, a: int, b: int) -> int:
         return a * b
@@ -36,7 +36,7 @@ class ErrorTool(BaseTool):
 
     name: str = "error_tool"
     description: str = "A tool that always fails"
-    args_schema: Type[BaseModel] = MultiplyArgs
+    args_schema: type[BaseModel] = MultiplyArgs
 
     async def _run(self, a: int, b: int) -> int:
         raise ToolError("This tool always fails")
@@ -47,7 +47,7 @@ class NoSchemaTool(BaseTool):
 
     name: str = "no_schema"
     description: str = "A tool without schema"
-    args_schema: Optional[Type[BaseModel]] = None
+    args_schema: type[BaseModel] | None = None
 
     async def _run(self, **kwargs: Any) -> str:
         return f"Called with: {kwargs}"
@@ -74,7 +74,7 @@ class TestExecuteToolCall:
     @pytest.fixture
     def available_tools(
         self, multiply_tool: MultiplyTool, error_tool: ErrorTool, no_schema_tool: NoSchemaTool
-    ) -> Dict[str, BaseTool]:
+    ) -> dict[str, BaseTool]:
         """Fixture providing a dictionary of available tools"""
         return {
             "multiply": multiply_tool,
@@ -87,7 +87,7 @@ class TestExecuteToolCall:
         return ToolCall(id=call_id, type="function", function=Function(name=tool_name, arguments=arguments))
 
     @pytest.mark.asyncio
-    async def test_successful_multiply(self, available_tools: Dict[str, BaseTool]) -> None:
+    async def test_successful_multiply(self, available_tools: dict[str, BaseTool]) -> None:
         """Test successful multiplication - happy path"""
         tool_call = self.create_tool_call(tool_name="multiply", arguments='{"a": 5, "b": 3}')
 
@@ -99,7 +99,7 @@ class TestExecuteToolCall:
         assert result.role == "tool"
 
     @pytest.mark.asyncio
-    async def test_tool_not_found(self, available_tools: Dict[str, BaseTool]) -> None:
+    async def test_tool_not_found(self, available_tools: dict[str, BaseTool]) -> None:
         """Test error when tool is not found"""
         tool_call = self.create_tool_call(tool_name="nonexistent_tool", arguments='{"a": 5, "b": 3}')
 
@@ -110,7 +110,7 @@ class TestExecuteToolCall:
         assert result.tool_call_id == "test-call-1"
 
     @pytest.mark.asyncio
-    async def test_invalid_json_arguments(self, available_tools: Dict[str, BaseTool]) -> None:
+    async def test_invalid_json_arguments(self, available_tools: dict[str, BaseTool]) -> None:
         """Test error when arguments are invalid JSON"""
         tool_call = self.create_tool_call(
             tool_name="multiply",
@@ -124,7 +124,7 @@ class TestExecuteToolCall:
         assert result.tool_call_id == "test-call-1"
 
     @pytest.mark.asyncio
-    async def test_missing_required_arguments(self, available_tools: Dict[str, BaseTool]) -> None:
+    async def test_missing_required_arguments(self, available_tools: dict[str, BaseTool]) -> None:
         """Test error when required arguments are missing"""
         tool_call = self.create_tool_call(
             tool_name="multiply",
@@ -138,7 +138,7 @@ class TestExecuteToolCall:
         assert result.tool_call_id == "test-call-1"
 
     @pytest.mark.asyncio
-    async def test_wrong_argument_types(self, available_tools: Dict[str, BaseTool]) -> None:
+    async def test_wrong_argument_types(self, available_tools: dict[str, BaseTool]) -> None:
         """Test error when argument types are wrong"""
         tool_call = self.create_tool_call(
             tool_name="multiply",
@@ -152,7 +152,7 @@ class TestExecuteToolCall:
         assert result.tool_call_id == "test-call-1"
 
     @pytest.mark.asyncio
-    async def test_extra_arguments_ignored(self, available_tools: Dict[str, BaseTool]) -> None:
+    async def test_extra_arguments_ignored(self, available_tools: dict[str, BaseTool]) -> None:
         """Test that extra arguments are ignored when schema is present"""
         tool_call = self.create_tool_call(tool_name="multiply", arguments='{"a": 5, "b": 3, "extra": "ignored"}')
 
@@ -162,7 +162,7 @@ class TestExecuteToolCall:
         assert result.tool_call_id == "test-call-1"
 
     @pytest.mark.asyncio
-    async def test_empty_arguments_with_schema(self, available_tools: Dict[str, BaseTool]) -> None:
+    async def test_empty_arguments_with_schema(self, available_tools: dict[str, BaseTool]) -> None:
         """Test error when arguments are empty but schema requires them"""
         tool_call = self.create_tool_call(tool_name="multiply", arguments="")
 
@@ -173,7 +173,7 @@ class TestExecuteToolCall:
         assert result.tool_call_id == "test-call-1"
 
     @pytest.mark.asyncio
-    async def test_tool_raises_tool_error(self, available_tools: Dict[str, BaseTool]) -> None:
+    async def test_tool_raises_tool_error(self, available_tools: dict[str, BaseTool]) -> None:
         """Test handling when tool raises ToolError"""
         tool_call = self.create_tool_call(tool_name="error_tool", arguments='{"a": 5, "b": 3}')
 
@@ -184,7 +184,7 @@ class TestExecuteToolCall:
         assert result.tool_call_id == "test-call-1"
 
     @pytest.mark.asyncio
-    async def test_tool_without_schema(self, available_tools: Dict[str, BaseTool]) -> None:
+    async def test_tool_without_schema(self, available_tools: dict[str, BaseTool]) -> None:
         """Test tool execution without argument schema"""
         tool_call = self.create_tool_call(tool_name="no_schema", arguments='{"any": "arguments", "are": "accepted"}')
 
@@ -195,7 +195,7 @@ class TestExecuteToolCall:
         assert result.tool_call_id == "test-call-1"
 
     @pytest.mark.asyncio
-    async def test_tool_without_schema_empty_args(self, available_tools: Dict[str, BaseTool]) -> None:
+    async def test_tool_without_schema_empty_args(self, available_tools: dict[str, BaseTool]) -> None:
         """Test tool execution without schema and empty arguments"""
         tool_call = self.create_tool_call(tool_name="no_schema", arguments="")
 
@@ -206,7 +206,7 @@ class TestExecuteToolCall:
         assert result.tool_call_id == "test-call-1"
 
     @pytest.mark.asyncio
-    async def test_different_call_ids(self, available_tools: Dict[str, BaseTool]) -> None:
+    async def test_different_call_ids(self, available_tools: dict[str, BaseTool]) -> None:
         """Test that tool call IDs are preserved correctly"""
         tool_call = self.create_tool_call(tool_name="multiply", arguments='{"a": 2, "b": 4}', call_id="custom-id-123")
 
@@ -225,7 +225,7 @@ class TestExecuteToolCalls:
         return MultiplyTool()
 
     @pytest.fixture
-    def available_tools(self, multiply_tool: MultiplyTool) -> Dict[str, BaseTool]:
+    def available_tools(self, multiply_tool: MultiplyTool) -> dict[str, BaseTool]:
         """Fixture providing a dictionary of available tools"""
         return {"multiply": multiply_tool}
 
@@ -234,7 +234,7 @@ class TestExecuteToolCalls:
         return ToolCall(id=call_id, type="function", function=Function(name=tool_name, arguments=arguments))
 
     @pytest.mark.asyncio
-    async def test_multiple_successful_calls(self, available_tools: Dict[str, BaseTool]) -> None:
+    async def test_multiple_successful_calls(self, available_tools: dict[str, BaseTool]) -> None:
         """Test execution of multiple successful tool calls"""
         tool_calls = [
             self.create_tool_call("multiply", '{"a": 2, "b": 3}', "call-1"),
@@ -257,7 +257,7 @@ class TestExecuteToolCalls:
         assert results[2].tool_call_id == "call-3"
 
     @pytest.mark.asyncio
-    async def test_mixed_success_and_failure(self, available_tools: Dict[str, BaseTool]) -> None:
+    async def test_mixed_success_and_failure(self, available_tools: dict[str, BaseTool]) -> None:
         """Test execution with mix of successful and failed calls"""
         tool_calls = [
             self.create_tool_call("multiply", '{"a": 2, "b": 3}', "call-1"),
@@ -282,7 +282,7 @@ class TestExecuteToolCalls:
         assert results[2].tool_call_id == "call-3"
 
     @pytest.mark.asyncio
-    async def test_empty_tool_calls_list(self, available_tools: Dict[str, BaseTool]) -> None:
+    async def test_empty_tool_calls_list(self, available_tools: dict[str, BaseTool]) -> None:
         """Test execution with empty list of tool calls"""
         results = await execute_tool_calls([], available_tools)
 

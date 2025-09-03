@@ -257,7 +257,7 @@ class TestIsStringEnd:
     def test_string_end_detection(self, test_str: str, quote_idx: int, expected: bool) -> None:
         """Test detection of string endings"""
         result = is_string_end(test_str, quote_idx)
-        assert result == expected, f"Failed for string {repr(test_str)} at index {quote_idx}"
+        assert result == expected, f"Failed for string {test_str!r} at index {quote_idx}"
 
     @pytest.mark.parametrize(
         "test_str,quote_idx,expected",
@@ -274,7 +274,7 @@ class TestIsStringEnd:
     def test_string_end_with_whitespace(self, test_str: str, quote_idx: int, expected: bool) -> None:
         """Test string end detection with whitespace"""
         result = is_string_end(test_str, quote_idx)
-        assert result == expected, f"Failed for string {repr(test_str)} at index {quote_idx}"
+        assert result == expected, f"Failed for string {test_str!r} at index {quote_idx}"
 
     @pytest.mark.parametrize(
         "test_str,quote_idx,expected",
@@ -286,7 +286,7 @@ class TestIsStringEnd:
     def test_string_end_edge_cases(self, test_str: str, quote_idx: int, expected: bool) -> None:
         """Test edge cases for string end detection"""
         result = is_string_end(test_str, quote_idx)
-        assert result == expected, f"Failed for string {repr(test_str)} at index {quote_idx}"
+        assert result == expected, f"Failed for string {test_str!r} at index {quote_idx}"
 
 
 class TestParseJsonMarkdown:

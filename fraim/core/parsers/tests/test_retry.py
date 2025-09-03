@@ -3,11 +3,9 @@
 
 """Tests for RetryOnErrorOutputParser"""
 
-from typing import List
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-from litellm import ModelResponse
 from pydantic import BaseModel
 
 from fraim.core.messages import AssistantMessage, Message, SystemMessage, UserMessage
@@ -126,7 +124,7 @@ class TestRetryOnErrorOutputParser:
         mock_llm.with_tools.return_value = mock_llm
 
         # Create context
-        messages: List[Message] = [UserMessage(content="Generate a person")]
+        messages: list[Message] = [UserMessage(content="Generate a person")]
         context = ParseContext(llm=mock_llm, messages=messages)
 
         base_parser = PydanticOutputParser(SimpleModel)
@@ -148,7 +146,7 @@ class TestRetryOnErrorOutputParser:
         mock_llm.with_tools.return_value = mock_llm
 
         # Create context
-        messages: List[Message] = [UserMessage(content="Generate a person")]
+        messages: list[Message] = [UserMessage(content="Generate a person")]
         context = ParseContext(llm=mock_llm, messages=messages)
 
         base_parser = PydanticOutputParser(SimpleModel)
@@ -200,7 +198,7 @@ class TestRetryOnErrorOutputParser:
         mock_llm.with_tools.return_value = mock_llm
 
         # Create context
-        messages: List[Message] = [UserMessage(content="Generate JSON")]
+        messages: list[Message] = [UserMessage(content="Generate JSON")]
         context = ParseContext(llm=mock_llm, messages=messages)
 
         base_parser = JsonOutputParser()
@@ -229,7 +227,7 @@ class TestRetryOnErrorOutputParser:
         mock_llm.with_tools.return_value = mock_llm
 
         # Create context
-        messages: List[Message] = [UserMessage(content="Generate a person")]
+        messages: list[Message] = [UserMessage(content="Generate a person")]
         context = ParseContext(llm=mock_llm, messages=messages)
 
         base_parser = PydanticOutputParser(SimpleModel)

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 import yaml
 from jinja2 import Environment, StrictUndefined, TemplateSyntaxError, UndefinedError, meta
@@ -19,7 +19,7 @@ class PromptTemplateError(Exception):
 
 class PromptTemplate:
     @classmethod
-    def from_yaml(cls, yaml_path: str, inputs: Optional[Dict[str, Any]] = None) -> Dict[str, "PromptTemplate"]:
+    def from_yaml(cls, yaml_path: str, inputs: dict[str, Any] | None = None) -> dict[str, "PromptTemplate"]:
         """Load a set of prompt templates from a YAML file.
 
         The yaml file should be a dictionary of prompt templates, where the key is
@@ -34,7 +34,7 @@ class PromptTemplate:
             A dictionary of PromptTemplate objects.
         """
         try:
-            with open(yaml_path, "r", encoding="utf-8") as file:
+            with open(yaml_path, encoding="utf-8") as file:
                 yaml_data = yaml.safe_load(file)
 
             if not isinstance(yaml_data, dict):
@@ -54,7 +54,7 @@ class PromptTemplate:
             raise PromptTemplateError(f"Invalid YAML in file {yaml_path}: {e}") from e
 
     @classmethod
-    def from_file(cls, file_path: str, inputs: Optional[Dict[str, Any]] = None) -> "PromptTemplate":
+    def from_file(cls, file_path: str, inputs: dict[str, Any] | None = None) -> "PromptTemplate":
         """
         Load a prompt template from a file.
 
@@ -70,13 +70,13 @@ class PromptTemplate:
             PromptTemplateError: If the template file does not exist or is invalid.
         """
         try:
-            with open(file_path, "r", encoding="utf-8") as file:
+            with open(file_path, encoding="utf-8") as file:
                 return cls.from_string(file.read(), inputs)
         except FileNotFoundError as e:
             raise PromptTemplateError(f"Could not find template file: {file_path}") from e
 
     @classmethod
-    def from_string(cls, template_str: str, inputs: Optional[Dict[str, Any]] = None) -> "PromptTemplate":
+    def from_string(cls, template_str: str, inputs: dict[str, Any] | None = None) -> "PromptTemplate":
         """
         Initialize a prompt template from a string.
 
@@ -98,7 +98,7 @@ class PromptTemplate:
         except TemplateSyntaxError as e:
             raise PromptTemplateError(f"Invalid syntax in template string: {template_str}") from e
 
-    def __init__(self, template: JinjaTemplate, used_vars: set[str], inputs: Optional[Dict[str, Any]] = None):
+    def __init__(self, template: JinjaTemplate, used_vars: set[str], inputs: dict[str, Any] | None = None):
         """
         Initialize a prompt template.
 
@@ -118,7 +118,7 @@ class PromptTemplate:
     def used_variables(self) -> set[str]:
         return self._used_vars
 
-    def render_partial(self, inputs: Dict[str, Any]) -> "PromptTemplate":
+    def render_partial(self, inputs: dict[str, Any]) -> "PromptTemplate":
         """
         Partially render the prompt template with the given inputs.
 
@@ -129,7 +129,7 @@ class PromptTemplate:
         """
         return self.__class__(self._template, self._used_vars, merge_inputs(self._inputs, inputs))
 
-    def render(self, inputs: Dict[str, Any]) -> tuple[str, set[str]]:
+    def render(self, inputs: dict[str, Any]) -> tuple[str, set[str]]:
         """
         Render the prompt template with the given inputs.
 
@@ -155,7 +155,7 @@ class PromptTemplate:
         return rendered, unused_keys
 
 
-def merge_inputs(inputs: Dict[str, Any], new_inputs: Dict[str, Any]) -> Dict[str, Any]:
+def merge_inputs(inputs: dict[str, Any], new_inputs: dict[str, Any]) -> dict[str, Any]:
     """
     Merge the new inputs with the existing inputs, overriding any that were already set.
     """

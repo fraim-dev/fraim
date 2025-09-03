@@ -6,7 +6,7 @@ Manager for LLM observability backends.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 import litellm
 
@@ -16,11 +16,11 @@ from .registry import ObservabilityRegistry
 class ObservabilityManager:
     """Manager for setting up and configuring observability backends."""
 
-    def __init__(self, enabled_backends: List[str], logger: logging.Logger):
+    def __init__(self, enabled_backends: list[str], logger: logging.Logger):
         """Initialize with list of backend names to enable and a logger."""
         self.enabled_backends = enabled_backends
-        self.configured_backends: List[str] = []
-        self.failed_backends: List[str] = []
+        self.configured_backends: list[str] = []
+        self.failed_backends: list[str] = []
         self.logger = logger
 
     def setup(self) -> None:
@@ -29,8 +29,8 @@ class ObservabilityManager:
             self.logger.info("No observability backends enabled. Use --observability to enable.")
             return
 
-        success_callbacks: List[Any] = []
-        failure_callbacks: List[Any] = []
+        success_callbacks: list[Any] = []
+        failure_callbacks: list[Any] = []
 
         for backend_name in self.enabled_backends:
             backend = ObservabilityRegistry.get_backend(backend_name)
@@ -65,10 +65,7 @@ class ObservabilityManager:
             litellm.failure_callback = failure_callbacks
             self.logger.info(f"LLM observability active with {len(self.configured_backends)} backend(s)")
 
-            print(litellm.success_callback)
-            print(litellm.failure_callback)
-
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Return status of all backends."""
         return {
             "enabled": self.enabled_backends,

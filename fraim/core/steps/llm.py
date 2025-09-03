@@ -4,7 +4,7 @@
 """A step that calls an LLM"""
 
 import dataclasses
-from typing import TYPE_CHECKING, Any, Dict, Generic, List, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, Union
 
 if TYPE_CHECKING:
     from _typeshed import DataclassInstance
@@ -21,7 +21,7 @@ from fraim.core.tools import BaseTool
 
 OUTPUT_FORMAT_KEY = "output_format"
 
-TDynamicInput = TypeVar("TDynamicInput", bound=Union[Dict[str, Any], "DataclassInstance"])
+TDynamicInput = TypeVar("TDynamicInput", bound=Union[dict[str, Any], "DataclassInstance"])
 TOutput = TypeVar("TOutput")
 
 # TODO: add rate limiting
@@ -36,9 +36,9 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
         system_prompt: PromptTemplate,
         user_prompt: PromptTemplate,
         parser: BaseOutputParser[TOutput],
-        static_inputs: Optional[Dict[str, Any]] = None,
-        tools: Optional[List[BaseTool]] = None,
-        max_tool_iterations: Optional[int] = None,
+        static_inputs: dict[str, Any] | None = None,
+        tools: list[BaseTool] | None = None,
+        max_tool_iterations: int | None = None,
     ):
         """Creates a step that calls an LLM with a system prompt and a user prompt.
 
@@ -87,15 +87,14 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
             inputs[OUTPUT_FORMAT_KEY] = self.parser.output_prompt_instructions()
             rendered, _ = self.system_prompt.render(inputs)
             return SystemMessage(content=rendered)
-        else:
-            # If the system prompt doesn't use the output format key, add it to the end of the prompt
-            # automatically.
-            rendered, _ = self.system_prompt.render(inputs)
-            output_instructions = self.parser.output_prompt_instructions()
-            content = f"${rendered}\n<output_format>${output_instructions}</output_format>"
-            return SystemMessage(content=content)
+        # If the system prompt doesn't use the output format key, add it to the end of the prompt
+        # automatically.
+        rendered, _ = self.system_prompt.render(inputs)
+        output_instructions = self.parser.output_prompt_instructions()
+        content = f"${rendered}\n<output_format>${output_instructions}</output_format>"
+        return SystemMessage(content=content)
 
-    def _render_user_message(self, input: Dict[str, Any]) -> UserMessage:
+    def _render_user_message(self, input: dict[str, Any]) -> UserMessage:
         """Render the user prompt with the static inputs and the dynamic inputs
 
         If there are any unused inputs, they are automatically added to the end of the user prompt.
@@ -125,17 +124,27 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
         # At this point, choice is guaranteed to be of type Choices
         message_content = choice.message.content
         if message_content is None:
-            raise ValueError("Message content is None")
+            # Setting message_content to empty string will always fail to parse, which will trigger a retry.
+            #
+            # The model API _should_ always return a message here, but the Gemini API (as of August 2025)
+            # sometimes does not.
+            #
+            # See the similar issues reported other projects:
+            # gemini-cli: https://github.com/google-gemini/gemini-cli/issues/6306
+            # n8n: https://github.com/n8n-io/n8n/issues/18481
+            #
+            # If/when the Gemini API is fixed, consider removing this workaround.
+            message_content = ""
 
         context = ParseContext(llm=self.llm, messages=messages)
         return await self.parser.parse(message_content, context=context)
 
-    def _prepare_messages(self, input: Dict[str, Any]) -> List[Message]:
+    def _prepare_messages(self, input: dict[str, Any]) -> list[Message]:
         user_message = self._render_user_message(input)
         return [self._system_message, user_message]
 
 
-def _normalize_input(input: TDynamicInput) -> Dict[str, Any]:
+def _normalize_input(input: TDynamicInput) -> dict[str, Any]:
     """Normalize the input to a dictionary
 
     If the input is a dataclass, convert it to a dictionary.

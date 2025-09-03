@@ -190,3 +190,6 @@ fraim/reporting/test/outputs/*.html
 **/scan_outputs/
 .aider*
 **/fraim_output/
+
+# Claude
+.claude/

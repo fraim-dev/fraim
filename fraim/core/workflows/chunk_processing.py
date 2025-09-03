@@ -7,9 +7,10 @@ Utilities for workflows that process code chunks with concurrent execution.
 
 import asyncio
 from abc import abstractmethod
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Annotated, Any, Awaitable, Callable, List, Optional, Set, TypeVar
+from typing import Annotated, Any, TypeVar
 
 from fraim.config import Config
 from fraim.core.contextuals import CodeChunk
@@ -26,14 +27,25 @@ class ChunkWorkflowInput(WorkflowInput):
     """Base input for chunk-based workflows."""
 
     config: Config
+    head: Annotated[str, {"help": "Git head commit for diff input"}]
+    base: Annotated[str, {"help": "Git base commit for diff input"}]
     location: Annotated[str, {"help": "Repository URL or path to scan"}]
-    chunk_size: Annotated[Optional[int], {"help": "Number of lines per chunk"}] = 500
-    limit: Annotated[Optional[int], {"help": "Limit the number of files to scan"}] = None
+    chunk_size: Annotated[int | None, {"help": "Number of lines per chunk"}] = 500
+    limit: Annotated[int | None, {"help": "Limit the number of files to scan"}] = None
     globs: Annotated[
-        Optional[List[str]],
+        list[str] | None,
         {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
     ] = None
     max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
+
+    diff: Annotated[
+        bool,
+        {
+            "help": (
+                "Whether to use git diff input. If --head and --base are not specified, the working tree is scanned."
+            )
+        },
+    ] = False
 
 
 class ChunkProcessingMixin:
@@ -55,9 +67,8 @@ class ChunkProcessingMixin:
 
     @property
     @abstractmethod
-    def file_patterns(self) -> List[str]:
+    def file_patterns(self) -> list[str]:
         """File patterns for this workflow (e.g., ['*.py', '*.js'])."""
-        pass
 
     def setup_project_input(self, input: ChunkWorkflowInput) -> ProjectInput:
         """
@@ -71,16 +82,22 @@ class ChunkProcessingMixin:
         """
         effective_globs = input.globs if input.globs is not None else self.file_patterns
         kwargs = SimpleNamespace(
-            location=input.location, globs=effective_globs, limit=input.limit, chunk_size=input.chunk_size
+            location=input.location,
+            globs=effective_globs,
+            limit=input.limit,
+            chunk_size=input.chunk_size,
+            head=input.head,
+            base=input.base,
+            diff=input.diff,
         )
         return ProjectInput(config=self.config, kwargs=kwargs)
 
     async def process_chunks_concurrently(
         self,
         project: ProjectInput,
-        chunk_processor: Callable[[CodeChunk], Awaitable[List[T]]],
+        chunk_processor: Callable[[CodeChunk], Awaitable[list[T]]],
         max_concurrent_chunks: int = 5,
-    ) -> List[T]:
+    ) -> list[T]:
         """
         Process chunks concurrently using the provided processor function.
 
@@ -92,18 +109,18 @@ class ChunkProcessingMixin:
         Returns:
             Combined results from all chunks
         """
-        results: List[T] = []
+        results: list[T] = []
 
         # Create semaphore to limit concurrent chunk processing
         semaphore = asyncio.Semaphore(max_concurrent_chunks)
 
-        async def process_chunk_with_semaphore(chunk: CodeChunk) -> List[T]:
+        async def process_chunk_with_semaphore(chunk: CodeChunk) -> list[T]:
             """Process a chunk with semaphore to limit concurrency."""
             async with semaphore:
                 return await chunk_processor(chunk)
 
         # Process chunks as they stream in from the ProjectInput iterator
-        active_tasks: Set[asyncio.Task] = set()
+        active_tasks: set[asyncio.Task] = set()
 
         for chunk in project:
             # Create task for this chunk and add to active tasks

@@ -17,6 +17,10 @@ def make_logger(
     if logger.hasHandlers():
         logger.handlers.clear()
 
+    # Prevent messages from propagating to ancestor loggers (e.g., root),
+    # which can otherwise cause duplicate log lines if the root has handlers.
+    logger.propagate = False
+
     # Prints logs to standard error
     if show_logs:
         logger.addHandler(stderr_handler(level))

@@ -9,8 +9,9 @@ Analyzes source code for security vulnerabilities using AI-powered scanning.
 
 import asyncio
 import os
-from dataclasses import dataclass, field
-from typing import Annotated, Any, List, Optional
+import threading
+from dataclasses import dataclass
+from typing import Annotated, Any
 
 from fraim.config import Config
 from fraim.core.contextuals import CodeChunk
@@ -80,7 +81,7 @@ class TriagerInput:
 
 
 @workflow("code")
-class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]):
+class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, list[sarif.Result]]):
     """Analyzes source code for security vulnerabilities"""
 
     def __init__(self, config: Config, *args: Any, **kwargs: Any) -> None:
@@ -94,34 +95,47 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
         )
 
         # Keep triager step as lazy since it depends on project setup
-        self._triager_step: Optional[LLMStep[TriagerInput, sarif.Result]] = None
+        self._triager_step: LLMStep[TriagerInput, sarif.Result] | None = None
+        self._triager_lock = threading.Lock()
 
     @property
-    def file_patterns(self) -> List[str]:
+    def file_patterns(self) -> list[str]:
         """Code file patterns."""
         return FILE_PATTERNS
 
     @property
     def triager_step(self) -> LLMStep[TriagerInput, sarif.Result]:
         """Lazily initialize the triager step."""
-        if self._triager_step is None:
-            if (
-                not hasattr(self, "project")
-                or not self.project
-                or not hasattr(self.project, "project_path")
-                or self.project.project_path is None
-            ):
-                raise ValueError("project_path must be set before accessing triager_step")
 
-            triager_tools = TreeSitterTools(self.project.project_path).tools
-            triager_llm = self.llm.with_tools(triager_tools)
-            triager_parser = PydanticOutputParser(triage_sarif.Result)
-            self._triager_step = LLMStep(
-                triager_llm, TRIAGER_PROMPTS["system"], TRIAGER_PROMPTS["user"], triager_parser
-            )
-        return self._triager_step
+        # No locking required if step already exists
+        step = self._triager_step
+        if step is not None:
+            return step
 
-    async def _process_single_chunk(self, chunk: CodeChunk, max_concurrent_triagers: int) -> List[sarif.Result]:
+        with self._triager_lock:
+            if self._triager_step is None:
+                # Validate inside the lock to avoid races with project assignment
+                if (
+                    not hasattr(self, "project")
+                    or not self.project
+                    or not hasattr(self.project, "project_path")
+                    or self.project.project_path is None
+                ):
+                    raise ValueError("project_path must be set before accessing triager_step")
+
+                triager_tools = TreeSitterTools(self.project.project_path)
+                triager_llm = self.llm.with_tools(triager_tools)
+                triager_parser = PydanticOutputParser(triage_sarif.Result)
+                self._triager_step = LLMStep(
+                    triager_llm,
+                    TRIAGER_PROMPTS["system"],
+                    TRIAGER_PROMPTS["user"],
+                    triager_parser,
+                )
+
+            return self._triager_step
+
+    async def _process_single_chunk(self, chunk: CodeChunk, max_concurrent_triagers: int) -> list[sarif.Result]:
         """Process a single chunk with multi-step processing and error handling."""
         try:
             # 1. Scan the code for potential vulnerabilities.
@@ -138,7 +152,7 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
             # Create semaphore to limit concurrent triager requests
             triager_semaphore = asyncio.Semaphore(max_concurrent_triagers)
 
-            async def triage_with_semaphore(vuln: sarif.Result) -> Optional[sarif.Result]:
+            async def triage_with_semaphore(vuln: sarif.Result) -> sarif.Result | None:
                 """Triage a vulnerability with semaphore to limit concurrency."""
                 async with triager_semaphore:
                     return await self.triager_step.run(
@@ -158,12 +172,12 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
 
         except Exception as e:
             self.config.logger.error(
-                f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {str(e)}. "
+                f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {e!s}. "
                 "Skipping this chunk and continuing with scan."
             )
             return []
 
-    async def workflow(self, input: CodeInput) -> List[sarif.Result]:
+    async def workflow(self, input: CodeInput) -> list[sarif.Result]:
         """Main Code workflow - full control over execution with multi-step processing."""
         try:
             # 1. Setup project input using utility
@@ -193,5 +207,5 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, List[sarif.Result]]
             return results
 
         except Exception as e:
-            self.config.logger.error(f"Error during code scan: {str(e)}")
+            self.config.logger.error(f"Error during code scan: {e!s}")
             raise e

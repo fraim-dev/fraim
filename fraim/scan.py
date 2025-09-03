@@ -2,10 +2,8 @@
 # Copyright (c) 2025 Resourcely Inc.
 
 from dataclasses import dataclass
-from typing import List, Optional
 
 from fraim.config.config import Config
-from fraim.observability.manager import ObservabilityManager
 from fraim.workflows.registry import execute_workflow
 
 
@@ -14,18 +12,11 @@ class ScanArgs:
     """Typed dataclass for all fetch arguments with defaults."""
 
     workflow: str
-    workflow_args: Optional[dict] = None
+    workflow_args: dict | None = None
 
 
-def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[str]] = None) -> None:
+def scan(args: ScanArgs, config: Config, observability_backends: list[str] | None = None) -> None:
     workflow_to_run = args.workflow
-
-    if observability_backends:
-        try:
-            manager = ObservabilityManager(observability_backends, logger=config.logger)
-            manager.setup()
-        except Exception as e:
-            config.logger.warning(f"Failed to setup observability in worker process: {str(e)}")
 
     #######################################
     # Run Workflow
@@ -34,4 +25,4 @@ def scan(args: ScanArgs, config: Config, observability_backends: Optional[List[s
     try:
         execute_workflow(workflow_to_run, config, args.workflow_args)
     except Exception as e:
-        config.logger.error(f"Error running {workflow_to_run}: {str(e)}")
+        config.logger.error(f"Error running {workflow_to_run}: {e!s}")

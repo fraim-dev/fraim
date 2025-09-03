@@ -4,7 +4,7 @@
 """Parses an LLM response to JSON"""
 
 from textwrap import dedent
-from typing import Any, Optional
+from typing import Any
 
 from fraim.core.parsers.base import BaseOutputParser, OutputParserError, ParseContext
 from fraim.core.utils.json import parse_json_markdown
@@ -26,13 +26,13 @@ class JsonOutputParser(BaseOutputParser[Any]):
     """
 
     def output_prompt_instructions(self) -> str:
-        return dedent(f"""
+        return dedent("""
         <output_format>
           Format your response as valid JSON syntax as defined by RFC 8259.
         </output_format>
         """)
 
-    async def parse(self, text: str, context: Optional[ParseContext] = None) -> Any:
+    async def parse(self, text: str, context: ParseContext | None = None) -> Any:
         try:
             return parse_json_markdown(text)
         except Exception as e:

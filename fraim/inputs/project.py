@@ -1,23 +1,24 @@
 import os
-from pathlib import Path
-from typing import Any, Generator, Iterator, Optional, Type
+from collections.abc import Iterator
+from typing import Any
 
 from fraim.config.config import Config
 from fraim.core.contextuals.code import CodeChunk
-from fraim.inputs.file_chunks import chunk_input
-from fraim.inputs.files import File, Files
+from fraim.inputs.chunks import chunk_input
+from fraim.inputs.file import BufferedFile
 from fraim.inputs.git import GitRemote
+from fraim.inputs.git_diff import GitDiff
+from fraim.inputs.input import Input
 from fraim.inputs.local import Local
 
 
 class ProjectInput:
     config: Config
-    files: Files
+    input: Input
     chunk_size: int
     project_path: str
     repo_name: str
-    chunker: Type["ProjectInputFileChunker"]
-    _files_context_active: bool
+    chunker: type["ProjectInputFileChunker"]
 
     def __init__(self, config: Config, kwargs: Any) -> None:
         self.config = config
@@ -25,6 +26,9 @@ class ProjectInput:
         globs = kwargs.globs
         limit = kwargs.limit
         self.chunk_size = kwargs.chunk_size
+        self.base = kwargs.base
+        self.head = kwargs.head
+        self.diff = kwargs.diff
         self.chunker = ProjectInputFileChunker
         self._files_context_active = False
 
@@ -33,48 +37,40 @@ class ProjectInput:
 
         if path_or_url.startswith("http://") or path_or_url.startswith("https://") or path_or_url.startswith("git@"):
             self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
-            self.files = GitRemote(self.config, url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_")
-            self.project_path = self.files.root_path()
+            # TODO: git diff here?
+            self.input = GitRemote(self.config, url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_")
+            self.project_path = self.input.root_path()
         else:
-            self.project_path = path_or_url
-            self.repo_name = os.path.basename(os.path.abspath(path_or_url))
-            self.files = Local(self.config, Path(path_or_url), globs=globs, limit=limit)
+            # Fully resolve the path to the project
+            self.project_path = os.path.abspath(path_or_url)
+            self.repo_name = os.path.basename(self.project_path)
+            if self.diff:
+                self.input = GitDiff(
+                    self.config, self.project_path, head=self.head, base=self.base, globs=globs, limit=limit
+                )
+            else:
+                self.input = Local(self.config, self.project_path, globs=globs, limit=limit)
 
-    def __iter__(self) -> Generator[CodeChunk, None, None]:
-        # Enter the files context if not already active
-        if not self._files_context_active:
-            self.files = self.files.__enter__()
-            self._files_context_active = True
-
-        for file in self.files:
-            self.config.logger.info(f"Generating chunks for file: {file.path}")
-            for chunk in chunk_input(file, self.project_path, self.chunk_size):
-                yield chunk
-
-    def cleanup(self) -> None:
-        """Explicitly cleanup project resources (e.g., temporary directories)."""
-        if self._files_context_active:
-            try:
-                self.files.__exit__(None, None, None)
-            except Exception as e:
-                self.config.logger.warning(f"Error during project cleanup: {e}")
-            finally:
-                self._files_context_active = False
+    def __iter__(self) -> Iterator[CodeChunk]:
+        yield from self.input
 
     def __enter__(self) -> "ProjectInput":
-        """Context manager entry."""
+        """Enter the context manager by delegating to the underlying input."""
+        self.input.__enter__()
         return self
 
-    def __exit__(self, exc_type: Optional[type], exc_val: Optional[Exception], exc_tb: Optional[Any]) -> None:
-        """Context manager exit - cleanup resources."""
-        self.cleanup()
+    def __exit__(
+        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+    ) -> None:
+        """Exit the context manager by delegating to the underlying input."""
+        self.input.__exit__(exc_type, exc_val, exc_tb)
 
 
 class ProjectInputFileChunker:
-    def __init__(self, file: File, project_path: str, chunk_size: int) -> None:
+    def __init__(self, file: BufferedFile, project_path: str, chunk_size: int) -> None:
         self.file = file
         self.project_path = project_path
         self.chunk_size = chunk_size
 
     def __iter__(self) -> Iterator[CodeChunk]:
-        return iter(chunk_input(self.file, self.project_path, self.chunk_size))
+        return chunk_input(self.file, self.chunk_size)
