@@ -1,6 +1,5 @@
 import os
 from collections.abc import Iterator
-from types import TracebackType
 from typing import Any, Optional
 
 from fraim.config.config import Config
@@ -14,15 +13,15 @@ from fraim.inputs.local import Local
 
 
 class ProjectInput:
-    config: Config
     input: Input
     chunk_size: int
     project_path: str
     repo_name: str
     chunker: type["ProjectInputFileChunker"]
 
-    def __init__(self, config: Config, kwargs: Any) -> None:
-        self.config = config
+    # TODO: **kwargs?
+    def __init__(self, logger: logging.Logger, kwargs: Any) -> None:
+        self.logger = logger
         path_or_url = kwargs.location or None
         globs = kwargs.globs
         limit = kwargs.limit
@@ -39,37 +38,37 @@ class ProjectInput:
         if path_or_url.startswith("http://") or path_or_url.startswith("https://") or path_or_url.startswith("git@"):
             self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
             # TODO: git diff here?
-            self.input = GitRemote(
-                self.config, url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_")
+            self.input = GitRemote(logger=self.logger, url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_")
             self.project_path = self.input.root_path()
         else:
             # Fully resolve the path to the project
             self.project_path = os.path.abspath(path_or_url)
             self.repo_name = os.path.basename(self.project_path)
             if self.diff:
-                self.input = GitDiff(
-                    self.config, self.project_path, head=self.head, base=self.base, globs=globs, limit=limit
-                )
+                self.input = GitDiff(self.project_path, head=self.head, base=self.base, globs=globs, limit=limit)
             else:
-                self.input = Local(
-                    self.config, self.project_path, globs=globs, limit=limit)
+                self.input = Local(self.logger, self.project_path, globs=globs, limit=limit)
 
     def __iter__(self) -> Iterator[CodeChunk]:
         yield from self.input
 
+    def cleanup(self) -> None:
+        """Explicitly cleanup project resources (e.g., temporary directories)."""
+        if self._files_context_active:
+            try:
+                self.files.__exit__(None, None, None)
+            except Exception as e:
+                self.logger.warning(f"Error during project cleanup: {e}")
+            finally:
+                self._files_context_active = False
+
     def __enter__(self) -> "ProjectInput":
-        """Enter the context manager by delegating to the underlying input."""
-        self.input.__enter__()
+        """Context manager entry."""
         return self
 
-    def __exit__(
-        self,
-        exc_type: "Optional[type[BaseException]]",
-        exc_val: "Optional[BaseException]",
-        exc_tb: "Optional[TracebackType]",
-    ) -> None:
-        """Exit the context manager by delegating to the underlying input."""
-        self.input.__exit__(exc_type, exc_val, exc_tb)
+    def __exit__(self, exc_type: Optional[type], exc_val: Optional[Exception], exc_tb: Optional[Any]) -> None:
+        """Context manager exit - cleanup resources."""
+        self.cleanup()
 
 
 class ProjectInputFileChunker:

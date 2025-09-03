@@ -16,5 +16,4 @@ __all__ = [
     "ScanArgs",
     "__version__",
     "cli",
-    "scan",
 ]

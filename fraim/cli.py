@@ -2,88 +2,23 @@
 # Copyright (c) 2025 Resourcely Inc.
 
 import argparse
+import asyncio
 import dataclasses
 import logging
 import multiprocessing as mp
 import os
-from pathlib import Path
+from typing import Annotated, Any, Union, get_args, get_origin, get_type_hints
 
-from fraim.config.config import Config
+from fraim.core.workflows.discovery import discover_workflows
 from fraim.observability import ObservabilityManager, ObservabilityRegistry
 from fraim.observability.logging import make_logger
-from fraim.scan import ScanArgs, scan
-from fraim.validate_cli import validate_cli_args
-from fraim.workflows import WorkflowRegistry
 
 
-def parse_args_to_scan_args(args: argparse.Namespace) -> ScanArgs:
-    """Convert argparse Namespace to typed ScanArgs dataclass."""
-
-    # Extract workflow-specific arguments
-    workflow_args = {}
-    input_class = WorkflowRegistry.get_workflow_input_class(args.workflow)
-
-    if input_class and dataclasses.is_dataclass(input_class):
-        # Get all field names from the input dataclass
-        field_names = {field.name for field in dataclasses.fields(input_class)}
-
-        # Extract workflow-specific arguments from parsed args
-        for field_name in field_names:
-            if field_name not in {"config"}:  # Skip reserved fields
-                arg_name = field_name
-                if hasattr(args, arg_name):
-                    workflow_args[field_name] = getattr(args, arg_name)
-
-    return ScanArgs(
-        workflow=args.workflow,
-        workflow_args=workflow_args,
-    )
-
-
-def parse_args_to_config(args: argparse.Namespace) -> Config:
-    """Convert FetchRepoArgs to Config object."""
-    output_dir = args.output if args.output else str(Path(__file__).parent.parent / "fraim_output")
-
-    # Default logger
-    logger = make_logger(
-        name="fraim",
-        level=logging.DEBUG if args.debug else logging.INFO,
-        path=os.path.join(output_dir, "fraim_scan.log"),
-        show_logs=args.show_logs,
-    )
-    return Config(
-        logger=logger,
-        output_dir=output_dir,
-        model=args.model,
-        max_iterations=args.max_iterations,
-        confidence=args.confidence,
-        temperature=args.temperature,
-    )
-
-
-def setup_observability(args: argparse.Namespace, config: Config) -> ObservabilityManager:
+def setup_observability(logger: logging.Logger, args: argparse.Namespace) -> ObservabilityManager:
     """Setup observability backends based on CLI arguments."""
-    manager = ObservabilityManager(args.observability or [], logger=config.logger)
+    manager = ObservabilityManager(args.observability or [], logger=logger)
     manager.setup()
     return manager
-
-
-def build_workflow_arg(parser: argparse.ArgumentParser) -> None:
-    """Add workflow argument to the parser."""
-    # Get available workflows from registry
-    available_workflows = WorkflowRegistry.get_available_workflows()
-    workflow_descriptions = WorkflowRegistry.get_workflow_descriptions()
-
-    workflow_choices = sorted(available_workflows)
-
-    # Build help text dynamically
-    help_parts = []
-    for workflow in workflow_choices:
-        description = workflow_descriptions.get(workflow, "No description available")
-        help_parts.append(f"{workflow}: {description}")
-    workflow_help = f" - {'\n - '.join(help_parts)}"
-
-    parser.add_argument("workflow", choices=workflow_choices, help=workflow_help)
 
 
 def build_observability_arg(parser: argparse.ArgumentParser) -> None:
@@ -103,100 +38,152 @@ def build_observability_arg(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--observability", nargs="+", choices=available_backends, default=[], help=observability_help)
 
 
-def setup_workflow_subparsers(parser: argparse.ArgumentParser) -> None:
-    """Setup subparsers for each workflow with auto-generated arguments."""
-    # Get available workflows from registry
-    available_workflows = WorkflowRegistry.get_available_workflows()
-    workflow_descriptions = WorkflowRegistry.get_workflow_descriptions()
-    all_cli_args = WorkflowRegistry.get_all_workflow_cli_args()
-
-    # Create subparsers for workflows
-    subparsers = parser.add_subparsers(
-        dest="workflow",
-        title="Available Workflows",
-        description="Choose a workflow to run",
-        help="Workflow-specific commands",
-        required=True,
-    )
-
-    # Create a subparser for each workflow
-    for workflow_name in available_workflows:
-        workflow_parser = subparsers.add_parser(
-            workflow_name,
-            help=workflow_descriptions.get(workflow_name, "No description available"),
-            description=workflow_descriptions.get(workflow_name, "No description available"),
-        )
-
-        # Add auto-generated workflow-specific arguments
-        cli_args = all_cli_args.get(workflow_name, [])
-        for arg_config in cli_args:
-            # Make a copy to avoid mutating the original
-            arg_config_copy = arg_config.copy()
-            arg_name = arg_config_copy.pop("name")
-            workflow_parser.add_argument(arg_name, **arg_config_copy)
-
-
 def cli() -> int:
-    """Main entry point for the script."""
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 
-    #############################
-    # Scan Args
-    #############################
-    setup_workflow_subparsers(parser)
+    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    parser.add_argument("--show-logs", type=bool, default=True, help="Prints logs to standard error output")
+    parser.add_argument("--log-output", type=str, default="fraim_output", help="Output directory for logs")
+
     build_observability_arg(parser)
 
-    #############################
-    # Configuration
-    #############################
-    parser.add_argument("--output", help="Path to save the output HTML report")
-    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
-    parser.add_argument(
-        "--model",
-        default="gemini/gemini-2.5-flash",
-        help="Gemini model to use for initial scan (default: gemini/gemini-2.5-flash)",
-    )
-    parser.add_argument(
-        "--max-iterations",
-        type=int,
-        default=50,
-        help="Maximum number of tool calling iterations for vulnerability analysis (default: 50)",
-    )
-    parser.add_argument(
-        "--confidence",
-        type=int,
-        choices=range(1, 11),
-        default=7,
-        help="Minimum confidence threshold (1-10) for filtering findings (default: 7)",
-    )
-    parser.add_argument(
-        "--temperature", type=float, default=0, help="Temperature setting for the model (0.0-1.0, default: 0)"
-    )
+    actions = parser.add_subparsers(dest="action")
 
-    parser.add_argument("--show-logs", type=bool, default=True, help="Prints logs to standard error output")
+    run_parser = actions.add_parser("run", help="Run a workflow")
+
+    workflows_parser = run_parser.add_subparsers(dest="workflow", required=True)
+
+    discovered_workflows = discover_workflows()  # TODO: support custom paths, maybe env var or initial args parse
+
+    for workflow_name, workflow_class in discovered_workflows.items():
+        workflow_parser = workflows_parser.add_parser(workflow_name, help=workflow_class.__doc__)
+        workflow_args = workflow_options_to_cli_args(workflow_class.options())
+        for workflow_arg in workflow_args:
+            arg_config_copy = workflow_arg.copy()
+            arg_name = arg_config_copy.pop(
+                "name"
+            )  # TODO: avoid copy? name must be first arg it seems, pluck from splat
+            workflow_parser.add_argument(arg_name, **arg_config_copy)
 
     parsed_args = parser.parse_args()
 
-    # Validate arguments
-    try:
-        validate_cli_args(parsed_args)
-    except Exception as e:
-        print(f"CLI Validation Error: {e}")
-        exit(1)
+    # TODO: Set up logger earlier parsing known args, partial arg parse etc.
+    # TODO: Avoid passing logger around, use conventions
+    logger = make_logger(
+        level=logging.DEBUG if parsed_args.debug else logging.INFO,
+        path=os.path.join(parsed_args.log_output, "fraim_scan.log"),
+        show_logs=parsed_args.show_logs,
+    )
 
-    # Parse config to get logger
-    config = parse_args_to_config(parsed_args)
+    setup_observability(logger, parsed_args)
 
-    # Setup observability with config logger
-    setup_observability(parsed_args, config)
+    for workflow_name, workflow_class in discovered_workflows.items():
+        if workflow_name == parsed_args.workflow:
+            workflow_arg = {}
+            args_class = workflow_class.options()
+            for arg in dataclasses.fields(args_class):
+                if hasattr(parsed_args, arg.name):
+                    workflow_arg[arg.name] = getattr(parsed_args, arg.name)
 
-    # Parse scan arguments
-    args = parse_args_to_scan_args(parsed_args)
-
-    # Run the scan with observability backends
-    scan(args, config, observability_backends=parsed_args.observability)
+            workflow = workflow_class(logger, args=args_class(**workflow_arg))  # TODO: constructor does validation
+            try:
+                logger.info(f"Running workflow: {workflow.name}")
+                asyncio.run(workflow.run())
+            except KeyboardInterrupt:
+                logger.info("Workflow cancelled")
+                return 1
+            except Exception as e:
+                logger.error(f"Workflow error: {e!s}")
+                raise e
 
     return 0
+
+
+def workflow_options_to_cli_args(options: Any | type[Any]) -> list[dict[str, Any]]:
+    """Infer CLI arguments from a dataclass."""
+    if not dataclasses.is_dataclass(options):
+        return []
+
+    cli_args = []
+    type_hints = get_type_hints(options, include_extras=True)
+
+    # Reserved fields that shouldn't become CLI arguments
+    reserved_fields = {"config"}
+
+    for field in dataclasses.fields(options):
+        if field.name in reserved_fields:
+            continue
+
+        field_type = type_hints.get(field.name, str)
+        arg_config: dict[str, Any] = {
+            "name": f"--{field.name.replace('_', '-')}",
+            "help": f"{field.name.replace('_', ' ').title()}",
+        }
+
+        # Extract metadata from Annotated types
+        annotation_metadata = {}
+        actual_type = field_type
+
+        # Check if this is an Annotated type
+        if get_origin(field_type) is Annotated:
+            args = get_args(field_type)
+            if args:
+                actual_type = args[0]  # The actual type is the first argument
+                # The metadata is in the remaining arguments
+                for metadata_item in args[1:]:
+                    if isinstance(metadata_item, dict):
+                        annotation_metadata.update(metadata_item)
+
+        # Handle different field types (use actual_type instead of field_type)
+        if actual_type == bool:
+            if field.default is False:
+                arg_config["action"] = "store_true"
+            elif field.default is True:
+                arg_config["action"] = "store_false"
+        elif actual_type == int:
+            arg_config["type"] = int
+        elif actual_type == float:
+            arg_config["type"] = float
+        elif get_origin(actual_type) is list:
+            arg_config["nargs"] = "+"
+        elif get_origin(actual_type) is Union:
+            # Handle Optional[T] which is Union[T, None]
+            args = get_args(actual_type)
+            if len(args) == 2 and type(None) in args:
+                non_none_type = args[0] if args[1] is type(None) else args[1]
+                if non_none_type == int:
+                    arg_config["type"] = int
+                elif non_none_type == float:
+                    arg_config["type"] = float
+                elif get_origin(non_none_type) is list:
+                    # Handle Optional[List[T]] - e.g., Optional[List[str]]
+                    arg_config["nargs"] = "+"
+
+        # Set default value
+        if field.default is not dataclasses.MISSING:
+            arg_config["default"] = field.default
+            arg_config["required"] = False
+        elif field.default_factory is not dataclasses.MISSING:
+            arg_config["default"] = field.default_factory()
+            arg_config["required"] = False
+
+        # Apply metadata from annotations (this takes precedence)
+        if annotation_metadata:
+            if "choices" in annotation_metadata:
+                arg_config["choices"] = annotation_metadata["choices"]
+            if "help" in annotation_metadata:
+                arg_config["help"] = annotation_metadata["help"]
+
+        # Fallback to dataclass field metadata
+        if hasattr(field, "metadata"):
+            if "choices" in field.metadata and "choices" not in arg_config:
+                arg_config["choices"] = field.metadata["choices"]
+            if "help" in field.metadata and "help" not in arg_config:
+                arg_config["help"] = field.metadata["help"]
+
+        cli_args.append(arg_config)
+
+    return cli_args
 
 
 if __name__ == "__main__":

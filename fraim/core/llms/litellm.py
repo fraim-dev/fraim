@@ -4,8 +4,7 @@
 """A wrapper around litellm"""
 
 import logging
-from collections.abc import Iterable
-from typing import Any, Protocol, Self
+from typing import Any, Iterable, Optional, Protocol, Self
 
 import litellm
 from litellm import ModelResponse
@@ -53,16 +52,6 @@ class Config(Protocol):
 
 class LiteLLM(BaseLLM):
     """A wrapper around LiteLLM"""
-
-    @classmethod
-    def from_config(cls, config: Config, max_tool_iterations: int = 10, tools: list[BaseTool] | None = None) -> Self:
-        model_params = {"temperature": config.temperature}
-        return cls(
-            model=config.model,
-            additional_model_params=model_params,
-            max_tool_iterations=max_tool_iterations,
-            tools=tools,
-        )
 
     def __init__(
         self,

@@ -11,14 +11,23 @@ class ProviderDetails(TypedDict):
     display_name: str
 
 
-def validate_cli_args(args: argparse.Namespace) -> None:
+def validate_cli_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     """Validate CLI arguments."""
     # Validate model and API key compatibility
-    validate_model_api_key(args.model)
+    validate_model_api_key(parser, args)
+    validate_git_diff(parser, args)
 
 
-def validate_model_api_key(model: str) -> None:
+def validate_git_diff(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    if args.head and not args.diff:
+        parser.error("--head requires --diff")
+    if args.base and not args.diff:
+        parser.error("--base requires --diff")
+
+
+def validate_model_api_key(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     """Validate that the model and API key match."""
+    model = args.model
     # Map providers to their expected environment variables
     provider_details: dict[str, ProviderDetails] = {
         "openai": {
@@ -64,7 +73,7 @@ def validate_model_api_key(model: str) -> None:
                 example_model = details["example_model"]
                 other_env_var = details["env_var"]
 
-                raise ValueError(
+                parser.error(
                     f"The selected model is {model}, but you provided an API key for {other_provider_display} ({other_env_var}). "
                     f"Specify a {other_provider_display} model (Ex: --model={example_model}) or provide an API key for {provider_display} ({expected_env_var})."
                 )
