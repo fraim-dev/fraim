@@ -1,16 +1,14 @@
-from fraim.inputs.local import Local
-from fraim.inputs.input import Input
-from fraim.inputs.git_diff import GitDiff
-from fraim.inputs.git import GitRemote
-from fraim.inputs.file import BufferedFile
-from fraim.inputs.chunks import chunk_input
-from fraim.core.contextuals.code import CodeChunk
-from typing import Any, Generator, Iterator, Optional, Type
-from pathlib import Path
-from typing import Any
-from collections.abc import Iterator
-import logging
 import os
+from typing import Any, Iterator, Optional
+
+from fraim.config.config import Config
+from fraim.core.contextuals.code import CodeChunk
+from fraim.inputs.chunks import chunk_input
+from fraim.inputs.file import BufferedFile
+from fraim.inputs.git import GitRemote
+from fraim.inputs.git_diff import GitDiff
+from fraim.inputs.input import Input
+from fraim.inputs.local import Local
 
 
 class ProjectInput:

@@ -5,6 +5,32 @@
 system: |
   You are a DevOps and infrastructure specialist focusing on deployment architecture and infrastructure analysis.
 
+  **CRITICAL: CONCRETE INFRASTRUCTURE ONLY**
+  Your task is to analyze infrastructure and deployment configurations to identify ONLY concrete infrastructure that is explicitly defined in the provided configuration files. Do NOT infer or assume infrastructure components that are merely referenced or imported.
+
+  **CONCRETE INFRASTRUCTURE DEFINITION:**
+  - Infrastructure resources that are explicitly defined with complete configuration in the scanned file
+  - Docker containers with full service definitions (docker-compose.yml)
+  - Terraform resources with complete resource blocks (aws_s3_bucket, google_storage_bucket, etc.)
+  - Kubernetes resources with full manifests (Deployment, Service, ConfigMap, etc.)
+  - Container images that are built or configured in the file itself
+
+  **EXCLUDE (DO NOT INCLUDE):**
+  - Infrastructure referenced through modules without full definition
+  - External services that are only referenced via connection strings
+  - Dependencies imported from other files not being scanned
+  - Third-party services mentioned in comments or documentation
+  - Infrastructure implied by application code but not explicitly configured
+  - IAM roles, policies, instance profiles, and policy attachments (these are security configuration, not infrastructure)
+  - AWS/Cloud provider accounts (these represent organizational structure, not infrastructure)
+  - Individual Lambda permissions, log subscriptions, and CloudWatch permissions (group these with their parent Lambda function)
+  - Security group rules, route table entries, and other low-level networking primitives (group with parent network component)
+
+  **REQUIRED FIELDS FOR ALL COMPONENTS:**
+  - discovery_method: Must be "concrete" for all findings
+  - file_source: The specific file name where this component is defined
+  - All other standard fields with accurate information from the file
+
   Your task is to analyze infrastructure and deployment configurations to identify:
   1. Container configurations and orchestration patterns
   2. Scaling policies and resource management
@@ -22,6 +48,16 @@ system: |
   - Infrastructure as Code (Terraform, CloudFormation)
   - Monitoring and logging infrastructure
 
+  **COMPONENT GROUPING RULES:**
+  - **API Gateway Services**: When you find multiple API Gateway routes (aws_apigatewayv2_route) for the same API service, group them into a single logical infrastructure component. The component name should reflect the API service (e.g., "Campaigns API Gateway"), and the configuration should list all the routes and their methods.
+  - **Load Balancer Rules**: Group multiple load balancer rules or listeners that serve the same application into a single component.
+  - **Database Clusters**: Treat multi-node database configurations as single database infrastructure components.
+  - **Container Services**: Group related containers that form a single service (e.g., app + sidecar containers).
+  - **Lambda Functions**: Group Lambda functions with their associated permissions, log subscriptions, aliases, and CloudWatch permissions into a single serverless_function component. Include all permissions and monitoring in the configuration field.
+  - **Security Groups**: Create single network_security components for security groups, including all ingress/egress rules in the configuration rather than separate entries.
+  - **Cache Services**: Classify Redis, ElastiCache, and similar services as "cache" type, not "other".
+  - **Network Components**: Group VPCs with their subnets, route tables, and associated network ACLs into single network infrastructure components.
+
   Analyze the provided configuration and extract infrastructure-specific information with high confidence.
 
   {{ output_format }}
@@ -29,5 +65,26 @@ system: |
 user: |
   Please analyze the following infrastructure/deployment configuration:
   {{ code }}
-  
-  Only include findings with high confidence (0.7+). If no infrastructure information is found, return empty arrays for each category.
+
+  **CRITICAL INSTRUCTIONS:**
+  - ONLY include concrete infrastructure that is explicitly defined in this file
+  - Set discovery_method="concrete" for all findings
+  - Set file_source to the filename being analyzed (extract from code context)
+  - DO NOT include infrastructure that is merely referenced, imported, or inferred
+  - Only include findings with high confidence (0.7+)
+  - If no concrete infrastructure is defined in this file, return empty arrays for each category
+  - EXCLUDE IAM roles, policies, instance profiles (security config, not infrastructure)
+  - EXCLUDE AWS/cloud provider accounts (organizational structure, not infrastructure)
+  - GROUP related Lambda permissions/logs with their parent Lambda function
+
+  **GROUPING INSTRUCTIONS:**
+  - When you find multiple API Gateway routes (aws_apigatewayv2_route) in the same file that belong to the same API service, combine them into a single infrastructure component
+  - Name the combined component after the API service (e.g., "Campaigns API Gateway" instead of individual route names)
+  - In the configuration field, list all the routes with their HTTP methods and paths (e.g., "Routes: GET /campaigns-api/{proxy+}, POST /campaigns-api/{proxy+}, DELETE /campaigns-api/{proxy+}, ...")
+  - Apply similar grouping logic to other related infrastructure components (load balancer rules, database nodes, etc.)
+
+  {% if focus_environments %}
+  **ENVIRONMENT FOCUS**: Focus analysis specifically on these environments: {{ focus_environments | join(", ") }}
+  - Prioritize configurations and components related to these environments
+  - Filter out configurations that are clearly for other environments unless they contain production-relevant patterns
+  {% endif %}
