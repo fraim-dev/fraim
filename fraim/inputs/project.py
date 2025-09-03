@@ -1,7 +1,7 @@
 import os
-from pathlib import Path
+from collections.abc import Iterator
 from types import TracebackType
-from typing import Any, Generator, Iterator, Optional, Type
+from typing import Any, Optional
 
 from fraim.config.config import Config
 from fraim.core.contextuals.code import CodeChunk
@@ -19,8 +19,7 @@ class ProjectInput:
     chunk_size: int
     project_path: str
     repo_name: str
-    chunker: Type["ProjectInputFileChunker"]
-    _files_context_active: bool
+    chunker: type["ProjectInputFileChunker"]
 
     def __init__(self, config: Config, kwargs: Any) -> None:
         self.config = config
@@ -62,7 +61,10 @@ class ProjectInput:
         return self
 
     def __exit__(
-        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+        self,
+        exc_type: "Optional[type[BaseException]]",
+        exc_val: "Optional[BaseException]",
+        exc_tb: "Optional[TracebackType]",
     ) -> None:
         """Exit the context manager by delegating to the underlying input."""
         self.input.__exit__(exc_type, exc_val, exc_tb)

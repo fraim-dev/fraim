@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 
+from collections.abc import Callable, Iterator
 from textwrap import dedent
-from typing import Any, Callable, ClassVar, List, Optional, Self, Type
+from typing import Any, ClassVar, Optional, Self
 
 from mcp_server_tree_sitter.api import (  # type: ignore[import-untyped]
     get_language_registry,
@@ -70,7 +71,7 @@ class TreeSitterTools:
             )
             self.project = get_project_registry().get_project(self.project_name)
 
-        self.tools: List[TreeSitterBaseTool] = [
+        self.tools: list[TreeSitterBaseTool] = [
             ListFilesTool.create(self.project),
             GetFileContentTool.create(self.project),
             GetFileAstTool.create(self.project),
@@ -81,6 +82,9 @@ class TreeSitterTools:
             SearchTextTool.create(self.project),
         ]
 
+    def __iter__(self) -> Iterator[BaseTool]:
+        return iter(self.tools)
+
 
 class TreeSitterBaseTool(BaseTool):
     """
@@ -89,7 +93,7 @@ class TreeSitterBaseTool(BaseTool):
     Automatically passes the project to the tool function.
     """
 
-    tool_func: ClassVar[Optional[Callable[..., Any]]] = None
+    tool_func: ClassVar[Callable[..., Any] | None] = None
     project: Project = Field(exclude=True)
 
     @classmethod
@@ -135,7 +139,7 @@ class ListFilesTool(TreeSitterBaseTool):
 
                               Outputs a list of file paths relative to the project root.
                               """)
-    args_schema: Type[BaseModel] = create_model(
+    args_schema: type[BaseModel] = create_model(
         "ListFilesArgs",
         pattern=(
             Optional[str],
@@ -174,7 +178,7 @@ class GetFileContentTool(TreeSitterBaseTool):
 
                               Outputs the contents of the file.
                               """)
-    args_schema: Type[BaseModel] = create_model(
+    args_schema: type[BaseModel] = create_model(
         "GetFileArgs",
         path=(str, Field(description="The path to the file to read, relative to the project root.")),
         max_lines=(
@@ -199,7 +203,7 @@ class GetFileAstTool(TreeSitterBaseTool):
 
                               Outputs structured tree data showing syntax elements, types, and relationships.
                               """)
-    args_schema: Type[BaseModel] = create_model(
+    args_schema: type[BaseModel] = create_model(
         "GetFileAstArgs",
         path=(str, Field(description="The path to the file to parse, relative to the project root.")),
         max_depth=(
@@ -225,7 +229,7 @@ class GetAstNodeAtPositionTool(TreeSitterBaseTool):
 
                               Outputs structured tree data for the most specific node at the position.
                               """)
-    args_schema: Type[BaseModel] = create_model(
+    args_schema: type[BaseModel] = create_model(
         "GetAstNodeAtPositionArgs",
         path=(str, Field(description="The path to the file to parse, relative to the project root.")),
         row=(int, Field(description="The zero-indexed line number to start reading from (inclusive).")),
@@ -271,7 +275,7 @@ class FindSymbolUsageTool(TreeSitterBaseTool):
 
                               Outputs a list of locations where the symbol is used.
                               """)
-    args_schema: Type[BaseModel] = create_model(
+    args_schema: type[BaseModel] = create_model(
         "FindSymbolUsageArgs",
         symbol=(str, Field(description="The symbol to find usages of.")),
         path=(
@@ -295,8 +299,8 @@ class FindSymbolUsageTool(TreeSitterBaseTool):
 
     async def _run(self, **kwargs: Any) -> Any:
         symbol = kwargs["symbol"]
-        path = kwargs.get("path", None)
-        language = kwargs.get("language", None)
+        path = kwargs.get("path")
+        language = kwargs.get("language")
         max_results = kwargs.get("max_results", 100)
 
         language_registry = get_language_registry()
@@ -355,7 +359,7 @@ class FindFunctionDefinitionTool(TreeSitterBaseTool):
                                 }
                               ]
                               """)
-    args_schema: Type[BaseModel] = create_model(
+    args_schema: type[BaseModel] = create_model(
         "FindFunctionDefinitionArgs",
         name=(str, Field(description="The name of the function to find.")),
         path=(
@@ -375,8 +379,8 @@ class FindFunctionDefinitionTool(TreeSitterBaseTool):
 
     async def _run(self, **kwargs: Any) -> Any:
         name = kwargs["name"]
-        path = kwargs.get("path", None)
-        language = kwargs.get("language", None)
+        path = kwargs.get("path")
+        language = kwargs.get("language")
 
         language_registry = get_language_registry()
         if not language:
@@ -441,7 +445,7 @@ class QueryCodeTool(TreeSitterBaseTool):
 
                               Outputs matches with captured nodes and their locations in the code.
                               """)
-    args_schema: Type[BaseModel] = create_model(
+    args_schema: type[BaseModel] = create_model(
         "QueryCodeArgs",
         query=(str, Field(description="The tree-sitter query to evaluate.")),
         path=(
@@ -465,8 +469,8 @@ class QueryCodeTool(TreeSitterBaseTool):
 
     async def _run(self, **kwargs: Any) -> Any:
         query = kwargs["query"]
-        path = kwargs.get("path", None)
-        language = kwargs.get("language", None)
+        path = kwargs.get("path")
+        language = kwargs.get("language")
         max_results = kwargs.get("max_results", 100)
 
         language_registry = get_language_registry()
@@ -504,7 +508,7 @@ class SearchTextTool(TreeSitterBaseTool):
                           - pattern="password" → Find hardcoded passwords
                           - pattern="import axios", path="src/api.js" → Find axios imports
                           """)
-    args_schema: Type[BaseModel] = create_model(
+    args_schema: type[BaseModel] = create_model(
         "SearchTextArgs",
         pattern=(str, Field(description="The text pattern to search for.")),
         path=(
@@ -517,7 +521,7 @@ class SearchTextTool(TreeSitterBaseTool):
 
     async def _run(self, **kwargs: Any) -> Any:
         pattern = kwargs["pattern"]
-        path = kwargs.get("path", None)
+        path = kwargs.get("path")
 
         """
         Run the search_text tool, mapping 'path' parameter to 'file_pattern'.

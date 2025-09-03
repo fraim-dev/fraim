@@ -4,7 +4,8 @@
 """A wrapper around litellm"""
 
 import logging
-from typing import Any, Dict, List, Optional, Protocol, Self, Sequence, Tuple
+from collections.abc import Iterable
+from typing import Any, Protocol, Self
 
 import litellm
 from litellm import ModelResponse
@@ -54,7 +55,7 @@ class LiteLLM(BaseLLM):
     """A wrapper around LiteLLM"""
 
     @classmethod
-    def from_config(cls, config: Config, max_tool_iterations: int = 10, tools: Optional[List[BaseTool]] = None) -> Self:
+    def from_config(cls, config: Config, max_tool_iterations: int = 10, tools: list[BaseTool] | None = None) -> Self:
         model_params = {"temperature": config.temperature}
         return cls(
             model=config.model,
@@ -66,9 +67,9 @@ class LiteLLM(BaseLLM):
     def __init__(
         self,
         model: str,
-        additional_model_params: Optional[Dict[str, Any]] = None,
+        additional_model_params: dict[str, Any] | None = None,
         max_tool_iterations: int = 10,
-        tools: Optional[Sequence[BaseTool]] = None,
+        tools: Iterable[BaseTool] | None = None,
     ):
         self.model = model
         self.additional_model_params = additional_model_params or {}
@@ -77,11 +78,11 @@ class LiteLLM(BaseLLM):
         if self.max_tool_iterations < 0:
             raise ValueError("max_tool_iterations must be a non-negative integer")
 
-        self.tools = tools or []
+        self.tools = list(tools) if tools else []
         self.tools_dict = {tool.name: tool for tool in self.tools}
         self.tools_schema = [tool.to_openai_schema() for tool in self.tools]
 
-    def with_tools(self, tools: Sequence[BaseTool], max_tool_iterations: Optional[int] = None) -> Self:
+    def with_tools(self, tools: Iterable[BaseTool], max_tool_iterations: int | None = None) -> Self:
         if max_tool_iterations is None:
             max_tool_iterations = self.max_tool_iterations
 
@@ -92,7 +93,7 @@ class LiteLLM(BaseLLM):
             tools=tools,
         )
 
-    async def _run_once(self, messages: List[Message], use_tools: bool) -> Tuple[ModelResponse, List[Message], bool]:
+    async def _run_once(self, messages: list[Message], use_tools: bool) -> tuple[ModelResponse, list[Message], bool]:
         """Execute one completion call and return response + updated messages + tools_executed flag.
 
         Returns:
@@ -124,7 +125,7 @@ class LiteLLM(BaseLLM):
 
         return response, updated_messages, True
 
-    async def run(self, messages: List[Message]) -> ModelResponse:
+    async def run(self, messages: list[Message]) -> ModelResponse:
         """Run completion with optional tool support, handling multiple iterations."""
         current_messages = messages.copy()
 
@@ -140,7 +141,7 @@ class LiteLLM(BaseLLM):
         # This should never be reached due to the loop logic, so raise an exception if we get here
         raise Exception("reached an unreachable code path")
 
-    def _prepare_completion_params(self, messages: List[Message], use_tools: bool) -> Dict[str, Any]:
+    def _prepare_completion_params(self, messages: list[Message], use_tools: bool) -> dict[str, Any]:
         """Prepare parameters for litellm.acompletion call."""
 
         # Convert Pydantic Message objects to dictionaries for LiteLLM compatibility
@@ -154,7 +155,7 @@ class LiteLLM(BaseLLM):
         return params
 
 
-def _convert_tool_calls(raw_tool_calls: Optional[List[ChatCompletionMessageToolCall]]) -> List[ToolCall]:
+def _convert_tool_calls(raw_tool_calls: list[ChatCompletionMessageToolCall] | None) -> list[ToolCall]:
     """Convert raw LiteLLM tool calls to our Pydantic ToolCall models.
 
     Args:

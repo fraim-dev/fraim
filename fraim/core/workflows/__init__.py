@@ -4,4 +4,4 @@
 from .chunk_processing import ChunkProcessingMixin, ChunkWorkflowInput
 from .workflow import Workflow
 
-__all__ = ["Workflow", "ChunkProcessingMixin", "ChunkWorkflowInput"]
+__all__ = ["ChunkProcessingMixin", "ChunkWorkflowInput", "Workflow"]

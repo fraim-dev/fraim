@@ -3,9 +3,9 @@
 
 import os
 import subprocess
+from collections.abc import Iterator
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Iterator, List, Optional, Type
 
 from fraim.config.config import Config
 from fraim.core.contextuals import CodeChunk
@@ -18,9 +18,9 @@ class GitRemote(Input):
         self,
         config: Config,
         url: str,
-        globs: Optional[List[str]] = None,
-        limit: Optional[int] = None,
-        prefix: Optional[str] = None,
+        globs: list[str] | None = None,
+        limit: int | None = None,
+        prefix: str | None = None,
     ):
         self.config = config
         self.url = url
@@ -36,7 +36,7 @@ class GitRemote(Input):
         return self
 
     def __exit__(
-        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[object]
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: object | None
     ) -> None:
         self.tempdir.cleanup()
 
@@ -61,8 +61,7 @@ class GitRemote(Input):
         if result.returncode != 0:
             self.config.logger.error(f"Git clone failed: {result.stderr}")
             raise subprocess.CalledProcessError(result.returncode, result.args, result.stdout, result.stderr)
-        else:
-            self.config.logger.info("Repository cloned: {tempdir}")
+        self.config.logger.info("Repository cloned: {tempdir}")
 
 
 def _is_directory_empty(path: str) -> bool:

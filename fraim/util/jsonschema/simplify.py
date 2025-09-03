@@ -4,10 +4,10 @@
 """Functions for simplifying JSON schemas to be compatible with LLM APIs."""
 
 import copy
-from typing import Any, Dict, Union
+from typing import Any
 
 
-def simplify_json_schema(schema: Any) -> Union[Dict[str, Any], Any]:
+def simplify_json_schema(schema: Any) -> dict[str, Any] | Any:
     """Simplify a JSON schema by resolving anyOf constructs.
 
     Rules:
@@ -25,15 +25,14 @@ def simplify_json_schema(schema: Any) -> Union[Dict[str, Any], Any]:
     """
     if isinstance(schema, dict):
         return _simplify_schema_object(schema)
-    elif isinstance(schema, list):
+    if isinstance(schema, list):
         # Handle arrays that might contain schemas
         return [simplify_json_schema(item) for item in schema]
-    else:
-        # Primitive values, return as-is
-        return schema
+    # Primitive values, return as-is
+    return schema
 
 
-def _simplify_schema_object(schema: Dict[str, Any]) -> Dict[str, Any]:
+def _simplify_schema_object(schema: dict[str, Any]) -> dict[str, Any]:
     """Simplify a JSON schema object (a dictionary that represents a schema).
 
     This handles the core schema simplification logic including anyOf resolution.
@@ -87,7 +86,7 @@ def _simplify_schema_object(schema: Dict[str, Any]) -> Dict[str, Any]:
     return simplified
 
 
-def _simplify_schema_properties(schema: Dict[str, Any]) -> Dict[str, Any]:
+def _simplify_schema_properties(schema: dict[str, Any]) -> dict[str, Any]:
     """Simplify known JSON Schema properties that can contain nested schemas.
 
     This method knows about JSON Schema structure and only processes schema-relevant fields.
@@ -129,7 +128,7 @@ def _simplify_schema_properties(schema: Dict[str, Any]) -> Dict[str, Any]:
     return simplified
 
 
-def _deep_merge(base: Dict[str, Any], update: Dict[str, Any]) -> Dict[str, Any]:
+def _deep_merge(base: dict[str, Any], update: dict[str, Any]) -> dict[str, Any]:
     """Deep merge two dictionaries, with update values taking precedence.
 
     Args:

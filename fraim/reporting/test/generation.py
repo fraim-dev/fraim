@@ -52,14 +52,14 @@ Examples:
 
     # Load and parse the SARIF file
     try:
-        with open(sarif_file_path, "r", encoding="utf-8") as f:
+        with open(sarif_file_path, encoding="utf-8") as f:
             sarif_data = json.load(f)
 
         print(f"Loaded SARIF data with {len(sarif_data.get('runs', []))} runs")
 
         # Parse into Pydantic model
         sarif_report = SarifReport.model_validate(sarif_data)
-        print(f"Successfully parsed SARIF report")
+        print("Successfully parsed SARIF report")
 
         # Count total results
         total_results = sum(len(run.results) for run in sarif_report.runs)
