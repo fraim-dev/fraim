@@ -17,9 +17,9 @@ from fraim.core.llms.litellm import LiteLLM
 from fraim.core.parsers.pydantic import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
-from fraim.core.workflows import ChunkProcessingMixin, Workflow
-from fraim.workflows.registry import workflow
-from fraim.workflows.utils import write_json_output
+from fraim.core.workflows import ChunkProcessor, Workflow
+from fraim.core.workflows.llm_processing import LLMProcessor
+from fraim.core.workflows.write_json_output import write_json_output
 
 from .file_patterns import API_INTERFACE_FILE_PATTERNS
 from .types import (
@@ -41,8 +41,8 @@ from .utils import (
 API_INTERFACE_PROMPTS = PromptTemplate.from_yaml(str(Path(__file__).parent / "api_interface_prompts.yaml"))
 
 
-@workflow("api_interface_discovery")
-class ApiInterfaceDiscoveryWorkflow(ChunkProcessingMixin, Workflow[ApiInterfaceDiscoveryInput, Dict[str, Any]]):
+class ApiInterfaceDiscoveryWorkflow(Workflow[ApiInterfaceDiscoveryInput, Dict[str, Any]], ChunkProcessor, LLMProcessor):
+    name = "api_interface_discovery"
     """
     Analyzes source code and API specifications to extract API interface information.
 
@@ -55,11 +55,10 @@ class ApiInterfaceDiscoveryWorkflow(ChunkProcessingMixin, Workflow[ApiInterfaceD
     - Data flow patterns and transformation logic
     """
 
-    def __init__(self, config: Config, *args: Any, **kwargs: Any) -> None:
-        super().__init__(config, *args, **kwargs)
-
-        # Initialize LLM
-        self.llm = LiteLLM.from_config(self.config)
+    def __init__(self, logger, args: ApiInterfaceDiscoveryInput):
+        super().__init__(args)
+        self.logger = logger
+        # LLM is initialized by the LLMProcessor mixin
 
         api_parser = PydanticOutputParser(ApiInterfaceResult)
 
@@ -84,12 +83,13 @@ class ApiInterfaceDiscoveryWorkflow(ChunkProcessingMixin, Workflow[ApiInterfaceD
     ) -> List[ApiInterfaceResult]:
         """Process a single chunk for API interface analysis."""
         try:
-            self.config.logger.debug(f"Processing API interface chunk: {Path(chunk.file_path)}")
+            self.logger.debug(
+                f"Processing API interface chunk: {Path(chunk.file_path)}")
 
             # Run API interface analysis
             chunk_input = AgentInput(
                 code=chunk,
-                config=self.config,
+                config=self.args,
             )
 
             api_result = await self.api_interface_step.run(chunk_input)
@@ -178,46 +178,46 @@ class ApiInterfaceDiscoveryWorkflow(ChunkProcessingMixin, Workflow[ApiInterfaceD
             "total_chunks_processed": len(chunk_results),
         }
 
-    async def workflow(self, input: ApiInterfaceDiscoveryInput) -> Dict[str, Any]:
+    async def run(self) -> Dict[str, Any]:
         """Main API Interface Discovery workflow."""
         try:
-            self.config.logger.info("Starting API Interface Discovery workflow")
+            self.logger.info("Starting API Interface Discovery workflow")
 
             # 1. Setup project input using mixin utility
-            project = self.setup_project_input(input)
+            project = self.setup_project_input(self.logger, self.args)
 
-            # Use project as context manager to keep temp directories alive
-            with project:
-                # Store project for lazy tool initialization
-                self.project = project
-                # Capture project path while it's still valid
-                self._project_path = project.project_path
+            # Store project for lazy tool initialization
+            self.project = project
+            # Capture project path while it's still valid
+            self._project_path = project.project_path
 
-                # 2. Create a closure that captures workflow parameters
-                async def chunk_processor(chunk: CodeChunk) -> List[ApiInterfaceResult]:
-                    return await self._process_single_chunk(
-                        chunk, input.focus_api_types, input.include_data_models, input.detect_versioning
-                    )
-
-                # 3. Process chunks concurrently using mixin utility
-                chunk_results = await self.process_chunks_concurrently(
-                    project=project, chunk_processor=chunk_processor, max_concurrent_chunks=input.max_concurrent_chunks
+            # 2. Create a closure that captures workflow parameters
+            async def chunk_processor(chunk: CodeChunk) -> List[ApiInterfaceResult]:
+                return await self._process_single_chunk(
+                    chunk, self.args.focus_api_types, self.args.include_data_models, self.args.detect_versioning
                 )
 
-                # 4. Aggregate results
-                final_result = await self._aggregate_results(chunk_results)
+            # 3. Process chunks concurrently using mixin utility
+            chunk_results = await self.process_chunks_concurrently(
+                project=project, chunk_processor=chunk_processor, max_concurrent_chunks=self.args.max_concurrent_chunks
+            )
 
-            self.config.logger.info(
+            # 4. Aggregate results
+            final_result = await self._aggregate_results(chunk_results)
+
+            self.logger.info(
                 f"API Interface Discovery completed. "
                 f"Analyzed {final_result['files_analyzed']} files. "
                 f"API Confidence: {final_result['confidence_score']:.2f}."
             )
 
             # 5. Write output file if output_dir is configured
-            write_json_output(results=final_result, workflow_name="api_interface_discovery", config=self.config)
+            write_json_output(
+                results=final_result, workflow_name="api_interface_discovery", config=self.args)
 
             return final_result
 
         except Exception as e:
-            self.config.logger.error(f"Error during API interface discovery: {str(e)}")
+            self.logger.error(
+                f"Error during API interface discovery: {str(e)}")
             raise e

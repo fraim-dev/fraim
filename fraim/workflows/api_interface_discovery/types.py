@@ -14,7 +14,8 @@ from pydantic import BaseModel
 
 from fraim.config import Config
 from fraim.core.contextuals.code import CodeChunk
-from fraim.core.workflows import ChunkWorkflowInput
+from fraim.core.workflows import ChunkProcessingOptions
+from fraim.core.workflows.llm_processing import LLMProcessorOptions
 
 
 # Pydantic models for API Interface Analysis
@@ -93,7 +94,7 @@ class ApiInterfaceResult(BaseModel):
 
 
 @dataclass
-class ApiInterfaceDiscoveryInput(ChunkWorkflowInput):
+class ApiInterfaceDiscoveryInput(ChunkProcessingOptions, LLMProcessorOptions):
     """Input for the API Interface Discovery workflow."""
 
     focus_api_types: Annotated[
