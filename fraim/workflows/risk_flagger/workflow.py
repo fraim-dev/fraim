@@ -10,23 +10,24 @@ Analyzes source code for risks that the security team should investigate further
 import os
 from dataclasses import dataclass, field
 import threading
-from typing import Annotated, Any, Dict, List, Literal, Optional
+import logging
+from typing import Annotated, Dict, List, Literal, Optional
 
 from fraim.actions import add_reviewer
-from fraim.config import Config
 from fraim.core.contextuals import CodeChunk
-from fraim.core.llms.litellm import LiteLLM
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
-from fraim.core.workflows import ChunkProcessingMixin, ChunkWorkflowInput, Workflow
+from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor, Workflow
 from fraim.outputs import sarif
 from fraim.tools.filesystem import FilesystemTools
 from fraim.util.pydantic import merge_models
 from fraim.workflows.risk_flagger import risk_sarif_overlay
-from fraim.workflows.registry import workflow
-from fraim.workflows.utils import filter_results_by_confidence, format_pr_comment
 from fraim.workflows.risk_flagger.risk_list import build_risks_list, format_risks_for_prompt
+from ...core.workflows.sarif import ConfidenceFilterOptions, filter_results_by_confidence
+from ...core.workflows.format_pr_comment import format_pr_comment
+from ...core.workflows.llm_processing import LLMMixin, LLMOptions
+
 
 RISK_FLAGGER_PROMPTS = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__file__), "prompts.yaml"))
 
@@ -66,7 +67,7 @@ DEFAULT_RISKS = {
 risk_sarif = merge_models(sarif, risk_sarif_overlay)
 
 @dataclass
-class RiskFlaggerWorkflowInput(ChunkWorkflowInput):
+class RiskFlaggerWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceFilterOptions):
     """Input for the Risk Flagger workflow."""
 
     pr_url: Annotated[str, {"help": "URL of the pull request to analyze"}] = field(default="")
@@ -88,7 +89,6 @@ class RiskFlaggerInput:
     """Input for the Risk Flagger step."""
 
     code: CodeChunk
-    config: Config
 
 
 class RiskFlaggerOutput(sarif.BaseSchema):
@@ -97,13 +97,14 @@ class RiskFlaggerOutput(sarif.BaseSchema):
     results: List[sarif.Result]
 
 
-@workflow("risk_flagger")
-class RiskFlaggerWorkflow(ChunkProcessingMixin, Workflow[RiskFlaggerWorkflowInput, List[sarif.Result]]):
+class RiskFlaggerWorkflow(Workflow[RiskFlaggerWorkflowOptions, List[sarif.Result]], ChunkProcessor, LLMMixin):
     """Analyzes source code for risks that the security team should investigate further."""
 
-    def __init__(self, config: Config, *args: Any, **kwargs: Any) -> None:
-        super().__init__(config, *args, **kwargs)
-        self.llm = LiteLLM.from_config(self.config)
+    name = "risk_flagger"
+
+    def __init__(self, logger: logging.Logger, args: RiskFlaggerWorkflowOptions) -> None:
+        super().__init__(logger, args)
+        LLMMixin.__init__(self, args)  # Initialize the LLMMixin explicitly
 
         # Keep flagger step as lazy since it depends on project setup
         self._flagger_step: Optional[LLMStep[RiskFlaggerInput, RiskFlaggerOutput]] = None
@@ -155,25 +156,25 @@ class RiskFlaggerWorkflow(ChunkProcessingMixin, Workflow[RiskFlaggerWorkflowInpu
                 raise ValueError("Flagger step not initialized")
 
             # 1. Scan the code for potential risks.
-            self.config.logger.debug("Scanning the code for potential risks")
-            risks = await self.flagger_step.run(RiskFlaggerInput(code=chunk, config=self.config))
+            self.logger.debug("Scanning the code for potential risks")
+            risks = await self.flagger_step.run(RiskFlaggerInput(code=chunk))
 
             # 2. Filter risks by confidence.
-            self.config.logger.debug(f"Filtering {len(risks.results)} risks by confidence")
-            self.config.logger.debug(f"risks: {risks.results}")
-            high_confidence_risks = filter_results_by_confidence(risks.results, self.config.confidence)
-            self.config.logger.debug(f"Found {len(high_confidence_risks)} high-confidence risks")
+            self.logger.debug(f"Filtering {len(risks.results)} risks by confidence")
+            self.logger.debug(f"risks: {risks.results}")
+            high_confidence_risks: List[sarif.Result] = filter_results_by_confidence(risks.results, self.args.confidence)
+            self.logger.debug(f"Found {len(high_confidence_risks)} high-confidence risks")
 
             return high_confidence_risks
 
         except Exception as e:
-            self.config.logger.error(
+            self.logger.error(
                 f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {str(e)}. "
                 "Skipping this chunk and continuing with scan."
             )
             return []
 
-    async def workflow(self, input: RiskFlaggerWorkflowInput) -> List[sarif.Result]:
+    async def run(self) -> List[sarif.Result]:
         """Main Risk Flagger workflow.
 
         Args:
@@ -188,7 +189,7 @@ class RiskFlaggerWorkflow(ChunkProcessingMixin, Workflow[RiskFlaggerWorkflowInpu
             Exception: If any other error occurs during workflow execution
         """
         # 1. Validate required fields
-        if not input.diff:
+        if not self.args.diff:
             raise ValueError(
                 "This workflow is intended to only run on a diff, therefore it is required and cannot be empty"
             )
@@ -196,16 +197,16 @@ class RiskFlaggerWorkflow(ChunkProcessingMixin, Workflow[RiskFlaggerWorkflowInpu
         # 2. Build the configurable risks dict and initialize flagger step
         self.risks_dict = build_risks_list(
             default_risks=DEFAULT_RISKS,
-            custom_risk_list_action=input.custom_risk_list_action,
-            custom_risk_list_filepath=input.custom_risk_list_filepath,
-            custom_risk_list_json=input.custom_risk_list_json,
+            custom_risk_list_action=self.args.custom_risk_list_action,
+            custom_risk_list_filepath=self.args.custom_risk_list_filepath,
+            custom_risk_list_json=self.args.custom_risk_list_json,
         )
-        self.custom_false_positive_considerations = input.custom_false_positive_considerations
+        self.custom_false_positive_considerations = self.args.custom_false_positive_considerations
 
-        self.config.logger.info(f"Using {len(self.risks_dict)} risks to consider: {', '.join(self.risks_dict.keys())}")
+        self.logger.info(f"Using {len(self.risks_dict)} risks to consider: {', '.join(self.risks_dict.keys())}")
 
         # 3. Setup project input using utility
-        self.project = self.setup_project_input(input)
+        self.project = self.setup_project_input(self.logger, self.args)
 
         # 4. Create a closure that captures max_concurrent_chunks
         async def chunk_processor(chunk: CodeChunk) -> List[sarif.Result]:
@@ -213,7 +214,7 @@ class RiskFlaggerWorkflow(ChunkProcessingMixin, Workflow[RiskFlaggerWorkflowInpu
 
         # 5. Process chunks concurrently using utility
         results = await self.process_chunks_concurrently(
-            project=self.project, chunk_processor=chunk_processor, max_concurrent_chunks=input.max_concurrent_chunks
+            project=self.project, chunk_processor=chunk_processor, max_concurrent_chunks=self.args.max_concurrent_chunks
         )
 
         # 6. Format results into PR comment
@@ -221,11 +222,11 @@ class RiskFlaggerWorkflow(ChunkProcessingMixin, Workflow[RiskFlaggerWorkflowInpu
 
         # 7. Notify Github groups with formatted comment
         if len(results) > 0:
-            if input.pr_url and input.approver:
-                add_reviewer(input.pr_url, pr_comment, input.approver)
+            if self.args.pr_url and self.args.approver:
+                add_reviewer(self.args.pr_url, pr_comment, self.args.approver)
             else:
-                self.config.logger.warning("PR URL and/or approver are missing, skipping GitHub notification")
+                self.logger.warning("PR URL and/or approver are missing, skipping GitHub notification")
 
-        self.config.logger.info(pr_comment)
+        self.logger.info(pr_comment)
 
         return results
