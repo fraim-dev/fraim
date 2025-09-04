@@ -82,16 +82,28 @@ def cli() -> int:
                 if hasattr(parsed_args, arg.name):
                     arg[arg.name] = getattr(parsed_args, arg.name)
 
-            workflow = workflow_class(logger, args=args_class(**arg))  # TODO: constructor does validation
-            try:
-                logger.info(f"Running workflow: {workflow.name}")
-                asyncio.run(workflow.run())
-            except KeyboardInterrupt:
-                logger.info("Workflow cancelled")
-                return 1
-            except Exception as e:
-                logger.error(f"Workflow error: {e!s}")
-                raise e
+        """
+        TODO:
+            Move the arg conversion and class instantiation into a class method on the
+            workflow. The default implementation on the `Workflow` base class can do the
+            namespace -> args conversion done here.  But workflows with special requirements
+            can override that method entirely.
+    
+            The call here should look something like:
+            
+                workflow_class = discovered_workflows[parsed_args.workflow]
+                workflow = workflow_class.from_args(parsed_args)
+        """
+        workflow = workflow_class(logger, args=args_class(**arg))
+        try:
+            logger.info(f"Running workflow: {workflow.name}")
+            asyncio.run(workflow.run())
+        except KeyboardInterrupt:
+            logger.info("Workflow cancelled")
+            return 1
+        except Exception as e:
+            logger.error(f"Workflow error: {e!s}")
+            raise e
 
     return 0
 
