@@ -36,6 +36,8 @@ TODO: Organization nits:
 
 write_sarif_and_html_report isn't workflow specific. Consider moving it to a fraim/core/ouputs/sarif.py or something like that.
 """
+
+
 def filter_results_by_confidence(results: list[sarif.Result], confidence_threshold: int) -> list[sarif.Result]:
     return [result for result in results if result.properties.confidence > confidence_threshold]
 
