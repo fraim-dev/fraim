@@ -57,13 +57,10 @@ def cli() -> int:
 
     for workflow_name, workflow_class in discovered_workflows.items():
         workflow_parser = workflows_parser.add_parser(workflow_name, help=workflow_class.__doc__)
+
         workflow_args = workflow_options_to_cli_args(workflow_class.options())
-        for workflow_arg in workflow_args:
-            arg_config_copy = workflow_arg.copy()
-            arg_name = arg_config_copy.pop(
-                "name"
-            )  # TODO: avoid copy? name must be first arg it seems, pluck from splat
-            workflow_parser.add_argument(arg_name, **arg_config_copy)
+        for name, arg in workflow_args:
+            workflow_parser.add_argument(name, **arg)
 
     parsed_args = parser.parse_args()
 
@@ -79,13 +76,13 @@ def cli() -> int:
 
     for workflow_name, workflow_class in discovered_workflows.items():
         if workflow_name == parsed_args.workflow:
-            workflow_arg = {}
+            arg = {}
             args_class = workflow_class.options()
             for arg in dataclasses.fields(args_class):
                 if hasattr(parsed_args, arg.name):
-                    workflow_arg[arg.name] = getattr(parsed_args, arg.name)
+                    arg[arg.name] = getattr(parsed_args, arg.name)
 
-            workflow = workflow_class(logger, args=args_class(**workflow_arg))  # TODO: constructor does validation
+            workflow = workflow_class(logger, args=args_class(**arg))  # TODO: constructor does validation
             try:
                 logger.info(f"Running workflow: {workflow.name}")
                 asyncio.run(workflow.run())
@@ -99,12 +96,12 @@ def cli() -> int:
     return 0
 
 
-def workflow_options_to_cli_args(options: Any | type[Any]) -> list[dict[str, Any]]:
+def workflow_options_to_cli_args(options: Any | type[Any]) -> dict[str, dict[str, Any]]:
     """Infer CLI arguments from a dataclass."""
     if not dataclasses.is_dataclass(options):
-        return []
+        return {}
 
-    cli_args = []
+    cli_args = {}
     type_hints = get_type_hints(options, include_extras=True)
 
     # Reserved fields that shouldn't become CLI arguments
@@ -114,9 +111,10 @@ def workflow_options_to_cli_args(options: Any | type[Any]) -> list[dict[str, Any
         if field.name in reserved_fields:
             continue
 
+        arg_name = f"--{field.name.replace('_', '-')}"
         field_type = type_hints.get(field.name, str)
+
         arg_config: dict[str, Any] = {
-            "name": f"--{field.name.replace('_', '-')}",
             "help": f"{field.name.replace('_', ' ').title()}",
         }
 
@@ -181,7 +179,7 @@ def workflow_options_to_cli_args(options: Any | type[Any]) -> list[dict[str, Any
             if "help" in field.metadata and "help" not in arg_config:
                 arg_config["help"] = field.metadata["help"]
 
-        cli_args.append(arg_config)
+        cli_args[arg_name] = arg_config
 
     return cli_args
 
