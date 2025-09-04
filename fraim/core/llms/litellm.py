@@ -3,20 +3,18 @@
 
 """A wrapper around litellm"""
 
-import asyncio
 import logging
-import random
 from collections.abc import Iterable
-from typing import Any, Dict, Iterable, List, Optional, Protocol, Self, Sequence, Tuple, cast
+from typing import Any, Iterable, Protocol, Self, cast
 
 import litellm
-from litellm.exceptions import RateLimitError
 from litellm.files.main import ModelResponse
 from litellm.types.utils import ChatCompletionMessageToolCall
 
 from fraim.core.llms.base import BaseLLM
 from fraim.core.messages import AssistantMessage, Function, Message, ToolCall
 from fraim.core.tools import BaseTool, execute_tool_calls
+from fraim.core.utils.retry.tenacity import with_retry
 
 
 def _configure_litellm_logging() -> None:
@@ -55,7 +53,7 @@ class Config(Protocol):
 
 
 class LiteLLM(BaseLLM):
-    """A wrapper around LiteLLM with retry logic for rate limiting"""
+    """A wrapper around LiteLLM"""
 
     def __init__(
         self,
@@ -63,9 +61,9 @@ class LiteLLM(BaseLLM):
         additional_model_params: dict[str, Any] | None = None,
         max_tool_iterations: int = 10,
         tools: Iterable[BaseTool] | None = None,
-        max_retries: int = 3,
+        max_retries: int = 5,
         base_delay: float = 1.0,
-        max_delay: float = 60.0,
+        max_delay: float = 120.0,
     ):
         self.model = model
         self.additional_model_params = additional_model_params or {}
@@ -97,34 +95,6 @@ class LiteLLM(BaseLLM):
             max_delay=self.max_delay,
         )
 
-    async def _run_once_with_retry(
-        self, messages: List[Message], use_tools: bool
-    ) -> Tuple[ModelResponse, List[Message], bool]:
-        """Execute one completion call with retry logic for rate limiting."""
-
-        for attempt in range(self.max_retries + 1):
-            try:
-                return await self._run_once(messages, use_tools)
-
-            except RateLimitError as e:
-                if attempt == self.max_retries:
-                    # We've exhausted retries
-                    raise
-
-                # Use retry_after from the exception if available
-                retry_delay = getattr(e, "retry_after", None)
-                if retry_delay is None:
-                    # Use exponential backoff with jitter as fallback
-                    retry_delay = min(self.base_delay * (2**attempt) + random.uniform(0, 1), self.max_delay)
-
-                logging.getLogger().warning(
-                    f"Rate limit hit (attempt {attempt + 1}/{self.max_retries + 1}), retrying in {retry_delay:.1f}s"
-                )
-                await asyncio.sleep(retry_delay)
-
-        # Should never reach here due to the loop logic
-        raise Exception("Retry logic failed unexpectedly")
-
     async def _run_once(self, messages: list[Message], use_tools: bool) -> tuple[ModelResponse, list[Message], bool]:
         """Execute one completion call and return response + updated messages + tools_executed flag.
 
@@ -135,7 +105,10 @@ class LiteLLM(BaseLLM):
 
         logging.getLogger().debug(f"LLM request: {completion_params}")
 
-        response = await litellm.acompletion(**completion_params)
+        acompletion = with_retry(
+            litellm.acompletion, max_retries=self.max_retries, base_delay=self.base_delay, max_delay=self.max_delay
+        )
+        response = await acompletion(**completion_params)
 
         # Type assertion - we're not using streaming so this should be ModelResponse
         response = cast(ModelResponse, response)
@@ -169,7 +142,7 @@ class LiteLLM(BaseLLM):
             # Don't provide tools on the final iteration to force a final response
             use_tools = iteration < self.max_tool_iterations
 
-            response, current_messages, tools_executed = await self._run_once_with_retry(current_messages, use_tools)
+            response, current_messages, tools_executed = await self._run_once(current_messages, use_tools)
 
             if not tools_executed:
                 return response
