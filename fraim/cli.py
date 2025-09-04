@@ -119,18 +119,18 @@ def cli() -> int:
     return 0
 
 
-def workflow_options_to_cli_args(options: Any | type[Any]) -> dict[str, dict[str, Any]]:
+def workflow_options_to_cli_args(options_class: type[Any]) -> dict[str, dict[str, Any]]:
     """Infer CLI arguments from a dataclass."""
-    if not dataclasses.is_dataclass(options):
+    if not dataclasses.is_dataclass(options_class):
         return {}
 
     cli_args = {}
-    type_hints = get_type_hints(options, include_extras=True)
+    type_hints = get_type_hints(options_class, include_extras=True)
 
     # Reserved fields that shouldn't become CLI arguments
     reserved_fields = {"config"}
 
-    for field in dataclasses.fields(options):
+    for field in dataclasses.fields(options_class):
         if field.name in reserved_fields:
             continue
 
