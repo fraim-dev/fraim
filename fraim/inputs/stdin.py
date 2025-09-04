@@ -5,7 +5,6 @@ from collections.abc import Iterator
 from types import TracebackType
 from typing import Self
 
-from fraim.config import Config
 from fraim.core.contextuals import CodeChunk
 from fraim.inputs.chunks import chunk_input
 from fraim.inputs.file import BufferedFile

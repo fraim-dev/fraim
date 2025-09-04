@@ -12,7 +12,7 @@ import logging
 import os
 import threading
 from dataclasses import dataclass
-from typing import Annotated, Optional
+from typing import Annotated
 
 from fraim.core.contextuals import CodeChunk
 from fraim.core.parsers import PydanticOutputParser
@@ -95,7 +95,7 @@ class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProce
             self.llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser
         )
         # Keep triager step as lazy since it depends on project setup
-        self._triager_step: Optional[LLMStep[TriagerInput, sarif.Result]] = None
+        self._triager_step: LLMStep[TriagerInput, sarif.Result] | None = None
         self._triager_lock = threading.Lock()
 
     @property
