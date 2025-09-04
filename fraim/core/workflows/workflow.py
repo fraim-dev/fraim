@@ -3,37 +3,37 @@
 
 """Base class for workflows"""
 
-import asyncio
+import logging
 from abc import ABC, abstractmethod
-from typing import Any, Generic, Protocol, TypeVar
+from typing import ClassVar, Generic, TypeVar, cast, get_args, get_origin
 
-from fraim.config import Config
-
-
-class WorkflowInput(Protocol):
-    """Protocol defining the required input interface for all workflows."""
-
-    config: Config
+Options = TypeVar("Options")
+Result = TypeVar("Result")
 
 
-TInput = TypeVar("TInput", bound=WorkflowInput)
+class Workflow(ABC, Generic[Options, Result]):
+    name: ClassVar[str]
 
-TOutput = TypeVar("TOutput")
-
-
-class Workflow(ABC, Generic[TInput, TOutput]):
-    """Base class for workflows"""
+    def __init__(self, logger: logging.Logger, args: Options) -> None:
+        self.logger = logger
+        self.args = args
 
     @abstractmethod
-    def __init__(self, config: Config, *args: Any, **kwargs: Any) -> None:
-        pass
+    async def run(self) -> Result:
+        raise NotImplementedError
 
-    @abstractmethod
-    async def workflow(self, input: TInput) -> TOutput:
-        pass
-
-    async def run(self, input: TInput) -> TOutput:
-        return await self.workflow(input)
-
-    def run_sync(self, input: TInput) -> TOutput:
-        return asyncio.run(self.run(input))
+    @classmethod
+    def options(cls) -> type[Options] | None:
+        c: type | None = cls
+        while c is not object:
+            for base in getattr(c, "__orig_bases__", ()):
+                if get_origin(base) is Workflow:
+                    opt = get_args(base)[0]
+                    unwrapped = get_origin(opt) or opt  # handle Annotated[T, ...] etc.
+                    # Tell the type checker this is specifically type[Options]
+                    if isinstance(unwrapped, type):
+                        return cast("type[Options]", unwrapped)
+                    return None
+            if c is not None:
+                c = c.__base__
+        return None
