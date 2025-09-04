@@ -58,6 +58,17 @@ def cli() -> int:
     for workflow_name, workflow_class in discovered_workflows.items():
         workflow_parser = workflows_parser.add_parser(workflow_name, help=workflow_class.__doc__)
 
+        """
+        TODO: 
+            Move the workflow-specific arg registration into a class method
+            on the workflow. The default (on the `Workflow` base class) can
+            to infer the args from the `Input` dataclass, as done here.  But if a
+            workflow wants to handle args differently, it could override that method.
+        
+            Here the call should look something like:
+                workflow_class = discovered_workflows[parsed_args.workflow]
+                workflow_class.register_args(workflow_parser)
+        """
         workflow_args = workflow_options_to_cli_args(workflow_class.options())
         for name, arg in workflow_args:
             workflow_parser.add_argument(name, **arg)
