@@ -88,8 +88,7 @@ class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProce
     def __init__(self, logger: logging.Logger, args: SASTWorkflowOptions) -> None:
         # Initialize LLM and scanner step immediately
         #
-        super().__init__(args)
-        self.logger = logger
+        super().__init__(logger, args)
         scanner_parser = PydanticOutputParser(sarif.RunResults)
         self.scanner_step: LLMStep[SASTInput, sarif.RunResults] = LLMStep(
             self.llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser

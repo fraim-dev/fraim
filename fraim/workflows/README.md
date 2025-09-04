@@ -37,20 +37,19 @@ My Custom Security Workflow
 
 Description of what this workflow analyzes.
 """
-
-from typing import List
+import logging
+from typing import List, Any
 from fraim.core.workflows import Workflow
-from fraim.workflows.registry import workflow
 from fraim.outputs import sarif
 
 FILE_PATTERNS = ['*.py', '*.js', '*.ts']
 
-@workflow('my_workflow')
+
 class MyWorkflow(Workflow):
     """Analyzes code for custom security issues"""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, logger: logging.Logger, args: type[Any]):
+        super().__init__(logger, args)
         # Initialize your workflow components (LLM, parsers, etc.)
 
     async def workflow(self, input) -> List[sarif.Result]:

@@ -37,7 +37,7 @@ class ProjectInput:
         if path_or_url.startswith("http://") or path_or_url.startswith("https://") or path_or_url.startswith("git@"):
             self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
             # TODO: git diff here?
-            self.input = GitRemote(url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_")
+            self.input = GitRemote(self.logger, url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_")
             self.project_path = self.input.root_path()
         else:
             # Fully resolve the path to the project

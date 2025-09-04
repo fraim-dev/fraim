@@ -9,7 +9,7 @@ def discover_builtins(package: str) -> dict[str, type[Workflow]]:
     """
     Import all modules under the built-in workflows package and register classes.
     """
-    discovered_workflows = {}
+    discovered_workflows: dict[str, type[Workflow]] = {}
     try:
         pkg = importlib.import_module(package)
     except ModuleNotFoundError:

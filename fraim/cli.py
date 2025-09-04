@@ -7,6 +7,7 @@ import dataclasses
 import logging
 import multiprocessing as mp
 import os
+from dataclasses import is_dataclass
 from typing import Annotated, Any, Union, get_args, get_origin, get_type_hints
 
 from fraim.core.workflows.discovery import discover_workflows
@@ -69,9 +70,13 @@ def cli() -> int:
                 workflow_class = discovered_workflows[parsed_args.workflow]
                 workflow_class.register_args(workflow_parser)
         """
-        workflow_args = workflow_options_to_cli_args(workflow_class.options())
-        for name, arg in workflow_args.items():
-            workflow_parser.add_argument(name, **arg)
+        workflow_options = workflow_class.options()
+        if workflow_options is None:
+            continue
+
+        workflow_args = workflow_options_to_cli_args(workflow_options)
+        for arg_name, arg_kwargs in workflow_args.items():
+            workflow_parser.add_argument(arg_name, **arg_kwargs)
 
     parsed_args = parser.parse_args()
 
@@ -86,13 +91,18 @@ def cli() -> int:
     setup_observability(logger, parsed_args)
 
     for workflow_name, workflow_class in discovered_workflows.items():
-        if workflow_name == parsed_args.workflow:
-            arg = {}
-            args_class = workflow_class.options()
-            for arg in dataclasses.fields(args_class):
-                if hasattr(parsed_args, arg.name):
-                    arg[arg.name] = getattr(parsed_args, arg.name)
+        if workflow_name != parsed_args.workflow:
+            continue
 
+        workflow_kwargs = {}
+        workflow_options = workflow_class.options()
+        if workflow_options is None:
+            continue
+
+        if is_dataclass(workflow_options):
+            for workflow_option in dataclasses.fields(workflow_options):
+                if hasattr(parsed_args, workflow_option.name):
+                    workflow_kwargs[workflow_option.name] = getattr(parsed_args, workflow_option.name)
         """
         TODO:
             Move the arg conversion and class instantiation into a class method on the
@@ -105,7 +115,7 @@ def cli() -> int:
                 workflow_class = discovered_workflows[parsed_args.workflow]
                 workflow = workflow_class.from_args(parsed_args)
         """
-        workflow = workflow_class(logger, args=args_class(**arg))
+        workflow = workflow_class(logger=logger, args=workflow_options(**workflow_kwargs))
         try:
             logger.info(f"Running workflow: {workflow.name}")
             asyncio.run(workflow.run())

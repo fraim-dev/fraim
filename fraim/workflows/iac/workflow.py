@@ -79,8 +79,7 @@ class IaCWorkflow(Workflow[IaCWorkflowOptions, list[sarif.Result]], ChunkProcess
     name = "iac"
 
     def __init__(self, logger: logging.Logger, args: IaCWorkflowOptions) -> None:
-        super().__init__(args)
-        self.logger = logger
+        super().__init__(logger, args)
         scanner_parser = PydanticOutputParser(sarif.RunResults)
         self.scanner_step: LLMStep[IaCCodeChunkOptions, sarif.RunResults] = LLMStep(
             self.llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser

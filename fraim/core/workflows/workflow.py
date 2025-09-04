@@ -3,6 +3,7 @@
 
 """Base class for workflows"""
 
+import logging
 from abc import ABC, abstractmethod
 from typing import ClassVar, Generic, TypeVar, cast, get_args, get_origin
 
@@ -13,8 +14,8 @@ Result = TypeVar("Result")
 class Workflow(ABC, Generic[Options, Result]):
     name: ClassVar[str]
 
-    def __init__(self, args: Options) -> None:
-        super().__init__(args)
+    def __init__(self, logger: logging.Logger, args: Options) -> None:
+        self.logger = logger
         self.args = args
 
     @abstractmethod
@@ -23,16 +24,16 @@ class Workflow(ABC, Generic[Options, Result]):
 
     @classmethod
     def options(cls) -> type[Options] | None:
-        c: type = cls
+        c: type | None = cls
         while c is not object:
             for base in getattr(c, "__orig_bases__", ()):
                 if get_origin(base) is Workflow:
                     opt = get_args(base)[0]
                     unwrapped = get_origin(opt) or opt  # handle Annotated[T, ...] etc.
+                    # Tell the type checker this is specifically type[Options]
                     if isinstance(unwrapped, type):
-                        return cast(
-                            "type[Options]", unwrapped
-                        )  # Tell the type checker this is specifically type[Options]
+                        return cast("type[Options]", unwrapped)
                     return None
-            c = c.__base__
+            if c is not None:
+                c = c.__base__
         return None

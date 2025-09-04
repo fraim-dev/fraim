@@ -176,8 +176,7 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisOptions, dict[str, Any]], Ch
     name = "system_analysis"
 
     def __init__(self, logger: logging.Logger, args: SystemAnalysisOptions) -> None:
-        super().__init__(args)
-        self.logger = logger
+        super().__init__(logger, args)
 
         # Step 1: Document assessment and confidence scoring
         assessment_parser = PydanticOutputParser(DocumentAssessmentResult)
