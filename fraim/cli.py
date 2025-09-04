@@ -70,7 +70,7 @@ def cli() -> int:
                 workflow_class.register_args(workflow_parser)
         """
         workflow_args = workflow_options_to_cli_args(workflow_class.options())
-        for name, arg in workflow_args:
+        for name, arg in workflow_args.items():
             workflow_parser.add_argument(name, **arg)
 
     parsed_args = parser.parse_args()
