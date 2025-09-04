@@ -19,7 +19,7 @@ from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
 from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor, Workflow
-from fraim.core.workflows.llm_processing import LLMProcessor, LLMProcessorOptions
+from fraim.core.workflows.llm_processing import LLMMixin, LLMOptions
 from fraim.core.workflows.sarif import (
     ConfidenceFilterOptions,
     filter_results_by_confidence,
@@ -60,7 +60,7 @@ SCANNER_PROMPTS = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__file__
 
 
 @dataclass
-class IaCWorkflowOptions(ChunkProcessingOptions, LLMProcessorOptions, ConfidenceFilterOptions):
+class IaCWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceFilterOptions):
     """Options for the IaC workflow."""
 
     output: Annotated[str, {"help": "Path to save the output HTML report"}] = "fraim_output"
@@ -73,7 +73,7 @@ class IaCCodeChunkOptions:
     code: CodeChunk
 
 
-class IaCWorkflow(Workflow[IaCWorkflowOptions, list[sarif.Result]], ChunkProcessor, LLMProcessor):
+class IaCWorkflow(Workflow[IaCWorkflowOptions, list[sarif.Result]], ChunkProcessor, LLMMixin):
     """Analyzes IaC files for security vulnerabilities, compliance issues, and best practice deviations."""
 
     name = "iac"

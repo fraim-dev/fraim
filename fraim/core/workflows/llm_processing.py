@@ -9,7 +9,7 @@ from fraim.core.llms import LiteLLM
 
 
 @dataclass
-class LLMProcessorOptions:
+class LLMOptions:
     """Base input for chunk-based workflows."""
 
     model: Annotated[str, {"help": "Gemini model to use for initial scan (default: gemini/gemini-2.5-flash)"}] = (
@@ -19,8 +19,8 @@ class LLMProcessorOptions:
     temperature: Annotated[float, {"help": "Temperature setting for the model (0.0-1.0, default: 0)"}] = 0
 
 
-class LLMProcessor:
-    def __init__(self, args: LLMProcessorOptions):
+class LLMMixin:
+    def __init__(self, args: LLMOptions):
         self.llm = LiteLLM(
             model=args.model,
             additional_model_params={"temperature": args.temperature},

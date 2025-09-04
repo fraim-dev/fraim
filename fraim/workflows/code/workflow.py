@@ -23,7 +23,7 @@ from fraim.outputs import sarif
 from fraim.tools.tree_sitter import TreeSitterTools
 from fraim.util.pydantic import merge_models
 
-from ...core.workflows.llm_processing import LLMProcessor, LLMProcessorOptions
+from ...core.workflows.llm_processing import LLMMixin, LLMOptions
 from ...core.workflows.sarif import ConfidenceFilterOptions, filter_results_by_confidence, write_sarif_and_html_report
 from . import triage_sarif_overlay
 
@@ -53,7 +53,7 @@ triage_sarif = merge_models(sarif, triage_sarif_overlay)
 
 
 @dataclass
-class SASTWorkflowOptions(ChunkProcessingOptions, LLMProcessorOptions, ConfidenceFilterOptions):
+class SASTWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceFilterOptions):
     """Input for the Code workflow."""
 
     output: Annotated[str, {"help": "Path to save the output HTML report"}] = "fraim_output"
@@ -78,7 +78,7 @@ class TriagerInput:
     code: CodeChunk
 
 
-class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProcessor, LLMProcessor):
+class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProcessor, LLMMixin):
     """
     Analyzes source code for security vulnerabilities
     """

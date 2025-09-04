@@ -21,7 +21,7 @@ from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
 from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor, Workflow
-from fraim.core.workflows.llm_processing import LLMProcessor, LLMProcessorOptions
+from fraim.core.workflows.llm_processing import LLMMixin, LLMOptions
 
 # File patterns for system analysis - focusing on documentation and key configuration files
 FILE_PATTERNS = [
@@ -100,7 +100,7 @@ FINAL_DEDUP_PROMPTS = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__fi
 
 
 @dataclass
-class SystemAnalysisOptions(ChunkProcessingOptions, LLMProcessorOptions):
+class SystemAnalysisOptions(ChunkProcessingOptions, LLMOptions):
     """Input for the System Analysis workflow."""
 
     business_context: Annotated[str, {"help": "Additional business context to consider during analysis"}] = ""
@@ -161,7 +161,7 @@ class FinalDedupOptions:
     analysis_results: list[dict[str, Any]]
 
 
-class SystemAnalysisWorkflow(Workflow[SystemAnalysisOptions, dict[str, Any]], ChunkProcessor, LLMProcessor):
+class SystemAnalysisWorkflow(Workflow[SystemAnalysisOptions, dict[str, Any]], ChunkProcessor, LLMMixin):
     """
     Analyzes codebase and documentation to extract system purpose, intended users, and business context.
 
