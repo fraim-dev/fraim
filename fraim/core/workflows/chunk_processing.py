@@ -28,8 +28,8 @@ class ChunkProcessingOptions:
     chunk_size: Annotated[int | None, {"help": "Number of lines per chunk"}] = 500
     limit: Annotated[int | None, {"help": "Limit the number of files to scan"}] = None
     diff: Annotated[bool, {"help": "Whether to use git diff input"}] = False
-    head: Annotated[str, {"help": "Git head commit for diff input"}] = None
-    base: Annotated[str, {"help": "Git base commit for diff input"}] = None
+    head: Annotated[str, {"help": "Git head commit for diff input, uses HEAD if not provided"}] = None
+    base: Annotated[str, {"help": "Git base commit for diff input, assumes the empty tree if not provided"}] = None
     globs: Annotated[
         list[str] | None,
         {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
