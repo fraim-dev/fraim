@@ -6,13 +6,16 @@
 from __future__ import annotations
 
 import functools
+import logging
 from typing import Callable, ParamSpec, TypeVar
 
 import tenacity
-from tenacity import RetryCallState
+from tenacity import RetryCallState, after_log, before_log, before_sleep_log
 from tenacity.wait import wait_base
 
 from .http import parse_retry_header, should_retry_request
+
+logger = logging.getLogger(__name__)
 
 
 class WaitRetryAfter(wait_base):
@@ -102,6 +105,9 @@ def with_retry(
         stop=tenacity.stop_after_attempt(max_retries + 1),  # tenacity counts initial attempt
         wait=wait_strategy,
         reraise=True,
+        before=before_log(logger, logging.DEBUG),
+        before_sleep=before_sleep_log(logger, logging.INFO),
+        after=after_log(logger, logging.DEBUG),
     )
 
     @functools.wraps(func)
