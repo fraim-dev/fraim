@@ -13,6 +13,7 @@ from typing import Annotated, Any, Union, get_args, get_origin, get_type_hints
 from fraim.core.workflows.discovery import discover_workflows
 from fraim.observability import ObservabilityManager, ObservabilityRegistry
 from fraim.observability.logging import make_logger
+from fraim.validate_cli import validate_cli_args
 
 
 def setup_observability(logger: logging.Logger, args: argparse.Namespace) -> ObservabilityManager:
@@ -79,6 +80,7 @@ def cli() -> int:
             workflow_parser.add_argument(arg_name, **arg_kwargs)
 
     parsed_args = parser.parse_args()
+    validate_cli_args(parser, parsed_args)
 
     # TODO: Set up logger earlier parsing known args, partial arg parse etc.
     # TODO: Avoid passing logger around, use conventions
