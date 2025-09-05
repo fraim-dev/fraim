@@ -104,7 +104,6 @@ class RiskFlaggerWorkflow(Workflow[RiskFlaggerWorkflowOptions, List[sarif.Result
 
     def __init__(self, logger: logging.Logger, args: RiskFlaggerWorkflowOptions) -> None:
         super().__init__(logger, args)
-        LLMMixin.__init__(self, args)  # Initialize the LLMMixin explicitly
 
         # Keep flagger step as lazy since it depends on project setup
         self._flagger_step: Optional[LLMStep[RiskFlaggerInput, RiskFlaggerOutput]] = None

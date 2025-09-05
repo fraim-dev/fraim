@@ -15,6 +15,8 @@ class Workflow(ABC, Generic[Options, Result]):
     name: ClassVar[str]
 
     def __init__(self, logger: logging.Logger, args: Options) -> None:
+        super().__init__(args) # type: ignore
+
         self.logger = logger
         self.args = args
 
