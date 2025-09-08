@@ -7,12 +7,12 @@ Dry Run Workflow
 Dummy workflow for testing purposes. It processes code chunks without performing any actual analysis.
 """
 
+import logging
 from dataclasses import dataclass
 from typing import List
 
-from fraim.core.workflows import ChunkProcessingMixin, ChunkWorkflowInput, Workflow
+from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor
 from fraim.outputs import sarif
-from fraim.workflows.registry import workflow
 
 FILE_PATTERNS = [
     "*.py",
@@ -35,14 +35,13 @@ FILE_PATTERNS = [
 
 
 @dataclass
-class DryRunInput(ChunkWorkflowInput):
+class DryRunInput(ChunkProcessingOptions):
     """Input for the DryRun workflow."""
 
     pass
 
 
-@workflow("dry_run")
-class DryRunWorkflow(ChunkProcessingMixin, Workflow[DryRunInput, List[sarif.Result]]):
+class DryRunWorkflow(DryRunInput, ChunkProcessor):
     """Dry Run workflow for testing purposes."""
 
     @property
@@ -50,11 +49,11 @@ class DryRunWorkflow(ChunkProcessingMixin, Workflow[DryRunInput, List[sarif.Resu
         """Code file patterns."""
         return FILE_PATTERNS
 
-    async def workflow(self, input: DryRunInput) -> List[sarif.Result]:
+    async def workflow(self, logger: logging.Logger, args: DryRunInput) -> List[sarif.Result]:
         """Main Code workflow - full control over execution with multi-step processing."""
-        project = self.setup_project_input(input)
+        project = self.setup_project_input(logger, args)
 
         for chunk in project:
-            self.config.logger.debug("DryRun workflow received chunk: %s", chunk)
+            logger.debug("DryRun workflow received chunk: %s", chunk)
 
         return []

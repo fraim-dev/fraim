@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 
-"""Tests for LiteLLM wrapper"""
-
 from unittest.mock import Mock, patch
 
 import pytest
@@ -510,3 +508,68 @@ class TestLiteLLMIntegration:
             assert len(tool_messages) == 2
             assert tool_messages[0].tool_call_id == "call_1"
             assert tool_messages[1].tool_call_id == "call_2"
+
+
+class TestLiteLLMRetry:
+    """Test retry functionality for various error types"""
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_error_retry(self) -> None:
+        """Test that RateLimitError is retried and eventually succeeds"""
+        llm = LiteLLM(model="gpt-3.5-turbo", max_retries=2)
+        messages: list[Message] = [UserMessage(content="Hello")]
+
+        # Import the specific exception we need
+        from litellm.exceptions import RateLimitError
+
+        # Mock response that succeeds after retry
+        mock_response = create_mock_response("Success after retry")
+
+        rate_limit_error = RateLimitError("Rate limit exceeded", "openai", "gpt-3.5-turbo")
+
+        with patch("litellm.acompletion", side_effect=[rate_limit_error, mock_response]) as mock_completion:
+            result = await llm.run(messages)
+
+            # Should succeed after retry
+            assert result == mock_response
+            assert mock_completion.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_internal_server_error_retry(self) -> None:
+        """Test that InternalServerError is retried and eventually succeeds"""
+        llm = LiteLLM(model="gpt-3.5-turbo", max_retries=2)
+        messages: list[Message] = [UserMessage(content="Hello")]
+
+        # Import the specific exception we need
+        from litellm.exceptions import InternalServerError
+
+        # Mock response that succeeds after retry
+        mock_response = create_mock_response("Success after retry")
+        internal_error = InternalServerError("Internal server error", "openai", "gpt-3.5-turbo")
+
+        with patch("litellm.acompletion", side_effect=[internal_error, mock_response]) as mock_completion:
+            result = await llm.run(messages)
+
+            # Should succeed after retry
+            assert result == mock_response
+            assert mock_completion.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_connection_error_retry(self) -> None:
+        """Test that connection errors (aiohttp/httpx) are retried and eventually succeed"""
+        llm = LiteLLM(model="gpt-3.5-turbo", max_retries=2)
+        messages: list[Message] = [UserMessage(content="Hello")]
+
+        # Import connection error types
+        import httpx
+
+        # Mock response that succeeds after retry
+        mock_response = create_mock_response("Success after retry")
+        connection_error = httpx.ConnectError("Connection failed")
+
+        with patch("litellm.acompletion", side_effect=[connection_error, mock_response]) as mock_completion:
+            result = await llm.run(messages)
+
+            # Should succeed after retry
+            assert result == mock_response
+            assert mock_completion.call_count == 2

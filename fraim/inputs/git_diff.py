@@ -6,7 +6,6 @@ from types import TracebackType
 from git import Repo
 from unidiff import PatchSet
 
-from fraim.config.config import Config
 from fraim.core.contextuals import CodeChunk
 from fraim.inputs.input import Input
 
@@ -15,7 +14,6 @@ from fraim.inputs.input import Input
 class GitDiff(Input):
     def __init__(
         self,
-        config: Config,
         path: str,
         head: str | None,
         base: str | None,
@@ -23,7 +21,6 @@ class GitDiff(Input):
         exclude_globs: list[str] | None = None,
         limit: int | None = None,
     ):
-        self.config = config
         self.globs = globs
         self.limit = limit
         self.path = path

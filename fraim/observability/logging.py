@@ -6,10 +6,8 @@ from pathlib import Path
 #       We could then have a reader that renders these log events differently.
 
 
-def make_logger(
-    name: str | None = None, level: int = logging.INFO, path: str | None = None, show_logs: bool = False
-) -> logging.Logger:
-    logger = logging.getLogger(name)  # Get or create logger instance by name
+def make_logger(level: int = logging.INFO, path: str | None = None, show_logs: bool = False) -> logging.Logger:
+    logger = logging.getLogger()  # Get or create logger instance by name
 
     logger.setLevel(level)  # Set the log level, always overwriting
 

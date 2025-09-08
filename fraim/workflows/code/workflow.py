@@ -8,25 +8,24 @@ Analyzes source code for security vulnerabilities using AI-powered scanning.
 """
 
 import asyncio
+import logging
 import os
 import threading
 from dataclasses import dataclass
-from typing import Annotated, Any
+from typing import Annotated
 
-from fraim.config import Config
 from fraim.core.contextuals import CodeChunkFailure, Contextual
-from fraim.core.llms.litellm import LiteLLM
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
-from fraim.core.workflows import ChunkProcessingMixin, ChunkWorkflowInput, Workflow
+from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor, Workflow
 from fraim.outputs import sarif
 from fraim.outputs.sarif import Run
 from fraim.tools.tree_sitter import TreeSitterTools
 from fraim.util.pydantic import merge_models
-from fraim.workflows.registry import workflow
-from fraim.workflows.utils import filter_results_by_confidence, write_sarif_and_html_report
 
+from ...core.workflows.llm_processing import LLMMixin, LLMOptions
+from ...core.workflows.sarif import ConfidenceFilterOptions, filter_results_by_confidence, write_sarif_and_html_report
 from . import triage_sarif_overlay
 
 FILE_PATTERNS = [
@@ -55,10 +54,11 @@ triage_sarif = merge_models(sarif, triage_sarif_overlay)
 
 
 @dataclass
-class CodeInput(ChunkWorkflowInput):
+class SASTWorkflowOptions(ChunkProcessingOptions, ConfidenceFilterOptions):
     """Input for the Code workflow."""
 
-    # Code-specific parameter
+    output: Annotated[str, {"help": "Path to save the output HTML report"}] = "fraim_output"
+
     max_concurrent_triagers: Annotated[
         int, {"help": "Maximum number of triager requests per chunk to run concurrently"}
     ] = 3
@@ -71,7 +71,6 @@ class SASTInput:
     """Input for the SAST scanner step."""
 
     code: Contextual[str]
-    config: Config
 
 
 @dataclass
@@ -80,18 +79,19 @@ class TriagerInput:
 
     vulnerability: str
     code: Contextual[str]
-    config: Config
 
 
-@workflow("code")
-class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, list[sarif.Result]]):
-    """Analyzes source code for security vulnerabilities"""
+class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProcessor, LLMMixin):
+    """
+    Analyzes source code for security vulnerabilities
+    """
 
-    def __init__(self, config: Config, *args: Any, **kwargs: Any) -> None:
-        super().__init__(config, *args, **kwargs)
+    name = "code"
 
+    def __init__(self, logger: logging.Logger, args: SASTWorkflowOptions) -> None:
         # Initialize LLM and scanner step immediately
-        self.llm = LiteLLM.from_config(self.config)
+        #
+        super().__init__(logger, args)
         self.failed_chunks: list[CodeChunkFailure] = []
         sast_workflow_run_results_class = sarif.create_run_model(
             allowed_types=[
@@ -116,7 +116,6 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, list[sarif.Result]]
         self.scanner_step: LLMStep[SASTInput, Run] = LLMStep(
             self.llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser
         )
-
         # Keep triager step as lazy since it depends on project setup
         self._triager_step: LLMStep[TriagerInput, sarif.Result] | None = None
         self._triager_lock = threading.Lock()
@@ -170,18 +169,18 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, list[sarif.Result]]
         """Process a single chunk with multi-step processing and error handling."""
         try:
             # 1. Scan the code for potential vulnerabilities.
-            self.config.logger.debug("Scanning the code for potential vulnerabilities")
-            potential_vulns = await self.scanner_step.run(SASTInput(code=chunk, config=self.config))
+            self.logger.debug("Scanning the code for potential vulnerabilities")
+            potential_vulns = await self.scanner_step.run(SASTInput(code=chunk))
 
             # 2. Filter vulnerabilities by confidence.
-            self.config.logger.debug("Filtering vulnerabilities by confidence")
-            high_confidence_vulns = filter_results_by_confidence(potential_vulns.results, self.config.confidence)
+            self.logger.debug("Filtering vulnerabilities by confidence")
+            high_confidence_vulns = filter_results_by_confidence(potential_vulns.results, self.args.confidence)
 
-            if self.no_triage:
+            if self.args.no_triage:
                 return high_confidence_vulns
 
             # 3. Triage the high-confidence vulns with limited concurrency.
-            self.config.logger.debug("Triaging high-confidence vulns with limited concurrency")
+            self.logger.debug("Triaging high-confidence vulns with limited concurrency")
 
             # Create semaphore to limit concurrent triager requests
             triager_semaphore = asyncio.Semaphore(max_concurrent_triagers)
@@ -189,9 +188,7 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, list[sarif.Result]]
             async def triage_with_semaphore(vuln: sarif.Result) -> sarif.Result | None:
                 """Triage a vulnerability with semaphore to limit concurrency."""
                 async with triager_semaphore:
-                    return await self.triager_step.run(
-                        TriagerInput(vulnerability=str(vuln), code=chunk, config=self.config)
-                    )
+                    return await self.triager_step.run(TriagerInput(vulnerability=str(vuln), code=chunk))
 
             triaged_results = await asyncio.gather(*[triage_with_semaphore(vuln) for vuln in high_confidence_vulns])
 
@@ -199,45 +196,41 @@ class SASTWorkflow(ChunkProcessingMixin, Workflow[CodeInput, list[sarif.Result]]
             triaged_vulns = [result for result in triaged_results if result is not None]
 
             # 4. Filter the triaged vulnerabilities by confidence
-            self.config.logger.debug("Filtering the triaged vulnerabilities by confidence")
-            high_confidence_triaged_vulns = filter_results_by_confidence(triaged_vulns, self.config.confidence)
+            self.logger.debug("Filtering the triaged vulnerabilities by confidence")
+            high_confidence_triaged_vulns = filter_results_by_confidence(triaged_vulns, self.args.confidence)
 
             return high_confidence_triaged_vulns
 
         except Exception as e:
             self.failed_chunks.append(CodeChunkFailure(chunk=chunk, reason=str(e)))
-            self.config.logger.error(
+            self.logger.error(
                 f"Failed to process chunk {str(chunk.locations)}: {e!s}. Skipping this chunk and continuing with scan."
             )
             return []
 
-    async def workflow(self, input: CodeInput) -> list[sarif.Result]:
+    async def run(self) -> list[sarif.Result]:
         """Main Code workflow - full control over execution with multi-step processing."""
-        try:
-            # 1. Setup project input using utility
-            self.project = self.setup_project_input(input)
-            self.no_triage = input.no_triage
 
-            # 2. Create a closure that captures max_concurrent_triagers
-            async def chunk_processor(chunk: Contextual[str]) -> list[sarif.Result]:
-                return await self._process_single_chunk(chunk, input.max_concurrent_triagers)
+        # 1. Setup project input using utility
+        # TODO: Avoid this state
+        self.project = self.setup_project_input(self.logger, self.args)
 
-            # 3. Process chunks concurrently using utility
-            results = await self.process_chunks_concurrently(
-                project=self.project, chunk_processor=chunk_processor, max_concurrent_chunks=input.max_concurrent_chunks
-            )
+        # 2. Create a closure that captures max_concurrent_triagers
+        async def chunk_processor(chunk: Contextual[str]) -> list[sarif.Result]:
+            return await self._process_single_chunk(chunk, self.args.max_concurrent_triagers)
 
-            # 4. Generate reports
-            write_sarif_and_html_report(
-                results=results,
-                repo_name=self.project.repo_name,
-                output_dir=self.config.output_dir,
-                logger=self.config.logger,
-                failed_chunks=self.failed_chunks,
-            )
+        # 3. Process chunks concurrently using utility
+        results = await self.process_chunks_concurrently(
+            project=self.project, chunk_processor=chunk_processor, max_concurrent_chunks=self.args.max_concurrent_chunks
+        )
 
-            return results
+        # 4. Generate reports
+        write_sarif_and_html_report(
+            results=results,
+            repo_name=self.project.repo_name,
+            output_dir=self.args.output,
+            logger=self.logger,
+            failed_chunks=self.failed_chunks,
+        )
 
-        except Exception as e:
-            self.config.logger.error(f"Error during code scan: {e!s}")
-            raise e
+        return results

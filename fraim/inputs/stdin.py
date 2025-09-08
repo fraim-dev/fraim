@@ -5,14 +5,12 @@ from collections.abc import Iterator
 from types import TracebackType
 from typing import Self
 
-from fraim.config import Config
 from fraim.core.contextuals import CodeChunk
 from fraim.inputs.input import Input
 
 
 class StandardInput(Input):
-    def __init__(self, config: Config, body: str):
-        self.config = config
+    def __init__(self, body: str):
         self.body = body
 
     def root_path(self) -> str:

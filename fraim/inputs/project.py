@@ -1,3 +1,4 @@
+import logging
 import os
 from collections.abc import Iterator
 from typing import Any, Literal
@@ -26,7 +27,6 @@ CHUNKING_METHODS = {
 
 
 class ProjectInput:
-    config: Config
     input: Input
     chunk_size: int
     chunk_overlap: int = 0
@@ -35,8 +35,9 @@ class ProjectInput:
     chunker: Chunker
     chunking_method: Literal["syntactic", "fixed", "fixed_token", "packed", "file", "project", "original"] = "original"
 
-    def __init__(self, config: Config, kwargs: Any) -> None:
-        self.config = config
+    # TODO: **kwargs?
+    def __init__(self, logger: logging.Logger, kwargs: Any) -> None:
+        self.logger = logger
         path_or_url = kwargs.location or None
         paths = kwargs.paths
         globs = kwargs.globs
@@ -48,6 +49,7 @@ class ProjectInput:
         self.head = kwargs.head
         self.diff = kwargs.diff
         self.chunking_method = kwargs.chunking_method
+        self.model = kwargs.model
 
         if path_or_url is None:
             raise ValueError("Location is required")
@@ -56,7 +58,7 @@ class ProjectInput:
             self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
             # TODO: git diff here?
             self.input = GitRemote(
-                self.config,
+                self.logger,
                 url=path_or_url,
                 globs=globs,
                 limit=limit,
@@ -71,8 +73,7 @@ class ProjectInput:
             self.repo_name = os.path.basename(self.project_path)
             if self.diff:
                 self.input = GitDiff(
-                    self.config,
-                    self.project_path,
+                    path=self.project_path,
                     head=self.head,
                     base=self.base,
                     globs=globs,
@@ -81,7 +82,7 @@ class ProjectInput:
                 )
             else:
                 self.input = Local(
-                    self.config,
+                    self.logger,
                     self.project_path,
                     globs=globs,
                     limit=limit,
@@ -96,8 +97,8 @@ class ProjectInput:
             project_path=self.project_path,
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
-            model=self.config.model,
-            logger=self.config.logger,
+            model=self.model,
+            logger=self.logger,
         )
 
     def __iter__(self) -> Iterator[Contextual[str]]:

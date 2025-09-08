@@ -8,21 +8,24 @@ Analyzes IaC files (Terraform, CloudFormation, Kubernetes, Docker, etc.)
 for security misconfigurations and compliance issues.
 """
 
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Annotated
 
-from fraim.config import Config
 from fraim.core.contextuals import CodeChunk, CodeChunkFailure, Contextual
-from fraim.core.llms.litellm import LiteLLM
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
-from fraim.core.workflows import ChunkProcessingMixin, ChunkWorkflowInput, Workflow
+from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor, Workflow
+from fraim.core.workflows.llm_processing import LLMMixin, LLMOptions
+from fraim.core.workflows.sarif import (
+    ConfidenceFilterOptions,
+    filter_results_by_confidence,
+    write_sarif_and_html_report,
+)
 from fraim.outputs import sarif
-from fraim.workflows.registry import workflow
-from fraim.workflows.utils import filter_results_by_confidence, write_sarif_and_html_report
 
 FILE_PATTERNS = [
     "*.tf",
@@ -57,33 +60,30 @@ SCANNER_PROMPTS = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__file__
 
 
 @dataclass
-class IaCInput(ChunkWorkflowInput):
-    """Input for the IaC workflow."""
+class IaCWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceFilterOptions):
+    """Options for the IaC workflow."""
+
+    output: Annotated[str, {"help": "Path to save the output HTML report"}] = "fraim_output"
 
 
 @dataclass
-class IaCCodeChunkInput:
-    """Input for processing a single IaC chunk."""
+class IaCCodeChunkOptions:
+    """Options to process a single IaC chunk."""
 
     code: Contextual[str]
-    config: Config
 
 
-@workflow("iac")
-class IaCWorkflow(ChunkProcessingMixin, Workflow[IaCInput, list[sarif.Result]]):
+class IaCWorkflow(Workflow[IaCWorkflowOptions, list[sarif.Result]], ChunkProcessor, LLMMixin):
     """Analyzes IaC files for security vulnerabilities, compliance issues, and best practice deviations."""
 
-    def __init__(self, config: Config, *args: Any, **kwargs: Any) -> None:
-        super().__init__(config, *args, **kwargs)
+    name = "iac"
 
-        # Construct an LLM instance
+    def __init__(self, logger: logging.Logger, args: IaCWorkflowOptions) -> None:
+        super().__init__(logger, args)
         self.failed_chunks: list[CodeChunkFailure] = []
-        llm = LiteLLM.from_config(config)
-
-        # Construct the Scanner Step
         scanner_parser = PydanticOutputParser(sarif.RunResults)
-        self.scanner_step: LLMStep[IaCCodeChunkInput, sarif.RunResults] = LLMStep(
-            llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser
+        self.scanner_step: LLMStep[IaCCodeChunkOptions, sarif.RunResults] = LLMStep(
+            self.llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser
         )
 
     @property
@@ -95,46 +95,41 @@ class IaCWorkflow(ChunkProcessingMixin, Workflow[IaCInput, list[sarif.Result]]):
         """Process a single chunk with error handling."""
         try:
             # 1. Scan the code for vulnerabilities.
-            self.config.logger.info(f"Scanning code for vulnerabilities: {str(chunk.locations)}")
-            iac_input = IaCCodeChunkInput(code=chunk, config=self.config)
+            self.logger.info(f"Scanning code for vulnerabilities: {str(chunk.locations)}")
+            iac_input = IaCCodeChunkOptions(code=chunk)
             vulns = await self.scanner_step.run(iac_input)
 
             # 2. Filter the vulnerability by confidence.
-            self.config.logger.info("Filtering vulnerabilities by confidence")
-            high_confidence_vulns = filter_results_by_confidence(vulns.results, self.config.confidence)
+            self.logger.info("Filtering vulnerabilities by confidence")
+            high_confidence_vulns = filter_results_by_confidence(vulns.results, self.args.confidence)
 
             return high_confidence_vulns
         except Exception as e:
             self.failed_chunks.append(CodeChunkFailure(chunk=chunk, reason=str(e)))
-            self.config.logger.error(
+            self.logger.error(
                 f"Failed to process chunk {str(chunk.locations)}: {e!s}. Skipping this chunk and continuing with scan."
             )
             return []
 
-    async def workflow(self, input: IaCInput) -> list[sarif.Result]:
+    async def run(self) -> list[sarif.Result]:
         """Main IaC workflow - full control over execution."""
-        try:
-            # 1. Setup project input using utility
-            project = self.setup_project_input(input)
+        # 1. Setup project input using utility
+        project = self.setup_project_input(self.logger, self.args)
 
-            # 2. Process chunks concurrently using utility
-            results = await self.process_chunks_concurrently(
-                project=project,
-                chunk_processor=self._process_single_chunk,
-                max_concurrent_chunks=input.max_concurrent_chunks,
-            )
+        # 2. Process chunks concurrently using utility
+        results = await self.process_chunks_concurrently(
+            project=project,
+            chunk_processor=self._process_single_chunk,
+            max_concurrent_chunks=self.args.max_concurrent_chunks,
+        )
 
-            # 3. Generate reports (IaC workflow chooses to do this)
-            write_sarif_and_html_report(
-                results=results,
-                repo_name=project.repo_name,
-                output_dir=self.config.output_dir,
-                logger=self.config.logger,
-                failed_chunks=self.failed_chunks,
-            )
+        # 3. Generate reports (IaC workflow chooses to do this)
+        write_sarif_and_html_report(
+            results=results,
+            repo_name=project.repo_name,
+            output_dir=self.args.output,
+            logger=self.logger,
+            failed_chunks=self.failed_chunks,
+        )
 
-            return results
-
-        except Exception as e:
-            self.config.logger.error(f"Error during IaC scan: {e!s}")
-            raise e
+        return results

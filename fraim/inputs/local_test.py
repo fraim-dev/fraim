@@ -9,17 +9,13 @@ from fraim.inputs.local import Local
 
 TEST_DATA_DIR = Path(__name__).parent / "test_data"
 
-
-class MockConfig(Config):
-    def __init__(self) -> None:
-        self.logger = logging.getLogger(__name__)
-        self.project_path = str(TEST_DATA_DIR)
+log = logging.getLogger(__name__)
 
 
 @pytest.fixture
 def local() -> Local:
     return Local(
-        config=MockConfig(),
+        logger=log,
         root_path=str(TEST_DATA_DIR),
         globs=["*.py"],
         exclude_globs=["*.min.js", "*.min.css"],

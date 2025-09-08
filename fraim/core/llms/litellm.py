@@ -5,15 +5,16 @@
 
 import logging
 from collections.abc import Iterable
-from typing import Any, Protocol, Self
+from typing import Any, Iterable, Protocol, Self, cast
 
 import litellm
-from litellm import ModelResponse
+from litellm.files.main import ModelResponse
 from litellm.types.utils import ChatCompletionMessageToolCall
 
 from fraim.core.llms.base import BaseLLM
 from fraim.core.messages import AssistantMessage, Function, Message, ToolCall
 from fraim.core.tools import BaseTool, execute_tool_calls
+from fraim.core.utils.retry.tenacity import with_retry
 
 
 def _configure_litellm_logging() -> None:
@@ -54,22 +55,15 @@ class Config(Protocol):
 class LiteLLM(BaseLLM):
     """A wrapper around LiteLLM"""
 
-    @classmethod
-    def from_config(cls, config: Config, max_tool_iterations: int = 10, tools: list[BaseTool] | None = None) -> Self:
-        model_params = {"temperature": config.temperature}
-        return cls(
-            model=config.model,
-            additional_model_params=model_params,
-            max_tool_iterations=max_tool_iterations,
-            tools=tools,
-        )
-
     def __init__(
         self,
         model: str,
         additional_model_params: dict[str, Any] | None = None,
         max_tool_iterations: int = 10,
         tools: Iterable[BaseTool] | None = None,
+        max_retries: int = 5,
+        base_delay: float = 1.0,
+        max_delay: float = 120.0,
     ):
         self.model = model
         self.additional_model_params = additional_model_params or {}
@@ -82,6 +76,11 @@ class LiteLLM(BaseLLM):
         self.tools_dict = {tool.name: tool for tool in self.tools}
         self.tools_schema = [tool.to_openai_schema() for tool in self.tools]
 
+        # Retry configuration
+        self.max_retries = max_retries
+        self.base_delay = base_delay
+        self.max_delay = max_delay
+
     def with_tools(self, tools: Iterable[BaseTool], max_tool_iterations: int | None = None) -> Self:
         if max_tool_iterations is None:
             max_tool_iterations = self.max_tool_iterations
@@ -91,6 +90,9 @@ class LiteLLM(BaseLLM):
             additional_model_params=self.additional_model_params,
             max_tool_iterations=max_tool_iterations,
             tools=tools,
+            max_retries=self.max_retries,
+            base_delay=self.base_delay,
+            max_delay=self.max_delay,
         )
 
     async def _run_once(self, messages: list[Message], use_tools: bool) -> tuple[ModelResponse, list[Message], bool]:
@@ -103,9 +105,15 @@ class LiteLLM(BaseLLM):
 
         logging.getLogger().debug(f"LLM request: {completion_params}")
 
-        response = await litellm.acompletion(**completion_params)
+        acompletion = with_retry(
+            litellm.acompletion, max_retries=self.max_retries, base_delay=self.base_delay, max_delay=self.max_delay
+        )
+        response = await acompletion(**completion_params)
 
-        message = response.choices[0].message
+        # Type assertion - we're not using streaming so this should be ModelResponse
+        response = cast(ModelResponse, response)
+
+        message = response.choices[0].message  # type: ignore
         message_content = message.content or ""
 
         logging.getLogger().debug(f"LLM response: {message_content}")
@@ -121,6 +129,7 @@ class LiteLLM(BaseLLM):
         # Create assistant message with tool calls
         assistant_message = AssistantMessage(content=message_content, tool_calls=tool_calls)
 
+        # Add assistant message and tool responses to conversation
         updated_messages = messages + [assistant_message] + tool_messages
 
         return response, updated_messages, True

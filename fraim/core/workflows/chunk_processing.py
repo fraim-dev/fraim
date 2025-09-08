@@ -6,30 +6,50 @@ Utilities for workflows that process code chunks with concurrent execution.
 """
 
 import asyncio
+import logging
 from abc import abstractmethod
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Annotated, Any, TypeVar
+from typing import Annotated, TypeVar
 
-from fraim.config import Config
 from fraim.core.contextuals import Contextual
+from fraim.core.workflows.llm_processing import LLMOptions
 from fraim.inputs.project import CHUNKING_METHODS, ProjectInput
-
-from .workflow import WorkflowInput
 
 # Type variable for generic result types
 T = TypeVar("T")
 
 
 @dataclass
-class ChunkWorkflowInput(WorkflowInput):
+class ChunkProcessingOptions(LLMOptions):
     """Base input for chunk-based workflows."""
 
-    config: Config
-    head: Annotated[str, {"help": "Git head commit for diff input"}]
-    base: Annotated[str, {"help": "Git base commit for diff input"}]
-    location: Annotated[str, {"help": "Repository URL or path to scan"}]
+    location: Annotated[str, {"help": "Repository URL or path to scan"}] = "."
+    limit: Annotated[int | None, {"help": "Limit the number of files to scan"}] = None
+
+    diff: Annotated[bool, {"help": "Whether to use git diff input"}] = False
+    head: Annotated[str | None, {"help": "Git head commit for diff input, uses HEAD if not provided"}] = None
+    base: Annotated[str | None, {"help": "Git base commit for diff input, assumes the empty tree if not provided"}] = (
+        None
+    )
+    globs: Annotated[
+        list[str] | None,
+        {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
+    ] = None
+    exclude_globs: Annotated[
+        list[str] | None,
+        {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
+    ] = None
+    chunking_method: Annotated[
+        str,
+        {
+            "help": (
+                "Method to use for chunking code files. Only the original chunking method is supported currently. "
+            ),
+            "choices": CHUNKING_METHODS.keys(),
+        },
+    ] = "original"
     chunk_size: Annotated[
         int | None,
         {
@@ -38,7 +58,6 @@ class ChunkWorkflowInput(WorkflowInput):
             )
         },
     ] = 500
-    limit: Annotated[int | None, {"help": "Limit the number of files to scan"}] = None
     paths: Annotated[
         list[str] | None, {"help": "Optionally limit scanning to these paths (relative to `--location`)"}
     ] = None
@@ -51,36 +70,10 @@ class ChunkWorkflowInput(WorkflowInput):
             )
         },
     ] = None
-    globs: Annotated[
-        list[str] | None,
-        {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
-    ] = None
-    exclude_globs: Annotated[
-        list[str] | None,
-        {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
-    ] = None
     max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
 
-    diff: Annotated[
-        bool,
-        {
-            "help": (
-                "Whether to use git diff input. If --head and --base are not specified, the working tree is scanned."
-            )
-        },
-    ] = False
-    chunking_method: Annotated[
-        str,
-        {
-            "help": (
-                "Method to use for chunking code files. Only the original chunking method is supported currently. "
-            ),
-            "choices": CHUNKING_METHODS.keys(),
-        },
-    ] = "original"
 
-
-class ChunkProcessingMixin:
+class ChunkProcessor:
     """
     Mixin class providing utilities for chunk-based workflows.
 
@@ -91,11 +84,6 @@ class ChunkProcessingMixin:
     Workflows can use these utilities as needed while maintaining full control
     over their workflow() method and error handling.
     """
-
-    def __init__(self, config: Config, *args: Any, **kwargs: Any) -> None:
-        self.config = config
-        # Note: In mixins, we often don't call super().__init__()
-        # The concrete class will handle calling the base class __init__
 
     @property
     @abstractmethod
@@ -111,36 +99,36 @@ class ChunkProcessingMixin:
             "*.min.css",
         ]
 
-    def setup_project_input(self, input: ChunkWorkflowInput) -> ProjectInput:
+    def setup_project_input(self, logger: logging.Logger, args: ChunkProcessingOptions) -> ProjectInput:
         """
-        Set up ProjectInput from workflow input.
+        Set up ProjectInput from workflow options.
 
         Args:
-            input: The workflow input
+            args: Arguments to create the input.
 
         Returns:
             Configured ProjectInput instance
         """
-        effective_globs = input.globs if input.globs is not None else self.file_patterns
-        exclude_effective_globs = input.exclude_globs if input.exclude_globs is not None else self.exclude_file_patterns
-
+        effective_globs = args.globs if args.globs is not None else self.file_patterns
+        exclude_effective_globs = args.exclude_globs if args.exclude_globs is not None else self.exclude_file_patterns
         kwargs = SimpleNamespace(
-            location=input.location,
-            paths=input.paths,
+            location=args.location,
+            paths=args.paths,
             globs=effective_globs,
             exclude_globs=exclude_effective_globs,
-            limit=input.limit,
-            chunk_size=input.chunk_size,
-            chunk_overlap=input.chunk_overlap,
-            chunking_method=input.chunking_method,
-            head=input.head,
-            base=input.base,
-            diff=input.diff,
+            limit=args.limit,
+            chunk_size=args.chunk_size,
+            chunk_overlap=args.chunk_overlap,
+            chunking_method=args.chunking_method,
+            head=args.head,
+            base=args.base,
+            diff=args.diff,
+            model=args.model,
         )
-        return ProjectInput(config=self.config, kwargs=kwargs)
+        return ProjectInput(logger, kwargs=kwargs)
 
+    @staticmethod
     async def process_chunks_concurrently(
-        self,
         project: ProjectInput,
         chunk_processor: Callable[[Contextual[str]], Awaitable[list[T]]],
         max_concurrent_chunks: int = 5,
