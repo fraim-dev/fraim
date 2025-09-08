@@ -1,0 +1,151 @@
+"""
+Functions for notifying different platforms and services.
+"""
+
+import logging
+import os
+import re
+import shutil
+import subprocess
+from typing import Optional
+from urllib.parse import urlparse
+
+from github import Github
+
+logger = logging.getLogger(__name__)
+
+
+def _get_github_token() -> Optional[str]:
+    """
+    Get GitHub token from multiple sources in order of preference:
+    1. GITHUB_TOKEN environment variable
+    2. GitHub CLI token
+    3. Git credential helper for github.com
+    """
+    logger.debug("Attempting to get GitHub token from multiple sources")
+
+    # Try environment variable first
+    logger.debug("Checking GITHUB_TOKEN environment variable")
+    token = os.getenv("GITHUB_TOKEN")
+    if token:
+        logger.info("GitHub token found in environment variable")
+        return token
+    logger.debug("No GitHub token found in environment variable")
+
+    # Try GitHub CLI
+    logger.debug("Checking GitHub CLI for authentication")
+    if shutil.which("gh"):
+        logger.debug("GitHub CLI found, attempting to get token")
+        try:
+            result = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, check=True)
+            token = result.stdout.strip()
+            if token:
+                logger.info("GitHub token found via GitHub CLI")
+                return token
+        except subprocess.CalledProcessError as e:
+            logger.debug(f"GitHub CLI authentication failed: {e}")
+    else:
+        logger.debug("GitHub CLI not found")
+
+    # Try git credential helper
+    logger.debug("Attempting to get GitHub token from git credential helper")
+    try:
+        # Use git credential fill to get credentials for github.com
+        result = subprocess.run(
+            ["git", "credential", "fill"],
+            input="protocol=https\nhost=github.com\n\n",
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        # Parse the credential response
+        lines = result.stdout.strip().split("\n")
+        for line in lines:
+            if line.startswith("password="):
+                password = line.split("=", 1)[1]
+                # GitHub personal access tokens start with 'ghp_', 'gho_', or 'ghu_'
+                # or could be classic tokens that start with letters/numbers
+                if password and (password.startswith(("ghp_", "gho_", "ghu_")) or len(password) >= 20):
+                    logger.info("GitHub token found via git credential helper")
+                    return password
+    except subprocess.CalledProcessError as e:
+        logger.debug(f"Git credential helper failed: {e}")
+
+    logger.warning("No GitHub token found from any source")
+    return None
+
+
+def add_reviewer(pr_url: str, description: str, user_or_group: str) -> None:
+    """
+    Notifies a GitHub user or group by adding them as reviewers and leaving a comment on a PR.
+
+    Args:
+        pr_url: The full URL to the GitHub PR
+        description: The description to add as a comment
+        user_or_group: The GitHub user or group to notify (format: @org/team-name for groups, username for users)
+
+    Raises:
+        ValueError: If the PR URL is invalid or the user_or_group format is incorrect
+        RuntimeError: If GitHub token is not set or API calls fail
+    """
+    logger.info(f"Notifying GitHub user_or_group {user_or_group} for PR: {pr_url}")
+
+    # Parse PR URL to get owner, repo, and PR number
+    logger.debug(f"Parsing PR URL: {pr_url}")
+    try:
+        path_parts = urlparse(pr_url).path.strip("/").split("/")
+        if len(path_parts) < 4 or path_parts[-2] != "pull":
+            raise ValueError
+        owner, repo, _, pr_number = path_parts
+        logger.debug(f"Parsed PR details - Owner: {owner}, Repo: {repo}, PR: {pr_number}")
+    except (ValueError, IndexError):
+        logger.error(f"Failed to parse PR URL: {pr_url}")
+        raise ValueError(f"Invalid PR URL format: {pr_url}")
+
+    # Get GitHub token from multiple sources
+    logger.debug("Getting GitHub authentication token")
+    github_token = _get_github_token()
+    if not github_token:
+        logger.error("GitHub authentication failed - no token found")
+        raise RuntimeError(
+            "GitHub authentication required. Please ensure one of the following:\n"
+            "1. Set GITHUB_TOKEN environment variable\n"
+            "2. Configure git credentials for github.com\n"
+            "3. Login with GitHub CLI (`gh auth login`)"
+        )
+
+    # Initialize GitHub client
+    logger.debug("Initializing GitHub client")
+    gh = Github(github_token)
+
+    try:
+        # Get repository and PR
+        logger.debug(f"Getting repository: {owner}/{repo}")
+        repository = gh.get_repo(f"{owner}/{repo}")
+        logger.debug(f"Getting pull request #{pr_number}")
+        pull_request = repository.get_pull(int(pr_number))
+    except Exception as e:
+        logger.error(f"Failed to get repository or pull request: {str(e)}")
+        raise RuntimeError(f"Failed to get repository or pull request: {str(e)}") from e
+
+    try:
+        # Add comment with user_or_group mention
+        comment_text = f"{user_or_group}\n\n{description}"
+        logger.debug(f"Adding comment to PR with user_or_group mention: {user_or_group}")
+        pull_request.create_issue_comment(comment_text)
+        logger.info(f"Successfully added comment to PR #{pr_number}")
+    except Exception as e:
+        logger.error(f"Failed to add comment to PR: {str(e)}")
+        raise RuntimeError(f"Failed to add comment to PR: {str(e)}") from e
+
+    try:
+        # Request review from the group
+        # Strip @ from user_or_group name for the API
+        team_slug = user_or_group.strip("@").split("/")[-1]
+        logger.debug(f"Requesting review from user or group: {team_slug}")
+        pull_request.create_review_request(team_reviewers=[team_slug])
+        logger.info(f"Successfully requested review from user or group {team_slug} for PR #{pr_number}")
+    except Exception as e:
+        logger.error(f"Failed to request review from user or group: {str(e)}")
+        raise RuntimeError(f"Failed to request review from user or group: {str(e)}") from e
