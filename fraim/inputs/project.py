@@ -29,7 +29,7 @@ CHUNKING_METHODS = {
 class ProjectInput:
     input: Input
     chunk_size: int
-    chunk_overlap: int = 0
+    chunk_overlap: int
     project_path: str
     repo_name: str
     chunker: Chunker
