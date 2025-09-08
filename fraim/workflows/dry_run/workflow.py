@@ -11,8 +11,9 @@ import logging
 from dataclasses import dataclass
 from typing import List
 
-from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor
+from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor, Workflow
 from fraim.outputs import sarif
+from fraim.workflows.risk_flagger.workflow import RiskFlaggerWorkflowOptions
 
 FILE_PATTERNS = [
     "*.py",
@@ -41,19 +42,18 @@ class DryRunInput(ChunkProcessingOptions):
     pass
 
 
-class DryRunWorkflow(DryRunInput, ChunkProcessor):
-    """Dry Run workflow for testing purposes."""
-
+class DryRunWorkflow(Workflow[DryRunInput, List[sarif.Result]], ChunkProcessor):
+    name = "dry_run"
     @property
     def file_patterns(self) -> List[str]:
         """Code file patterns."""
         return FILE_PATTERNS
 
-    async def workflow(self, logger: logging.Logger, args: DryRunInput) -> List[sarif.Result]:
+    async def run(self) -> List[sarif.Result]:
         """Main Code workflow - full control over execution with multi-step processing."""
-        project = self.setup_project_input(logger, args)
+        project = self.setup_project_input(self.logger, self.args)
 
         for chunk in project:
-            logger.debug("DryRun workflow received chunk: %s", chunk)
+            self.logger.debug("DryRun workflow received chunk: %s", chunk)
 
         return []

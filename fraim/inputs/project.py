@@ -82,8 +82,8 @@ class ProjectInput:
                 )
             else:
                 self.input = Local(
-                    self.logger,
-                    self.project_path,
+                    logger=self.logger,
+                    root_path=self.project_path,
                     globs=globs,
                     limit=limit,
                     exclude_globs=exclude_globs,

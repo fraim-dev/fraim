@@ -60,7 +60,7 @@ class ChunkProcessingOptions(LLMOptions):
         },
     ] = 500
     paths: Annotated[
-        list[str] | None, {"help": "Optionally limit scanning to these paths (relative to `--location`)"}
+        Optional[list[str]], {"help": "Optionally limit scanning to these paths (relative to `--location`)"}
     ] = None
     chunk_overlap: Annotated[
         Optional[int],  # TODO: Support int | None notation, this value get's set as a string if that is used now.
