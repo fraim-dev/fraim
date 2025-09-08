@@ -127,7 +127,7 @@ def add_reviewer(pr_url: str, description: str, user_or_group: str) -> None:
         pull_request = repository.get_pull(int(pr_number))
     except Exception as e:
         logger.error(f"Failed to get repository or pull request: {str(e)}")
-        raise RuntimeError(f"Failed to get repository or pull request: {str(e)}")
+        raise RuntimeError(f"Failed to get repository or pull request: {str(e)}") from e
 
     try:
         # Add comment with user_or_group mention
@@ -137,7 +137,7 @@ def add_reviewer(pr_url: str, description: str, user_or_group: str) -> None:
         logger.info(f"Successfully added comment to PR #{pr_number}")
     except Exception as e:
         logger.error(f"Failed to add comment to PR: {str(e)}")
-        raise RuntimeError(f"Failed to add comment to PR: {str(e)}")
+        raise RuntimeError(f"Failed to add comment to PR: {str(e)}") from e
 
     try:
         # Request review from the group
@@ -148,6 +148,6 @@ def add_reviewer(pr_url: str, description: str, user_or_group: str) -> None:
         logger.info(f"Successfully requested review from user or group {team_slug} for PR #{pr_number}")
     except Exception as e:
         logger.error(f"Failed to request review from user or group: {str(e)}")
-        raise RuntimeError(f"Failed to request review from user or group: {str(e)}")
+        raise RuntimeError(f"Failed to request review from user or group: {str(e)}") from e
 
 

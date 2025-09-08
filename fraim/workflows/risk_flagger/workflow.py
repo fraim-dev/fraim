@@ -104,57 +104,35 @@ class RiskFlaggerWorkflow(Workflow[RiskFlaggerWorkflowOptions, List[sarif.Result
 
     def __init__(self, logger: logging.Logger, args: RiskFlaggerWorkflowOptions) -> None:
         super().__init__(logger, args)
-        LLMMixin.__init__(self, args)  # Initialize the LLMMixin explicitly
+        
+        self.project = self.setup_project_input(self.logger, args)
+        
+        # Initialize the flagger step
+        risks_dict = build_risks_list(
+            default_risks=DEFAULT_RISKS,
+            custom_risk_list_action=self.args.custom_risk_list_action,
+            custom_risk_list_filepath=self.args.custom_risk_list_filepath,
+            custom_risk_list_json=self.args.custom_risk_list_json,
+        )
+        self.logger.info(f"Using {len(risks_dict)} risks to consider: {', '.join(risks_dict.keys())}")
 
-        # Keep flagger step as lazy since it depends on project setup
-        self._flagger_step: Optional[LLMStep[RiskFlaggerInput, RiskFlaggerOutput]] = None
-        self._flagger_lock = threading.Lock()
-
-        self.risks_dict: Optional[Dict[str, str]] = None
-        self.custom_false_positive_considerations: Optional[List[str]] = None
-
-    @property
-    def flagger_step(self) -> LLMStep[RiskFlaggerInput, RiskFlaggerOutput]:
-        """Lazily initialize the triager step."""
-
-        # No locking required if step already exists
-        step = self._flagger_step
-        if step is not None:
-            return step
-
-        with self._flagger_lock:
-            if self._flagger_step is None:
-                # Validate inside the lock to avoid races with project assignment
-                if (
-                    not hasattr(self, "project")
-                    or not self.project
-                    or not hasattr(self.project, "project_path")
-                    or self.project.project_path is None
-                ):
-                    raise ValueError("project_path must be set before accessing triager_step")
-
-                risks_to_consider = format_risks_for_prompt(self.risks_dict or {})
-                flagger_parser = PydanticOutputParser(risk_sarif.RunResults)
-                flagger_llm = self.llm.with_tools(FilesystemTools(self.project.project_path))
-                self._flagger_step = LLMStep(
-                    flagger_llm,
-                    RISK_FLAGGER_PROMPTS["system"],
-                    RISK_FLAGGER_PROMPTS["user"],
-                    flagger_parser,
-                    static_inputs={
-                        "risks_to_consider": risks_to_consider,
-                        "custom_false_positive_considerations": self.custom_false_positive_considerations,
-                    },
-                )
-
-            return self._flagger_step
+        risks_to_consider = format_risks_for_prompt(risks_dict)
+        flagger_parser = PydanticOutputParser(risk_sarif.RunResults)
+        flagger_llm = self.llm.with_tools(FilesystemTools(self.project.project_path))
+        self.flagger_step: LLMStep[RiskFlaggerInput, RiskFlaggerOutput] = LLMStep(
+            flagger_llm,
+            RISK_FLAGGER_PROMPTS["system"],
+            RISK_FLAGGER_PROMPTS["user"],
+            flagger_parser,
+            static_inputs={
+                "risks_to_consider": risks_to_consider,
+                "custom_false_positive_considerations": args.custom_false_positive_considerations,
+            },
+        )
 
     async def _process_single_chunk(self, chunk: CodeChunk) -> List[sarif.Result]:
         """Process a single chunk with multi-step processing and error handling."""
         try:
-            if self.flagger_step is None:
-                raise ValueError("Flagger step not initialized")
-
             # 1. Scan the code for potential risks.
             self.logger.debug("Scanning the code for potential risks")
             risks = await self.flagger_step.run(RiskFlaggerInput(code=chunk))
@@ -194,33 +172,19 @@ class RiskFlaggerWorkflow(Workflow[RiskFlaggerWorkflowOptions, List[sarif.Result
                 "This workflow is intended to only run on a diff, therefore it is required and cannot be empty"
             )
 
-        # 2. Build the configurable risks dict and initialize flagger step
-        self.risks_dict = build_risks_list(
-            default_risks=DEFAULT_RISKS,
-            custom_risk_list_action=self.args.custom_risk_list_action,
-            custom_risk_list_filepath=self.args.custom_risk_list_filepath,
-            custom_risk_list_json=self.args.custom_risk_list_json,
-        )
-        self.custom_false_positive_considerations = self.args.custom_false_positive_considerations
-
-        self.logger.info(f"Using {len(self.risks_dict)} risks to consider: {', '.join(self.risks_dict.keys())}")
-
-        # 3. Setup project input using utility
-        self.project = self.setup_project_input(self.logger, self.args)
-
-        # 4. Create a closure that captures max_concurrent_chunks
+        # 2. Create a closure that captures max_concurrent_chunks
         async def chunk_processor(chunk: CodeChunk) -> List[sarif.Result]:
             return await self._process_single_chunk(chunk)
 
-        # 5. Process chunks concurrently using utility
+        # 3. Process chunks concurrently using utility
         results = await self.process_chunks_concurrently(
             project=self.project, chunk_processor=chunk_processor, max_concurrent_chunks=self.args.max_concurrent_chunks
         )
 
-        # 6. Format results into PR comment
+        # 4. Format results into PR comment
         pr_comment = format_pr_comment(results)
 
-        # 7. Notify Github groups with formatted comment
+        # 5. Notify Github groups with formatted comment
         if len(results) > 0:
             if self.args.pr_url and self.args.approver:
                 add_reviewer(self.args.pr_url, pr_comment, self.args.approver)
