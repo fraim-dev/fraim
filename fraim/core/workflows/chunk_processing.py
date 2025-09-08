@@ -11,7 +11,7 @@ from abc import abstractmethod
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Annotated, TypeVar
+from typing import Annotated, TypeVar, Optional
 
 from fraim.core.contextuals import Contextual
 from fraim.core.workflows.llm_processing import LLMOptions
@@ -44,6 +44,7 @@ class ChunkProcessingOptions(LLMOptions):
     chunking_method: Annotated[
         str,
         {
+            "type": int,
             "help": (
                 "Method to use for chunking code files. Only the original chunking method is supported currently. "
             ),
@@ -51,7 +52,7 @@ class ChunkProcessingOptions(LLMOptions):
         },
     ] = "original"
     chunk_size: Annotated[
-        int | None,
+        int,
         {
             "help": (
                 "Number of characters per chunk. Does not apply when the original, file, or project chunking methods are used."
@@ -62,7 +63,7 @@ class ChunkProcessingOptions(LLMOptions):
         list[str] | None, {"help": "Optionally limit scanning to these paths (relative to `--location`)"}
     ] = None
     chunk_overlap: Annotated[
-        int | None,
+        Optional[int],  # TODO: Support int | None notation, this value get's set as a string if that is used now.
         {
             "help": (
                 "Number of characters of overlap per chunk. Does not apply when the original, file, or project chunking "
