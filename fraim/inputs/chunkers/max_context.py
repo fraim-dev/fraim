@@ -30,7 +30,7 @@ class MaxContextChunker(PackingFixedChunker):
             max_tokens = 100_000
         chunk_size = max_tokens * chunk_fraction
 
-        kwargs.pop('chunk_size', None)  # Use are own chunk size here
-        kwargs.pop('chunk_overlap', None)  # Use are own chunk size here
+        kwargs.pop("chunk_size", None)  # Use are own chunk size here
+        kwargs.pop("chunk_overlap", None)  # Use are own chunk size here
 
         super().__init__(chunk_size=int(chunk_size), chunk_overlap=0, **kwargs)

@@ -11,7 +11,7 @@ from abc import abstractmethod
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Annotated, TypeVar, Optional
+from typing import Annotated, Optional, TypeVar
 
 from fraim.core.contextuals import Contextual
 from fraim.core.workflows.llm_processing import LLMOptions
