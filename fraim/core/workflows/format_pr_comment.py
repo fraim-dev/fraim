@@ -27,7 +27,7 @@ The following security risks have been identified and require review:
 **Location**: `{{ risk.locations[0].physicalLocation.artifactLocation.uri }}:{{ risk.locations[0].physicalLocation.region.startLine }}`
 
 **Explanation**:
-{%- for explanation in risk.properties.explanation.split('.') %}
+{%- for explanation in risk.properties.explanation.split('. ') %}
 {%- if explanation.strip() %}
 * {{ explanation.strip() }}.
 {%- endif %}
