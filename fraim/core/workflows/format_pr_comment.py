@@ -63,5 +63,5 @@ def format_pr_comment(risks: List[Any]) -> str:
 
     # Render the Jinja template
     template = Template(PR_COMMENT_TEMPLATE)
-    
+
     return template.render(risks_by_type=risks_by_type).strip()

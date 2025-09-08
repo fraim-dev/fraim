@@ -149,5 +149,3 @@ def add_reviewer(pr_url: str, description: str, user_or_group: str) -> None:
     except Exception as e:
         logger.error(f"Failed to request review from user or group: {str(e)}")
         raise RuntimeError(f"Failed to request review from user or group: {str(e)}") from e
-
-

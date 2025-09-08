@@ -21,7 +21,7 @@ class LLMOptions:
 
 class LLMMixin:
     def __init__(self, args: LLMOptions):
-        super().__init__() # type: ignore
+        super().__init__()  # type: ignore
 
         self.llm = LiteLLM(
             model=args.model,

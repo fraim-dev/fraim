@@ -9,7 +9,9 @@ Handles loading, parsing, and managing lists of risks to be analyzed.
 import json
 import os
 from typing import Any, Dict, List
+
 import yaml
+
 
 def load_risks_from_file(filepath: str) -> Dict[str, str]:
     """Load risks from a JSON or YAML file.
@@ -28,10 +30,10 @@ def load_risks_from_file(filepath: str) -> Dict[str, str]:
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read().strip()
-            
+
         # Determine file format from extension
         file_ext = os.path.splitext(filepath)[1].lower()
-        
+
         if file_ext == ".json":
             return parse_risks_from_text(content)
         elif file_ext in [".yaml", ".yml"]:
@@ -39,7 +41,7 @@ def load_risks_from_file(filepath: str) -> Dict[str, str]:
                 risks = yaml.safe_load(content)
                 if not isinstance(risks, dict):
                     raise ValueError("YAML must contain a dictionary/mapping")
-                
+
                 # Ensure all keys and values are strings
                 result = {}
                 for key, value in risks.items():
@@ -48,14 +50,14 @@ def load_risks_from_file(filepath: str) -> Dict[str, str]:
                     if not isinstance(value, str):
                         raise ValueError(f"All risk descriptions must be strings, got {type(value)} for key {key}")
                     result[key] = value
-                
+
                 return result
             except yaml.YAMLError as e:
                 raise ValueError(f"Invalid YAML format: {e}")
         else:
             # Try to parse as JSON if no recognized extension
             return parse_risks_from_text(content)
-            
+
     except FileNotFoundError:
         raise FileNotFoundError(f"Risk file not found: {filepath}")
     except Exception as e:
@@ -83,7 +85,7 @@ def parse_risks_from_text(text: str) -> Dict[str, str]:
         risks = json.loads(text)
         if not isinstance(risks, dict):
             raise ValueError("JSON must contain a dictionary/object")
-        
+
         # Ensure all keys and values are strings
         result = {}
         for key, value in risks.items():
@@ -92,7 +94,7 @@ def parse_risks_from_text(text: str) -> Dict[str, str]:
             if not isinstance(value, str):
                 raise ValueError(f"All risk descriptions must be strings, got {type(value)} for key {key}")
             result[key] = value
-        
+
         return result
     except json.JSONDecodeError as e:
         raise json.JSONDecodeError(f"Invalid JSON format: {e}", e.doc, e.pos)
