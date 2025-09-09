@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Annotated
 
+from fraim.core.contextuals import CodeChunkFailure
 from fraim.outputs import sarif
 from fraim.outputs.sarif import Result, create_sarif_report
 from fraim.reporting.reporting import Reporting
@@ -42,8 +43,14 @@ def filter_results_by_confidence(results: list[sarif.Result], confidence_thresho
     return [result for result in results if result.properties.confidence > confidence_threshold]
 
 
-def write_sarif_and_html_report(results: list[Result], repo_name: str, output_dir: str, logger: logging.Logger) -> None:
-    report = create_sarif_report(results)
+def write_sarif_and_html_report(
+    results: list[Result],
+    repo_name: str,
+    output_dir: str,
+    logger: logging.Logger,
+    failed_chunks: list[CodeChunkFailure],
+) -> None:
+    report = create_sarif_report(results, failed_chunks)
 
     # Create filename with sanitized repo name
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")

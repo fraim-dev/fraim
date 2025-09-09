@@ -11,22 +11,23 @@ from abc import abstractmethod
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Annotated, TypeVar
+from typing import Annotated, Optional, TypeVar
 
-from fraim.core.contextuals import CodeChunk
-from fraim.inputs.project import ProjectInput
+from fraim.core.contextuals import Contextual
+from fraim.core.workflows.llm_processing import LLMOptions
+from fraim.inputs.project import CHUNKING_METHODS, ProjectInput
 
 # Type variable for generic result types
 T = TypeVar("T")
 
 
 @dataclass
-class ChunkProcessingOptions:
+class ChunkProcessingOptions(LLMOptions):
     """Base input for chunk-based workflows."""
 
     location: Annotated[str, {"help": "Repository URL or path to scan"}] = "."
-    chunk_size: Annotated[int | None, {"help": "Number of lines per chunk"}] = 500
     limit: Annotated[int | None, {"help": "Limit the number of files to scan"}] = None
+
     diff: Annotated[bool, {"help": "Whether to use git diff input"}] = False
     head: Annotated[str | None, {"help": "Git head commit for diff input, uses HEAD if not provided"}] = None
     base: Annotated[str | None, {"help": "Git base commit for diff input, assumes the empty tree if not provided"}] = (
@@ -35,6 +36,40 @@ class ChunkProcessingOptions:
     globs: Annotated[
         list[str] | None,
         {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
+    ] = None
+    exclude_globs: Annotated[
+        list[str] | None,
+        {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
+    ] = None
+    chunking_method: Annotated[
+        str,
+        {
+            "type": int,
+            "help": (
+                "Method to use for chunking code files. Only the original chunking method is supported currently. "
+            ),
+            "choices": CHUNKING_METHODS.keys(),
+        },
+    ] = "original"
+    chunk_size: Annotated[
+        int,
+        {
+            "help": (
+                "Number of characters per chunk. Does not apply when the original, file, or project chunking methods are used."
+            )
+        },
+    ] = 500
+    paths: Annotated[
+        Optional[list[str]], {"help": "Optionally limit scanning to these paths (relative to `--location`)"}
+    ] = None
+    chunk_overlap: Annotated[
+        Optional[int],  # TODO: Support int | None notation, this value get's set as a string if that is used now.
+        {
+            "help": (
+                "Number of characters of overlap per chunk. Does not apply when the original, file, or project chunking "
+                "methods are used."
+            )
+        },
     ] = None
     max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
 
@@ -55,6 +90,15 @@ class ChunkProcessor:
     @abstractmethod
     def file_patterns(self) -> list[str]:
         """File patterns for this workflow (e.g., ['*.py', '*.js'])."""
+        pass
+
+    @property
+    def exclude_file_patterns(self) -> list[str]:
+        """File patterns for this workflow (e.g., ['*.py', '*.js'])."""
+        return [
+            "*.min.js",
+            "*.min.css",
+        ]
 
     def setup_project_input(self, logger: logging.Logger, args: ChunkProcessingOptions) -> ProjectInput:
         """
@@ -67,21 +111,27 @@ class ChunkProcessor:
             Configured ProjectInput instance
         """
         effective_globs = args.globs if args.globs is not None else self.file_patterns
+        exclude_effective_globs = args.exclude_globs if args.exclude_globs is not None else self.exclude_file_patterns
         kwargs = SimpleNamespace(
             location=args.location,
+            paths=args.paths,
             globs=effective_globs,
+            exclude_globs=exclude_effective_globs,
             limit=args.limit,
             chunk_size=args.chunk_size,
+            chunk_overlap=args.chunk_overlap,
+            chunking_method=args.chunking_method,
             head=args.head,
             base=args.base,
             diff=args.diff,
+            model=args.model,
         )
         return ProjectInput(logger, kwargs=kwargs)
 
     @staticmethod
     async def process_chunks_concurrently(
         project: ProjectInput,
-        chunk_processor: Callable[[CodeChunk], Awaitable[list[T]]],
+        chunk_processor: Callable[[Contextual[str]], Awaitable[list[T]]],
         max_concurrent_chunks: int = 5,
     ) -> list[T]:
         """
@@ -100,7 +150,7 @@ class ChunkProcessor:
         # Create semaphore to limit concurrent chunk processing
         semaphore = asyncio.Semaphore(max_concurrent_chunks)
 
-        async def process_chunk_with_semaphore(chunk: CodeChunk) -> list[T]:
+        async def process_chunk_with_semaphore(chunk: Contextual[str]) -> list[T]:
             """Process a chunk with semaphore to limit concurrency."""
             async with semaphore:
                 return await chunk_processor(chunk)

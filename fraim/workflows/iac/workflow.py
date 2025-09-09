@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
 
-from fraim.core.contextuals import CodeChunk
+from fraim.core.contextuals import CodeChunk, CodeChunkFailure, Contextual
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
@@ -70,7 +70,7 @@ class IaCWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceFilterOpt
 class IaCCodeChunkOptions:
     """Options to process a single IaC chunk."""
 
-    code: CodeChunk
+    code: Contextual[str]
 
 
 class IaCWorkflow(Workflow[IaCWorkflowOptions, list[sarif.Result]], ChunkProcessor, LLMMixin):
@@ -80,6 +80,7 @@ class IaCWorkflow(Workflow[IaCWorkflowOptions, list[sarif.Result]], ChunkProcess
 
     def __init__(self, logger: logging.Logger, args: IaCWorkflowOptions) -> None:
         super().__init__(logger, args)
+        self.failed_chunks: list[CodeChunkFailure] = []
         scanner_parser = PydanticOutputParser(sarif.RunResults)
         self.scanner_step: LLMStep[IaCCodeChunkOptions, sarif.RunResults] = LLMStep(
             self.llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser
@@ -90,11 +91,11 @@ class IaCWorkflow(Workflow[IaCWorkflowOptions, list[sarif.Result]], ChunkProcess
         """IaC file patterns."""
         return FILE_PATTERNS
 
-    async def _process_single_chunk(self, chunk: CodeChunk) -> list[sarif.Result]:
+    async def _process_single_chunk(self, chunk: Contextual[str]) -> list[sarif.Result]:
         """Process a single chunk with error handling."""
         try:
             # 1. Scan the code for vulnerabilities.
-            self.logger.info(f"Scanning code for vulnerabilities: {Path(chunk.file_path)}")
+            self.logger.info(f"Scanning code for vulnerabilities: {str(chunk.locations)}")
             iac_input = IaCCodeChunkOptions(code=chunk)
             vulns = await self.scanner_step.run(iac_input)
 
@@ -104,9 +105,9 @@ class IaCWorkflow(Workflow[IaCWorkflowOptions, list[sarif.Result]], ChunkProcess
 
             return high_confidence_vulns
         except Exception as e:
+            self.failed_chunks.append(CodeChunkFailure(chunk=chunk, reason=str(e)))
             self.logger.error(
-                f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {e!s}. "
-                "Skipping this chunk and continuing with scan."
+                f"Failed to process chunk {str(chunk.locations)}: {e!s}. Skipping this chunk and continuing with scan."
             )
             return []
 
@@ -128,6 +129,7 @@ class IaCWorkflow(Workflow[IaCWorkflowOptions, list[sarif.Result]], ChunkProcess
             repo_name=project.repo_name,
             output_dir=self.args.output,
             logger=self.logger,
+            failed_chunks=self.failed_chunks,
         )
 
         return results

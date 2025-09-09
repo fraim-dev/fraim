@@ -23,6 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
+    "langchain-text-splitters>=0.3.9",
     "litellm>=1.72.7",
     "mcp-server-tree-sitter>=0.5.1",
     "packaging>=21.0",
@@ -63,6 +64,9 @@ dev-dependencies = [
     "pytest>=7.0.0",
     "mypy>=1.0.0",
 ]
+
+[tool.uv.sources]
+refraim = { git = "https://github.com/fraim-dev/refraim.git" }
 
 [tool.mypy]
 python_version = "3.12"

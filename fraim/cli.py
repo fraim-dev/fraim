@@ -8,6 +8,8 @@ import logging
 import multiprocessing as mp
 import os
 from dataclasses import is_dataclass
+from importlib.metadata import version
+from pathlib import Path
 from typing import Annotated, Any, Union, get_args, get_origin, get_type_hints
 
 from fraim.core.workflows.discovery import discover_workflows
@@ -43,6 +45,9 @@ def build_observability_arg(parser: argparse.ArgumentParser) -> None:
 def cli() -> int:
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 
+    parser.add_argument(
+        "--version", action="version", version=version("fraim"), help="Show the version number and exit"
+    )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     parser.add_argument("--show-logs", type=bool, default=True, help="Prints logs to standard error output")
     parser.add_argument("--log-output", type=str, default="fraim_output", help="Output directory for logs")

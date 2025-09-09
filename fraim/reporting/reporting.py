@@ -7,6 +7,7 @@ import logging
 import os
 import secrets
 from datetime import datetime
+from enum import Enum
 from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -82,6 +83,9 @@ class Reporting:
                 confidence = result.properties.confidence or UNKNOWN
                 file_path = self._get_file_path(result)
 
+                if isinstance(vuln_type, Enum):
+                    vuln_type = vuln_type.value
+
                 # Build table row
                 table_rows.append(
                     {
@@ -100,6 +104,7 @@ class Reporting:
                 # Update counts and sets
                 severity_counts[severity] += 1
                 all_severities.add(severity)
+
                 all_types.add(vuln_type)
 
                 result_index += 1

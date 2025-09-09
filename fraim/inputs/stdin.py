@@ -6,8 +6,6 @@ from types import TracebackType
 from typing import Self
 
 from fraim.core.contextuals import CodeChunk
-from fraim.inputs.chunks import chunk_input
-from fraim.inputs.file import BufferedFile
 from fraim.inputs.input import Input
 
 
@@ -19,8 +17,12 @@ class StandardInput(Input):
         return "stdin"
 
     def __iter__(self) -> Iterator[CodeChunk]:
-        for chunk in chunk_input(BufferedFile("stdin", self.body), chunk_size=128):
-            yield chunk
+        yield CodeChunk(
+            file_path="stdin",
+            content=self.body,
+            line_number_start_inclusive=1,
+            line_number_end_inclusive=len(self.body),
+        )
 
     def __enter__(self) -> Self:
         return self

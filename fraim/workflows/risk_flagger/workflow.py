@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from typing import Annotated, Dict, List, Literal, Optional
 
 from fraim.actions import add_reviewer
-from fraim.core.contextuals import CodeChunk
+from fraim.core.contextuals import CodeChunk, Contextual
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
@@ -88,7 +88,7 @@ class RiskFlaggerWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceF
 class RiskFlaggerInput:
     """Input for the Risk Flagger step."""
 
-    code: CodeChunk
+    code: Contextual[str]
 
 
 class RiskFlaggerOutput(sarif.BaseSchema):
@@ -130,7 +130,7 @@ class RiskFlaggerWorkflow(Workflow[RiskFlaggerWorkflowOptions, List[sarif.Result
             },
         )
 
-    async def _process_single_chunk(self, chunk: CodeChunk) -> List[sarif.Result]:
+    async def _process_single_chunk(self, chunk: Contextual[str]) -> List[sarif.Result]:
         """Process a single chunk with multi-step processing and error handling."""
         try:
             # 1. Scan the code for potential risks.
@@ -149,7 +149,7 @@ class RiskFlaggerWorkflow(Workflow[RiskFlaggerWorkflowOptions, List[sarif.Result
 
         except Exception as e:
             self.logger.error(
-                f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {str(e)}. "
+                f"Failed to process chunk at {str(chunk.locations)}: {str(e)}. "
                 "Skipping this chunk and continuing with scan."
             )
             return []
@@ -175,7 +175,7 @@ class RiskFlaggerWorkflow(Workflow[RiskFlaggerWorkflowOptions, List[sarif.Result
             )
 
         # 2. Create a closure that captures max_concurrent_chunks
-        async def chunk_processor(chunk: CodeChunk) -> List[sarif.Result]:
+        async def chunk_processor(chunk: Contextual[str]) -> List[sarif.Result]:
             return await self._process_single_chunk(chunk)
 
         # 3. Process chunks concurrently using utility
