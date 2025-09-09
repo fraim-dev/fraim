@@ -150,6 +150,9 @@ def add_reviewer(pr_url: str, description: str, user_or_group: str) -> None:
         logger.info(f"Attempting to add reviewer: {reviewer_name}")
 
         # First, try as organization team
+        team_error = None
+        user_error = None
+        
         try:
             team_name = reviewer_name
 
@@ -157,7 +160,8 @@ def add_reviewer(pr_url: str, description: str, user_or_group: str) -> None:
             pull_request.create_review_request(team_reviewers=[team_name])
             logger.info(f"Successfully requested review from team {owner}/{team_name} for PR #{pr_number}")
             return
-        except Exception as team_error:
+        except Exception as e:
+            team_error = e
             logger.debug(f"Not found as team: {team_error}")
 
         # Then, try as user
@@ -167,12 +171,12 @@ def add_reviewer(pr_url: str, description: str, user_or_group: str) -> None:
             logger.info(f"Successfully requested review from user {reviewer_name} for PR #{pr_number}")
             return
 
-        except Exception as user_error:
+        except Exception as e:
+            user_error = e
             logger.debug(f"Not found as user: {user_error}")
 
-        # Neither worked
-        error_msg = f"Could not find '{reviewer_name}' as either a GitHub team or user"
-        logger.error(error_msg)
+        # Neither worked - include both errors in message
+        error_msg = f"Could not find '{reviewer_name}' as either a GitHub team or user. Team error: {team_error}. User error: {user_error}"
         raise RuntimeError(error_msg)
 
     except Exception as e:
