@@ -78,16 +78,21 @@ def _get_github_token() -> Optional[str]:
 
 def add_reviewer(pr_url: str, description: str, user_or_group: str) -> None:
     """
-    Notifies a GitHub user or group by adding them as reviewers and leaving a comment on a PR.
+    Notifies a GitHub user or team by adding them as reviewers and leaving a comment on a PR.
+
+    Simple detection logic:
+    1. First tries to find as organization team (supports "org/team" or just "team")
+    2. Then tries to find as individual user
+    3. Fails if neither exists
 
     Args:
         pr_url: The full URL to the GitHub PR
         description: The description to add as a comment
-        user_or_group: The GitHub user or group to notify (format: @org/team-name for groups, username for users)
+        user_or_group: The GitHub user or team to notify
 
     Raises:
-        ValueError: If the PR URL is invalid or the user_or_group format is incorrect
-        RuntimeError: If GitHub token is not set or API calls fail
+        ValueError: If the PR URL is invalid
+        RuntimeError: If GitHub token is not set, API calls fail, or user/team cannot be found
     """
     logger.info(f"Notifying GitHub user_or_group {user_or_group} for PR: {pr_url}")
 
@@ -131,7 +136,7 @@ def add_reviewer(pr_url: str, description: str, user_or_group: str) -> None:
 
     try:
         # Add comment with user_or_group mention
-        comment_text = f"{user_or_group}\n\n{description}"
+        comment_text = f"@{user_or_group}\n\n{description}"
         logger.debug(f"Adding comment to PR with user_or_group mention: {user_or_group}")
         pull_request.create_issue_comment(comment_text)
         logger.info(f"Successfully added comment to PR #{pr_number}")
@@ -140,12 +145,36 @@ def add_reviewer(pr_url: str, description: str, user_or_group: str) -> None:
         raise RuntimeError(f"Failed to add comment to PR: {str(e)}") from e
 
     try:
-        # Request review from the group
-        # Strip @ from user_or_group name for the API
-        team_slug = user_or_group.strip("@").split("/")[-1]
-        logger.debug(f"Requesting review from user or group: {team_slug}")
-        pull_request.create_review_request(team_reviewers=[team_slug])
-        logger.info(f"Successfully requested review from user or group {team_slug} for PR #{pr_number}")
+        # Try to add reviewer - first as team, then as user
+        reviewer_name = user_or_group.strip("@").split("/")[-1]
+        logger.info(f"Attempting to add reviewer: {reviewer_name}")
+
+        # First, try as organization team
+        try:
+            team_name = reviewer_name
+
+            # Request review from team
+            pull_request.create_review_request(team_reviewers=[team_name])
+            logger.info(f"Successfully requested review from team {owner}/{team_name} for PR #{pr_number}")
+            return
+        except Exception as team_error:
+            logger.debug(f"Not found as team: {team_error}")
+
+        # Then, try as user
+        try:
+            # Request review from user
+            pull_request.create_review_request(reviewers=[reviewer_name])
+            logger.info(f"Successfully requested review from user {reviewer_name} for PR #{pr_number}")
+            return
+
+        except Exception as user_error:
+            logger.debug(f"Not found as user: {user_error}")
+
+        # Neither worked
+        error_msg = f"Could not find '{reviewer_name}' as either a GitHub team or user"
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
+
     except Exception as e:
-        logger.error(f"Failed to request review from user or group: {str(e)}")
-        raise RuntimeError(f"Failed to request review from user or group: {str(e)}") from e
+        logger.error(f"Failed to request review: {str(e)}")
+        raise RuntimeError(f"Failed to request review: {str(e)}") from e
