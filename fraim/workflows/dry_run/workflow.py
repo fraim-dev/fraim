@@ -44,6 +44,7 @@ class DryRunInput(ChunkProcessingOptions):
 
 class DryRunWorkflow(Workflow[DryRunInput, List[sarif.Result]], ChunkProcessor):
     name = "dry_run"
+
     @property
     def file_patterns(self) -> List[str]:
         """Code file patterns."""
