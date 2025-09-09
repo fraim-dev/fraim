@@ -1,28 +1,74 @@
-# Fraim
-
-A flexible framework for security teams to build and deploy AI-powered workflows that complement their existing security operations.
+# Fraim - A Security Engineer's AI Toolkit
 
 ## 🔭 Overview
 
-Fraim empowers security teams to easily create, customize, and deploy AI workflows tailored to their specific security needs. Rather than providing a one-size-fits-all solution, Fraim gives teams the building blocks to construct intelligent automation that integrates seamlessly with their existing security stack.
-Fraim comes built as a CLI, but you can also run workflows via our Github Action.
+Fraim gives security engineers AI-powered workflows to help them leverage the power of AI to solve REAL business needs. The workflows in this project are companions to a security engineer to help them find, detect, fix, and flag vulnerabilities across the development lifecycle.
+You can run Fraim as a CLI or inside Github Actions.
 
-## ❓ Why Fraim?
+## 🚩 Risk Flagger
 
-- **Framework-First Approach**: Build custom AI workflows instead of using rigid, pre-built tools
-- **Security Team Focused**: Designed specifically for security operations and threat analysis
-- **Extensible Architecture**: Easily add new workflows, data sources, and AI models
+Most security teams do not have visibility into the code changes happening on a day-to-day basis, and it is unrealistic to review every change. Risk Flagger solves this by requesting review on a Pull Request only if a "risk" is identified. These "risks" can be defined to match your specific use cases (ie "Flag any changes that make changes to authentication").
 
-## 🔎 Preview
+**Perfect for**:
+- Security teams with no visibility into code changes
+- Teams needing to focus limited security resources on the highest-priority risks
+- Organizations wanting to implement "security left" practices
 
-![UI Preview](assets/ui-preview.gif)
-_Output of running the `code` workflow_
+```bash
+# Basic risk flagger with built-in risks
+fraim run risk_flagger --model anthropic/claude-sonnet-4-20250514 --diff --base <base_sha> --head <head_sha> --approver security
 
-## Github Action Quick Start
+# Custom risk considerations inline
+fraim run risk_flagger --model anthropic/claude-sonnet-4-20250514 --diff --base <base_sha> --head <head_sha> --custom-risk-list-json '{"Database Changes": "All changes to a database should be flagged, similarly any networking changes that might affect the database should be flagged."}' --custom-risk-list-action replace --approver security
 
-NOTE: This example assumes you are using a Gemini based model. If you’d like to use an OpenAI based model, replace references of GEMINI with OPENAI and specify an OpenAI model in the action arguments.
+# Custom risk considerations
+fraim run risk_flagger --model anthropic/claude-sonnet-4-20250514 --diff --base <base_sha> --head <head_sha> --custom-risk-list-filepath ./custom-risks.yaml --approver security
+```
 
-Set your API key as a Secret in your repo. - Settings -> Secrets and Variables -> New Repository Secret -> GEMINI_API_KEY
+NOTE: we recommend using the Anthropic or OpenAI latest models for this workflow.
+
+
+<img src="assets/risk-flagger-preview.png" alt="Risk Flagger Preview" width="500"/>
+
+## 🛡️ Code Security Analysis
+
+Most security teams rely on signature-based scanners and scattered linters that miss context and overwhelm engineers with noise. Code Security Analysis applies LLM-powered, context-aware review to surface real vulnerabilities across languages (e.g. injection, authentication/authorization flaws, insecure cryptography, secret exposure, and unsafe configurations), explaining impact and suggesting fixes. It integrates cleanly into CI via SARIF output and can run on full repos or just diffs to keep PRs secure without slowing delivery.
+
+**Perfect for**:
+- Security teams needing comprehensive vulnerability coverage
+- Organizations requiring compliance with secure coding standards
+- Teams wanting to catch vulnerabilities before they reach production
+
+```bash
+# Comprehensive code analysis
+fraim run code --location https://github.com/username/repo-name
+
+# Focus on recent changes
+fraim run code --location . --diff --base main --head HEAD
+```
+
+## 🏗️ Infrastructure as Code (IAC) Analysis  
+
+Cloud misconfigurations often slip through because policy-as-code checks and scattered linters miss context across modules, environments, and providers. Infrastructure as Code Analysis uses LLM-powered, context-aware review of Terraform, CloudFormation, and Kubernetes manifests to spot risky defaults, excessive permissions, insecure networking and storage, and compliance gaps—explaining impact and proposing safer configurations. It integrates cleanly into CI via SARIF and can run on full repos or just diffs to prevent drift without slowing delivery.
+
+**Perfect for**:
+- DevOps teams managing cloud infrastructure
+- Organizations with strict compliance requirements
+- Teams implementing Infrastructure as Code practices
+- Security teams overseeing cloud security posture
+
+```bash
+# Analyze infrastructure configurations
+fraim run iac --location https://github.com/username/repo-name
+```
+
+## 🚀 Getting Started
+
+### Github Action Quick Start
+
+NOTE: This example assumes you are using an Anthropic based model.
+
+Set your API key as a Secret in your repo. - Settings -> Secrets and Variables -> New Repository Secret -> ANTHROPIC_API_KEY
 Define your workflow inside your repo at .github/workflows/<action_name>.yml
 
 ```yaml
@@ -44,19 +90,19 @@ jobs:
       - name: Run Fraim Security Scan
         uses: fraim-dev/fraim-action@v0
         with:
-          gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           workflows: "code"
 ```
 
-## 🚀 CLI Quick Start
+### CLI Quick Start
 
-### Prerequisites
+#### Prerequisites
 
 - **Python 3.12+**
 - **[pipx](https://pipx.pypa.io/stable/installation/) installation tool**
 - **API Key** for your chosen AI provider (Google Gemini, OpenAI, etc.)
 
-### Installation
+#### Installation
 
 NOTE: These instructions are for Linux based systems, see [docs](https://docs.fraim.dev/installation) for Windows installation instructions
 
@@ -84,41 +130,35 @@ pipx install fraim
       export OPENAI_API_KEY=your_api_key_here
       ```
 
-### Basic Usage
+### Common CLI Arguments
 
-```bash
-# Run code security analysis on a Git repository
-fraim code --location https://github.com/username/repo-name
+#### Global Options (apply to all commands)
 
-# Analyze local directory
-fraim code --location /path/to/code
-```
+- `--debug`: Enable debug logging for troubleshooting
+- `--show-logs SHOW_LOGS`: Print logs to standard error output  
+- `--log-output LOG_OUTPUT`: Specify directory for log files
+- `--observability langfuse`: Enable LLM observability and analytics
 
-## 💬 Community & Support
+#### Workflow Options (apply to most workflows)
 
-Join our growing community of security professionals using Fraim:
+- `--location LOCATION`: Repository URL or local path to analyze
+- `--model MODEL`: AI model to use (default varies by workflow, e.g., `gemini/gemini-2.5-flash`)
+- `--temperature TEMPERATURE`: Model temperature setting (0.0-1.0, default: 0)
+- `--chunk-size CHUNK_SIZE`: Number of lines per processing chunk
+- `--limit LIMIT`: Maximum number of files to scan
+- `--globs GLOBS`: File patterns to include in analysis
+- `--max-concurrent-chunks MAX_CONCURRENT_CHUNKS`: Control parallelism
 
-- **Documentation**: Visit [docs.fraim.dev](https://docs.fraim.dev) for comprehensive guides and tutorials
-- **Schedule a Demo**: [Book time with our team](https://calendly.com/fraim-dev/fraim-intro) - We'd love to help! Schedule a call for anything related to Fraim (debugging, new integrations, customizing workflows, or even just to chat)
-- **Slack Community**: [Join our Slack](https://join.slack.com/t/fraimworkspace/shared_invite/zt-38cunxtki-B80QAlLj7k8JoPaaYWUKNA) - Get help, share ideas, and connect with other security minded people looking to use AI to help their team succeed
-- **Issues**: Report bugs and request features via GitHub Issues
-- **Contributing**: See the [contributing guide](CONTRIBUTING.md) for more information.
+#### Git Diff Options
 
-## 📖 Documentation
+- `--diff`: Analyze only git diff instead of full repository
+- `--head HEAD`: Git head commit for diff (default: HEAD)
+- `--base BASE`: Git base commit for diff (default: empty tree)
 
-### Running Workflows
+#### Pull Request Integration  
 
-```bash
-
-# Adjust performance settings
-fraim code --location /code --chunk-size 1000
-
-# Enable debug logging
-fraim --debug code --location /code
-
-# Custom output location
-fraim --output /path/to/results/ code --location /code
-```
+- `--pr-url PR_URL`: URL of pull request to analyze
+- `--approver APPROVER`: GitHub username/group to notify
 
 ### Observability
 
@@ -135,65 +175,48 @@ pipx install 'fraim[langfuse]'
 2. **Enable observability during execution**:
 
 ```bash
-fraim --observability langfuse code --location /code
+fraim --observability langfuse run code --location /code
 ```
 
 This will trace your workflow execution, LLM calls, and performance metrics in Langfuse for analysis and debugging.
 
-### Configuration
+## 💬 Community & Support
+
+Join our growing community of security professionals using Fraim:
+
+- **Documentation**: Visit [docs.fraim.dev](https://docs.fraim.dev) for comprehensive guides and tutorials
+- **Schedule a Demo**: [Book time with our team](https://calendly.com/fraim-dev/fraim-intro) - We'd love to help! Schedule a call for anything related to Fraim (debugging, new integrations, customizing workflows, or even just to chat)
+- **Slack Community**: [Join our Slack](https://join.slack.com/t/fraimworkspace/shared_invite/zt-38cunxtki-B80QAlLj7k8JoPaaYWUKNA) - Get help, share ideas, and connect with other security minded people looking to use AI to help their team succeed
+- **Issues**: Report bugs and request features via GitHub Issues
+- **Contributing**: See the [contributing guide](CONTRIBUTING.md) for more information.
+
+## 🛠️ "Fraim"-work Development
+
+### Building Custom Workflows
+
+Fraim makes it easy to create custom security workflows tailored to your organization's specific needs:
+
+### Key Framework Components
+
+- **Workflow Engine**: Orchestrates AI agents and tools in flexible, composable patterns
+- **LLM Integrations**: Support for multiple AI providers with seamless switching
+- **Tool System**: Extensible security analysis tools that can be combined and customized
+- **Input Connectors**: Git repositories, file systems, APIs, and custom data sources
+- **Output Formatters**: JSON, SARIF, HTML reports, and custom output formats
+
+### Configuration System
 
 Fraim uses a flexible configuration system that allows you to:
 
-- Customize AI model parameters
-- Configure workflow-specific settings
-- Set up custom data sources
-- Define output formats
+- Customize AI model parameters for optimal performance
+- Configure workflow-specific settings and thresholds
+- Set up custom data sources and input methods
+- Define custom output formats and destinations
+- Manage API keys and authentication
 
 See the `fraim/config/` directory for configuration options.
 
-### Key Components
-
-- **Workflow Engine**: Orchestrates AI agents and tools
-- **LLM Integrations**: Support for multiple AI providers
-- **Tool System**: Extensible security analysis tools
-- **Input Connectors**: Git repositories, file systems, APIs
-- **Output Formatters**: JSON, SARIF, HTML reports
-
-## 🔧 Available Workflows
-
-Fraim includes several pre-built workflows that demonstrate the framework's capabilities:
-
-### Code Security Analysis
-
-_Status: Available_
-_Workflow Name: code_
-
-Automated source code vulnerability scanning using AI-powered analysis. Detects common security issues across multiple programming languages including SQL injection, XSS, CSRF, and more.
-
-Example
-
-```
-fraim code --location https://github.com/username/repo-name
-```
-
-### Infrastructure as Code (IAC) Analysis
-
-_Status: Available_
-_Workflow Name: iac_
-
-Analyzes infrastructure configuration files for security misconfigurations and compliance violations.
-
-Example
-
-```
-fraim iac --location https://github.com/username/repo-name
-```
-
-## 🛠️ Building Custom Workflows
-
-Fraim makes it easy to create custom security workflows:
-
-### 1. Define Input and Output Types
+#### 1. Define Input and Output Types
 
 ```python
 # workflows/<name>/workflow.py
@@ -206,7 +229,7 @@ class MyWorkflowInput:
 type MyWorkflowOutput = List[sarif.Result]
 ```
 
-### 2. Create Workflow Class
+#### 2. Create Workflow Class
 
 ```python
 # workflows/<name>/workflow.py
@@ -251,7 +274,7 @@ class MyCustomWorkflow(Workflow[MyWorkflowInput, MyWorkflowOutput]):
         return [result for result in results if result.properties.confidence > confidence_threshold]
 ```
 
-### 3. Create Prompt Files
+#### 3. Create Prompt Files
 
 Create `my_prompts.yaml` in the same directory:
 
