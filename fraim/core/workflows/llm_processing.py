@@ -12,8 +12,8 @@ from fraim.core.llms import LiteLLM
 class LLMOptions:
     """Base input for chunk-based workflows."""
 
-    model: Annotated[str, {"help": "Model to use for initial scan (default: gemini/gemini-2.5-flash)"}] = (
-        "gemini/gemini-2.5-flash"
+    model: Annotated[str, {"help": "Model to use for initial scan (default: anthropic/claude-sonnet-4-0)"}] = (
+        "anthropic/claude-sonnet-4-0"
     )
 
     temperature: Annotated[float, {"help": "Temperature setting for the model (0.0-1.0, default: 0)"}] = 0
