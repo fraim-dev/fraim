@@ -37,7 +37,7 @@ def validate_model_api_key(parser: argparse.ArgumentParser, args: argparse.Names
         },
         "anthropic": {
             "env_var": "ANTHROPIC_API_KEY",
-            "example_model": "anthropic/claude-3-sonnet-20240229",
+            "example_model": "anthropic/claude-sonnet-4-0",
             "display_name": "Anthropic",
         },
         "gemini": {
