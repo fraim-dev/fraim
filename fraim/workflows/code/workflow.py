@@ -10,7 +10,6 @@ Analyzes source code for security vulnerabilities using AI-powered scanning.
 import asyncio
 import logging
 import os
-import threading
 from dataclasses import dataclass
 from typing import Annotated
 
@@ -20,7 +19,7 @@ from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
 from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor, Workflow
 from fraim.outputs import sarif
-from fraim.tools.tree_sitter import TreeSitterTools
+from fraim.tools import FilesystemTools
 from fraim.util.pydantic import merge_models
 
 from ...core.workflows.llm_processing import LLMMixin, LLMOptions
@@ -86,53 +85,29 @@ class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProce
     name = "code"
 
     def __init__(self, logger: logging.Logger, args: SASTWorkflowOptions) -> None:
-        # Initialize LLM and scanner step immediately
-        #
         super().__init__(logger, args)
+
+        # Configure the project
+        self.project = self.setup_project_input(self.logger, self.args)
+
+        # Configure the scanner step
         scanner_parser = PydanticOutputParser(sarif.RunResults)
         self.scanner_step: LLMStep[SASTInput, sarif.RunResults] = LLMStep(
             self.llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser
         )
-        # Keep triager step as lazy since it depends on project setup
-        self._triager_step: LLMStep[TriagerInput, sarif.Result] | None = None
-        self._triager_lock = threading.Lock()
+
+        # Configure the triager step with tools
+        triager_tools = FilesystemTools(self.project.project_path)
+        triager_llm = self.llm.with_tools(triager_tools)
+        triager_parser = PydanticOutputParser(triage_sarif.Result)
+        self.triager_step: LLMStep[TriagerInput, sarif.Result] = LLMStep(
+            triager_llm, TRIAGER_PROMPTS["system"], TRIAGER_PROMPTS["user"], triager_parser
+        )
 
     @property
     def file_patterns(self) -> list[str]:
         """Code file patterns."""
         return FILE_PATTERNS
-
-    @property
-    def triager_step(self) -> LLMStep[TriagerInput, sarif.Result]:
-        """Lazily initialize the triager step."""
-
-        # No locking required if step already exists
-        step = self._triager_step
-        if step is not None:
-            return step
-
-        with self._triager_lock:
-            if self._triager_step is None:
-                # Validate inside the lock to avoid races with project assignment
-                if (
-                    not hasattr(self, "project")
-                    or not self.project
-                    or not hasattr(self.project, "project_path")
-                    or self.project.project_path is None
-                ):
-                    raise ValueError("project_path must be set before accessing triager_step")
-
-                triager_tools = TreeSitterTools(self.project.project_path)
-                triager_llm = self.llm.with_tools(triager_tools)
-                triager_parser = PydanticOutputParser(triage_sarif.Result)
-                self._triager_step = LLMStep(
-                    triager_llm,
-                    TRIAGER_PROMPTS["system"],
-                    TRIAGER_PROMPTS["user"],
-                    triager_parser,
-                )
-
-            return self._triager_step
 
     async def _process_single_chunk(self, chunk: CodeChunk, max_concurrent_triagers: int) -> list[sarif.Result]:
         """Process a single chunk with multi-step processing and error handling."""
@@ -177,20 +152,16 @@ class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProce
     async def run(self) -> list[sarif.Result]:
         """Main Code workflow - full control over execution with multi-step processing."""
 
-        # 1. Setup project input using utility
-        # TODO: Avoid this state
-        self.project = self.setup_project_input(self.logger, self.args)
-
-        # 2. Create a closure that captures max_concurrent_triagers
+        # Create a closure that captures max_concurrent_triagers
         async def chunk_processor(chunk: CodeChunk) -> list[sarif.Result]:
             return await self._process_single_chunk(chunk, self.args.max_concurrent_triagers)
 
-        # 3. Process chunks concurrently using utility
+        # Process chunks concurrently using utility
         results = await self.process_chunks_concurrently(
             project=self.project, chunk_processor=chunk_processor, max_concurrent_chunks=self.args.max_concurrent_chunks
         )
 
-        # 4. Generate reports
+        # Generate reports
         write_sarif_and_html_report(
             results=results,
             repo_name=self.project.repo_name,
