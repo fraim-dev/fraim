@@ -20,7 +20,7 @@ from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
 from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor, Workflow
 from fraim.outputs import sarif
-from fraim.tools.tree_sitter import TreeSitterTools
+from fraim.tools import FilesystemTools
 from fraim.util.pydantic import merge_models
 
 from ...core.workflows.llm_processing import LLMMixin, LLMOptions
@@ -122,7 +122,7 @@ class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProce
                 ):
                     raise ValueError("project_path must be set before accessing triager_step")
 
-                triager_tools = TreeSitterTools(self.project.project_path)
+                triager_tools = FilesystemTools(self.project.project_path)
                 triager_llm = self.llm.with_tools(triager_tools)
                 triager_parser = PydanticOutputParser(triage_sarif.Result)
                 self._triager_step = LLMStep(
