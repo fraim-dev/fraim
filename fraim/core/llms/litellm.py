@@ -17,8 +17,14 @@ from fraim.core.tools import BaseTool, execute_tool_calls
 from fraim.core.utils.retry.tenacity import with_retry
 
 
-def _configure_litellm_logging() -> None:
-    """Configure LiteLLM logging to be less verbose."""
+# Configure LiteLLM on module import
+def _configure_litellm() -> None:
+    # Allow LiteLLM to modify completion paramters to paper over
+    # differences across the various providers. For example,
+    # OpenAI allows a null "tools" parameter, while Anthropic requires
+    # an empty list instead.
+    litellm.modify_params = True
+
     # Silence LiteLLM loggers
     litellm_loggers = [
         "httpx",
@@ -41,8 +47,7 @@ def _configure_litellm_logging() -> None:
         logger.setLevel(logging.ERROR)
 
 
-# Configure LiteLLM logging on module import
-_configure_litellm_logging()
+_configure_litellm()
 
 
 class Config(Protocol):
