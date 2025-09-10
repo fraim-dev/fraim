@@ -67,6 +67,8 @@ class Local(Input):
                 if path in seen:
                     continue
                 # Skip git-ignored file
+                # TODO: skipping here still requires the `rglob` step to iterate every file. Replace with a
+                #       custom walk function that can skip entire branches.
                 if gitignore_spec and gitignore_spec.match_file(path.relative_to(self.path).as_posix()):
                     continue
                 try:
