@@ -573,3 +573,23 @@ class TestLiteLLMRetry:
             # Should succeed after retry
             assert result == mock_response
             assert mock_completion.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_malformed_model_response_error_retry(self) -> None:
+        """Test that MalformedModelResponseError is retried and eventually succeeds"""
+        llm = LiteLLM(model="gpt-3.5-turbo", max_retries=2)
+        messages: list[Message] = [UserMessage(content="Hello")]
+
+        # Import the specific exception we need
+        from fraim.core.llms.litellm import MalformedModelResponseError
+
+        # Mock response that succeeds after retry
+        mock_response = create_mock_response("Success after retry")
+        malformed_error = MalformedModelResponseError("Response missing 'choices' attribute")
+
+        with patch("litellm.acompletion", side_effect=[malformed_error, mock_response]) as mock_completion:
+            result = await llm.run(messages)
+
+            # Should succeed after retry
+            assert result == mock_response
+            assert mock_completion.call_count == 2
