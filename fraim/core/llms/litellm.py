@@ -8,12 +8,13 @@ from collections.abc import Iterable
 from typing import Any, Iterable, Protocol, Self, cast
 
 import litellm
-from litellm.files.main import ModelResponse
+from litellm import CustomStreamWrapper, ModelResponse
 from litellm.types.utils import ChatCompletionMessageToolCall
 
 from fraim.core.llms.base import BaseLLM
 from fraim.core.messages import AssistantMessage, Function, Message, ToolCall
 from fraim.core.tools import BaseTool, execute_tool_calls
+from fraim.core.utils.retry.http import should_retry_request as should_retry_http_request
 from fraim.core.utils.retry.tenacity import with_retry
 
 
@@ -110,13 +111,14 @@ class LiteLLM(BaseLLM):
 
         logging.getLogger().debug(f"LLM request: {completion_params}")
 
-        acompletion = with_retry(
-            litellm.acompletion, max_retries=self.max_retries, base_delay=self.base_delay, max_delay=self.max_delay
+        completion = with_retry(
+            acompletion_text,
+            max_retries=self.max_retries,
+            base_delay=self.base_delay,
+            max_delay=self.max_delay,
+            retry_predicate=should_retry_acompletion,
         )
-        response = await acompletion(**completion_params)
-
-        # Type assertion - we're not using streaming so this should be ModelResponse
-        response = cast(ModelResponse, response)
+        response = await completion(**completion_params)
 
         message = response.choices[0].message  # type: ignore
         message_content = message.content or ""
@@ -187,3 +189,75 @@ def _convert_tool_calls(raw_tool_calls: list[ChatCompletionMessageToolCall] | No
         )
         for tc in raw_tool_calls
     ]
+
+
+class MalformedModelResponseError(ValueError):
+    """An error raised when a model response is malformed"""
+
+
+async def acompletion_text(**kwargs: Any) -> ModelResponse:
+    """
+    Wrapper around litellm.acompletion that validates the response has the expected shape for a non-streaming
+    text completion response.
+
+    This is needed because some model providers (e.g., Google Gemini 2.5) can return
+    200 HTTP responses with malformed response objects that lack the expected 'choices' array.
+
+    Args:
+        **kwargs: Arguments to pass to litellm.acompletion
+
+    Returns:
+        ModelResponse with guaranteed valid text completion structure
+
+    Raises:
+        MalformedModelResponseError: If the response lacks expected structure, with detailed error message
+    """
+    response = await litellm.acompletion(**kwargs)
+    validate_text_model_response(response)
+    return cast(ModelResponse, response)
+
+
+def validate_text_model_response(response: ModelResponse | CustomStreamWrapper) -> None:
+    """
+    Validate that a response is a proper text completion ModelResponse.
+
+    Args:
+        response: The response to validate
+
+    Raises:
+        MalformedModelResponseError: With detailed message describing the specific validation failure
+    """
+    # Check if it's a ModelResponse-like object
+    if not hasattr(response, "choices"):
+        raise MalformedModelResponseError("Response missing 'choices' attribute")
+
+    # Check that choices exists and is not empty
+    choices = getattr(response, "choices", None)
+    if not choices:
+        raise MalformedModelResponseError("Response has empty or missing 'choices' field")
+    first_choice = choices[0]
+
+    # Check that the first choice has a message
+    message = getattr(first_choice, "message", None)
+    if not message:
+        raise MalformedModelResponseError("First choice has missing 'message' attribute")
+
+    # For non-streaming responses, check that message has content field
+    # (we allow None or empty string content, just need the field to exist)
+    if not hasattr(message, "content"):
+        raise MalformedModelResponseError("Message has missing 'content' attribute")
+
+    return None
+
+
+def should_retry_acompletion(exception: BaseException) -> bool:
+    """
+    Retry the acompletion request if a retriable HTTP error occurs or if the response is malformed.
+
+    Args:
+        exception: The exception to check
+
+    Returns:
+        True if the completion should be retried, False otherwise
+    """
+    return should_retry_http_request(exception) or isinstance(exception, MalformedModelResponseError)
