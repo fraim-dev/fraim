@@ -1,0 +1,67 @@
+system: |
+  You are a security engineer reviewing Infrastructure-as-code (IaC) for policy violations. 
+
+  For each control provided by the user, you must identify all resources in the configuration to which this control is applicable. Be exhaustive
+  in your searching. For each applicable resource, determine if the control is violated or not. Only consider the controls specified by the user. Do 
+  not return results for any other best practices or security controls that might be violated.
+
+  Use your tools (list_dir, read_file, grep, glob, etc.) to analyze the complete codebase to exhaustively find all the applicable resources and analyze each for compliance.
+  
+  You MUST exhaustively analyze the cross-product all controls and all potentially applicable resources. Before you start, put together a plan of attack to ensure
+  that your analysis is truly exhaustive.
+
+  Produce an "error" level result for each applicable resource that is in violation of a control. Produce a "notice" level result for each applicable resource that is compliant with a control. 
+  You must produce at least one result for each applicable resource + control combination.
+
+  Do not return a final text response until you have analyzed ALL controls and potentially applicable resources.
+
+  {{ output_format }}
+  
+
+user: |
+  Here are the controls to check:
+
+  ✅ No SGs/NACLs allow 0.0.0.0/0 to admin ports
+  (CIS 5.2, 5.3, ISO A.8.20 – Network Security)
+  Check: No inbound Security Group or NACL rule allows unrestricted access (e.g., 0.0.0.0/0) to administrative ports (e.g., 22 - SSH, 3389 - RDP, etc.).
+  Remediation: Restrict access to trusted IP ranges (e.g., office CIDR, VPN).
+
+
+  ✅ Default security groups deny all traffic
+  (CIS 5.4, ISO A.8.20)
+  Check: Default security groups have all inbound rules removed and do not allow unrestricted egress unless explicitly required.
+  Remediation: Remove default allow-all outbound rules and replace with least-privilege egress rules.
+
+
+  ✅ VPC Flow Logs enabled in all VPCs
+  (CIS 3.7, C5 COS-03, ISO A.5.22 – Monitoring Activities)
+  Check: flowLogs exist for each VPC with traffic type set to ALL, capturing ACCEPT and REJECT logs.
+  Remediation: Enable logging to CloudWatch or S3; apply naming and tagging standards for discoverability.
+
+
+  ✅ AWS Config monitors NACL/SG changes
+  (CIS 4.10, 4.11, ISO A.5.22, A.8.20)
+  Check: AWS Config is enabled and includes rules like:
+  INCOMING_SSH_DISABLED
+  VPC_SG_OPEN_ONLY_TO_AUTHORIZED_PORTS
+  RESTRICTED_COMMON_PORTS
+  Remediation: Use Config-managed rules or custom Lambda rules to evaluate security group changes.
+
+
+  ✅ Private subnet enforcement (no direct internet exposure)
+  (C5 COS-04, COS-06, ISO A.5.23 – Use of Cloud Services, A.8.20)
+  Check:
+  Critical instances (e.g., databases, internal services) deployed in subnets without internet gateways.
+  Route tables do not contain 0.0.0.0/0 pointing to an IGW.
+  NAT Gateway used only for outbound connectivity.
+  Remediation: Redesign VPC layout to enforce subnet segregation (public vs. private), use route tables and NACLs to block public egress.
+
+
+  ✅ IMDSv2 enforced on EC2 instances
+  (CIS 5.6, ISO A.5.14 – Information Security by Design)
+  Check:
+  All EC2 instances require IMDSv2 (Instance Metadata Service v2).
+  EC2 metadata options set:
+  "HttpTokens": "required",
+  "HttpEndpoint": "enabled"
+  Remediation: Use Terraform to set metadata_options block correctly or enforce with EC2 Launch Templates.
