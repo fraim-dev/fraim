@@ -17,6 +17,7 @@ from typing import Annotated, Any
 from pydantic import BaseModel
 
 from fraim.core.contextuals import CodeChunk
+from fraim.core.history import History
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
@@ -161,7 +162,9 @@ class FinalDedupOptions:
     analysis_results: list[dict[str, Any]]
 
 
-class SystemAnalysisWorkflow(Workflow[SystemAnalysisOptions, dict[str, Any]], ChunkProcessor, LLMMixin):
+class SystemAnalysisWorkflow(
+    ChunkProcessor[SystemAnalysisResult], LLMMixin, Workflow[SystemAnalysisOptions, dict[str, Any]]
+):
     """
     Analyzes codebase and documentation to extract system purpose, intended users, and business context.
 
@@ -202,7 +205,7 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisOptions, dict[str, Any]], Ch
         return FILE_PATTERNS
 
     async def _process_single_chunk(
-        self, chunk: CodeChunk, business_context: str = "", focus_areas: list[str] | None = None
+        self, history: History, chunk: CodeChunk, business_context: str = "", focus_areas: list[str] | None = None
     ) -> list[SystemAnalysisResult]:
         """Process a single chunk using two-step analysis: assessment then analysis."""
         try:
@@ -216,7 +219,7 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisOptions, dict[str, Any]], Ch
             )
 
             # Step 1: Document assessment and confidence scoring
-            assessment = await self.assessment_step.run(chunk_input)
+            assessment = await self.assessment_step.run(history, chunk_input)
 
             self.logger.debug(
                 f"Assessment for {chunk.file_path}: confidence={assessment.confidence_score:.2f}, "
@@ -234,7 +237,7 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisOptions, dict[str, Any]], Ch
 
             # Step 2: System analysis and deduplication
             self.logger.debug(f"Analyzing chunk: {Path(chunk.file_path)}")
-            result = await self.analysis_step.run(chunk_input)
+            result = await self.analysis_step.run(history, chunk_input)
             return [result]
 
         except Exception as e:
@@ -243,7 +246,7 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisOptions, dict[str, Any]], Ch
             )
             return []
 
-    async def _aggregate_results(self, chunk_results: list[SystemAnalysisResult]) -> dict[str, Any]:
+    async def _aggregate_results(self, history: History, chunk_results: list[SystemAnalysisResult]) -> dict[str, Any]:
         """Aggregate results from multiple chunks using LLM-based deduplication."""
 
         if not chunk_results:
@@ -287,7 +290,7 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisOptions, dict[str, Any]], Ch
             # Run final LLM-based deduplication
             final_input = FinalDedupOptions(analysis_results=analysis_results_for_llm)
 
-            final_result = await self.final_dedup_step.run(final_input)
+            final_result = await self.final_dedup_step.run(history, final_input)
 
             # Set confidence based on number of files analyzed (more files = higher confidence)
             confidence_score = min(0.9, 0.6 + (len(chunk_results) * 0.1))
@@ -318,9 +321,11 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisOptions, dict[str, Any]], Ch
         except Exception as e:
             self.logger.error(f"Failed to run final deduplication: {e!s}")
             # Fallback to simple aggregation if LLM step fails
-            return self._simple_fallback_aggregation(chunk_results)
+            return self._simple_fallback_aggregation(history, chunk_results)
 
-    def _simple_fallback_aggregation(self, chunk_results: list[SystemAnalysisResult]) -> dict[str, Any]:
+    def _simple_fallback_aggregation(
+        self, _history: History, chunk_results: list[SystemAnalysisResult]
+    ) -> dict[str, Any]:
         """Simple fallback aggregation when LLM deduplication fails."""
         all_purposes = [r.system_purpose for r in chunk_results if r.system_purpose.strip()]
         all_users = []
@@ -398,16 +403,19 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisOptions, dict[str, Any]], Ch
         project = self.setup_project_input(self.logger, self.args)
 
         # 2. Create a closure that captures business_context and focus_areas
-        async def chunk_processor(chunk: CodeChunk) -> list[SystemAnalysisResult]:
-            return await self._process_single_chunk(chunk, self.args.business_context, self.args.focus_areas)
+        async def chunk_processor(history: History, chunk: CodeChunk) -> list[SystemAnalysisResult]:
+            return await self._process_single_chunk(history, chunk, self.args.business_context, self.args.focus_areas)
 
         # 3. Process chunks concurrently using mixin utility
         chunk_results = await self.process_chunks_concurrently(
-            project=project, chunk_processor=chunk_processor, max_concurrent_chunks=self.args.max_concurrent_chunks
+            history=self.history,
+            project=project,
+            chunk_processor=chunk_processor,
+            max_concurrent_chunks=self.args.max_concurrent_chunks,
         )
 
         # 4. Aggregate results
-        final_result = await self._aggregate_results(chunk_results)
+        final_result = await self._aggregate_results(self.history, chunk_results)
 
         self.logger.info(
             f"System Analysis completed. Analyzed {final_result['files_analyzed']} files. "
@@ -432,6 +440,7 @@ class SystemAnalysisWorkflow(Workflow[SystemAnalysisOptions, dict[str, Any]], Ch
                 with open(output_path, "w", encoding="utf-8") as f:
                     json.dump(final_result, f, indent=2)
                 self.logger.info(f"System analysis results written to {output_path}")
+                print(f"Wrote system analysis results to {output_path}")
             except Exception as write_exc:
                 self.logger.error(f"Failed to write system analysis results: {write_exc}")
 

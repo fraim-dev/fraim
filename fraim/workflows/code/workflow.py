@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Annotated
 
 from fraim.core.contextuals import CodeChunk
+from fraim.core.history import EventRecord, History, HistoryRecord
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
@@ -77,7 +78,7 @@ class TriagerInput:
     code: CodeChunk
 
 
-class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProcessor, LLMMixin):
+class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflowOptions, list[sarif.Result]]):
     """
     Analyzes source code for security vulnerabilities
     """
@@ -93,7 +94,10 @@ class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProce
         # Configure the scanner step
         scanner_parser = PydanticOutputParser(sarif.RunResults)
         self.scanner_step: LLMStep[SASTInput, sarif.RunResults] = LLMStep(
-            self.llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser
+            self.llm,
+            SCANNER_PROMPTS["system"],
+            SCANNER_PROMPTS["user"],
+            scanner_parser,
         )
 
         # Configure the triager step with tools
@@ -101,7 +105,10 @@ class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProce
         triager_llm = self.llm.with_tools(triager_tools)
         triager_parser = PydanticOutputParser(triage_sarif.Result)
         self.triager_step: LLMStep[TriagerInput, sarif.Result] = LLMStep(
-            triager_llm, TRIAGER_PROMPTS["system"], TRIAGER_PROMPTS["user"], triager_parser
+            triager_llm,
+            TRIAGER_PROMPTS["system"],
+            TRIAGER_PROMPTS["user"],
+            triager_parser,
         )
 
     @property
@@ -109,12 +116,14 @@ class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProce
         """Code file patterns."""
         return FILE_PATTERNS
 
-    async def _process_single_chunk(self, chunk: CodeChunk, max_concurrent_triagers: int) -> list[sarif.Result]:
+    async def _process_single_chunk(
+        self, history: History, chunk: CodeChunk, max_concurrent_triagers: int
+    ) -> list[sarif.Result]:
         """Process a single chunk with multi-step processing and error handling."""
         try:
             # 1. Scan the code for potential vulnerabilities.
             self.logger.debug("Scanning the code for potential vulnerabilities")
-            potential_vulns = await self.scanner_step.run(SASTInput(code=chunk))
+            potential_vulns = await self.scanner_step.run(history, SASTInput(code=chunk))
 
             # 2. Filter vulnerabilities by confidence.
             self.logger.debug("Filtering vulnerabilities by confidence")
@@ -128,8 +137,14 @@ class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProce
 
             async def triage_with_semaphore(vuln: sarif.Result) -> sarif.Result | None:
                 """Triage a vulnerability with semaphore to limit concurrency."""
+                # Create a subhistory for this task
+                task_record = HistoryRecord(description=f"Triaging potential vulnerability {vuln.message.text}")
+                history.append_record(task_record)
+
                 async with triager_semaphore:
-                    return await self.triager_step.run(TriagerInput(vulnerability=str(vuln), code=chunk))
+                    return await self.triager_step.run(
+                        task_record.history, TriagerInput(vulnerability=str(vuln), code=chunk)
+                    )
 
             triaged_results = await asyncio.gather(*[triage_with_semaphore(vuln) for vuln in high_confidence_vulns])
 
@@ -140,6 +155,10 @@ class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProce
             self.logger.debug("Filtering the triaged vulnerabilities by confidence")
             high_confidence_triaged_vulns = filter_results_by_confidence(triaged_vulns, self.args.confidence)
 
+            self.history.append_record(
+                EventRecord(description=f"Done. Found {len(high_confidence_triaged_vulns)} results.")
+            )
+
             return high_confidence_triaged_vulns
 
         except Exception as e:
@@ -147,26 +166,34 @@ class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProce
                 f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {e!s}. "
                 "Skipping this chunk and continuing with scan."
             )
+
             return []
 
     async def run(self) -> list[sarif.Result]:
         """Main Code workflow - full control over execution with multi-step processing."""
 
         # Create a closure that captures max_concurrent_triagers
-        async def chunk_processor(chunk: CodeChunk) -> list[sarif.Result]:
-            return await self._process_single_chunk(chunk, self.args.max_concurrent_triagers)
+        async def chunk_processor(history: History, chunk: CodeChunk) -> list[sarif.Result]:
+            return await self._process_single_chunk(history, chunk, self.args.max_concurrent_triagers)
 
         # Process chunks concurrently using utility
         results = await self.process_chunks_concurrently(
-            project=self.project, chunk_processor=chunk_processor, max_concurrent_chunks=self.args.max_concurrent_chunks
+            history=self.history,
+            project=self.project,
+            chunk_processor=chunk_processor,
+            max_concurrent_chunks=self.args.max_concurrent_chunks,
         )
 
         # Generate reports
-        write_sarif_and_html_report(
+        report_paths = write_sarif_and_html_report(
             results=results,
             repo_name=self.project.repo_name,
             output_dir=self.args.output,
             logger=self.logger,
         )
+
+        print(f"Found {len(results)} results.")
+        print(f"Wrote SARIF report to {report_paths.sarif_path}")
+        print(f"Wrote HTML report to {report_paths.html_path}")
 
         return results

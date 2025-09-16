@@ -96,7 +96,7 @@ class RetryOnErrorOutputParser(BaseOutputParser[T], Generic[T]):
         """
         # Construct retry prompt
         retry_messages = self._build_retry_messages(context.messages, original_text, error)
-        response = await context.llm.with_tools([]).run(retry_messages)
+        response = await context.llm.with_tools([]).run(context.history, retry_messages)
 
         # if we get a StreamingChoices or don't get a response just return the original text
         # and the LLM can try again

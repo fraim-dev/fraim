@@ -11,9 +11,14 @@ from abc import abstractmethod
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Annotated, TypeVar
+from typing import Annotated, Generic, TypeVar
+
+from rich.layout import Layout
+from rich.progress import Progress, TaskID
 
 from fraim.core.contextuals import CodeChunk
+from fraim.core.display import ProgressPanel, ResultsPanel
+from fraim.core.history import EventRecord, History, HistoryRecord
 from fraim.inputs.project import ProjectInput
 
 # Type variable for generic result types
@@ -39,17 +44,28 @@ class ChunkProcessingOptions:
     max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
 
 
-class ChunkProcessor:
+class ChunkProcessor(Generic[T]):
     """
     Mixin class providing utilities for chunk-based workflows.
 
     This class provides reusable utilities for:
     - Setting up ProjectInput from workflow input
     - Managing concurrent chunk processing with semaphores
+    - Rich display with progress tracking
 
     Workflows can use these utilities as needed while maintaining full control
     over their workflow() method and error handling.
     """
+
+    def __init__(self, logger: logging.Logger, args: ChunkProcessingOptions) -> None:
+        super().__init__(logger, args)  # type: ignore
+
+        # Progress tracking attributes
+        self._total_chunks = 0
+        self._processed_chunks = 0
+        self._results: list[T] = []
+        self._progress: Progress | None = None
+        self._progress_task: TaskID | None = None
 
     @property
     @abstractmethod
@@ -78,16 +94,43 @@ class ChunkProcessor:
         )
         return ProjectInput(logger, kwargs=kwargs)
 
-    @staticmethod
+    def rich_display(self) -> Layout:
+        """
+        Create a rich display layout showing:
+        - Base class rich_display in the upper panel
+        - Progress bar showing percentage of chunks processed
+        - Panel showing number of results found so far
+        """
+        # Get the base class display - since workflows inherit from Workflow class,
+        # this should always work for ChunkProcessor mixins
+        base_display = super().rich_display()  # type: ignore[misc]
+
+        # Create the main layout with three sections
+        layout = Layout()
+        layout.split_column(
+            Layout(base_display, name="history", ratio=1),
+            Layout(
+                ProgressPanel(lambda: (f"Analyzing chunks", self._processed_chunks, self._total_chunks)),
+                name="progress",
+                size=3,
+            ),
+            Layout(ResultsPanel(lambda: self._results), name="results", size=3),
+        )
+
+        return layout
+
     async def process_chunks_concurrently(
+        self,
+        history: History,
         project: ProjectInput,
-        chunk_processor: Callable[[CodeChunk], Awaitable[list[T]]],
+        chunk_processor: Callable[[History, CodeChunk], Awaitable[list[T]]],
         max_concurrent_chunks: int = 5,
     ) -> list[T]:
         """
         Process chunks concurrently using the provided processor function.
 
         Args:
+            history: History instance for tracking
             project: ProjectInput instance to iterate over
             chunk_processor: Async function that processes a single chunk and returns a list of results
             max_concurrent_chunks: Maximum concurrent chunk processing
@@ -95,35 +138,48 @@ class ChunkProcessor:
         Returns:
             Combined results from all chunks
         """
-        results: list[T] = []
+        # Initialize progress tracking
+        chunks_list = list(project)
+        self._total_chunks = len(chunks_list)
+        self._processed_chunks = 0
+        self._results = []
 
         # Create semaphore to limit concurrent chunk processing
         semaphore = asyncio.Semaphore(max_concurrent_chunks)
 
-        async def process_chunk_with_semaphore(chunk: CodeChunk) -> list[T]:
+        async def process_chunk_with_semaphore(history: History, chunk: CodeChunk) -> list[T]:
             """Process a chunk with semaphore to limit concurrency."""
             async with semaphore:
-                return await chunk_processor(chunk)
+                chunk_results = await chunk_processor(history, chunk)
 
-        # Process chunks as they stream in from the ProjectInput iterator
+                history.append_record(EventRecord(description=f"Done. Found {len(chunk_results)} results."))
+                self._results.extend(chunk_results)
+                self._processed_chunks += 1
+
+                return chunk_results
+
+        # Process chunks concurrently
         active_tasks: set[asyncio.Task] = set()
 
-        for chunk in project:
+        for chunk in chunks_list:
+            # Create a subhistory for this task
+            task_record = HistoryRecord(
+                description=f"Analyzing {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}"
+            )
+            history.append_record(task_record)
+
             # Create task for this chunk and add to active tasks
-            task = asyncio.create_task(process_chunk_with_semaphore(chunk))
+            task = asyncio.create_task(process_chunk_with_semaphore(task_record.history, chunk))
             active_tasks.add(task)
 
             # If we've hit our concurrency limit, wait for some tasks to complete
             if len(active_tasks) >= max_concurrent_chunks:
-                done, active_tasks = await asyncio.wait(active_tasks, return_when=asyncio.FIRST_COMPLETED)
-                for completed_task in done:
-                    chunk_results = await completed_task
-                    results.extend(chunk_results)
+                _done, active_tasks = await asyncio.wait(active_tasks, return_when=asyncio.FIRST_COMPLETED)
 
         # Wait for any remaining tasks to complete
         if active_tasks:
             for future in asyncio.as_completed(active_tasks):
                 chunk_results = await future
-                results.extend(chunk_results)
+                self._results.extend(chunk_results)
 
-        return results
+        return self._results

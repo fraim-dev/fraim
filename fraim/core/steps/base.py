@@ -7,6 +7,8 @@ import asyncio
 from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
 
+from fraim.core.history import History
+
 TInput = TypeVar("TInput")
 TOutput = TypeVar("TOutput")
 
@@ -21,9 +23,9 @@ class BaseStep(ABC, Generic[TInput, TOutput]):
     """
 
     @abstractmethod
-    async def run(self, input: TInput, **kwargs: Any) -> TOutput:
+    async def run(self, history: History, input: TInput, **kwargs: Any) -> TOutput:
         """Run the step asynchronously"""
 
-    def run_sync(self, input: TInput, **kwargs: Any) -> TOutput:
+    def run_sync(self, history: History, input: TInput, **kwargs: Any) -> TOutput:
         """Run the step synchronously"""
-        return asyncio.run(self.run(input, **kwargs))
+        return asyncio.run(self.run(history, input, **kwargs))

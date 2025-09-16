@@ -42,7 +42,35 @@ def filter_results_by_confidence(results: list[sarif.Result], confidence_thresho
     return [result for result in results if result.properties.confidence > confidence_threshold]
 
 
-def write_sarif_and_html_report(results: list[Result], repo_name: str, output_dir: str, logger: logging.Logger) -> None:
+@dataclass
+class ReportPaths:
+    sarif_path: str
+    html_path: str
+
+
+def write_sarif_and_html_report(
+    results: list[Result], repo_name: str, output_dir: str, logger: logging.Logger
+) -> ReportPaths:
+    """
+    Write security scan results to both SARIF (JSON) and HTML report files.
+
+    Args:
+        results: List of security scan results to include in the reports
+        repo_name: Name of the repository being scanned, used in filename generation
+        output_dir: Directory path where report files will be written
+        logger: Logger instance for recording operation status and errors
+
+    Returns:
+        ReportPaths object with sarif_path and html_path attributes containing file paths
+
+    Example:
+        >>> results = [Result(...), Result(...)]
+        >>> reports = write_sarif_and_html_report(results, "my-repo", "/output", logger)
+        >>> print(reports.sarif_path)
+        '/output/fraim_report_my_repo_20250917_143022.sarif'
+        >>> print(reports.html_path)
+        '/output/fraim_report_my_repo_20250917_143022.html'
+    """
     report = create_sarif_report(results)
 
     # Create filename with sanitized repo name
@@ -70,3 +98,5 @@ def write_sarif_and_html_report(results: list[Result], repo_name: str, output_di
         logger.info(f"Wrote HTML report ({total_results} results) to {html_output_file}")
     except Exception as e:
         logger.error(f"Failed to write HTML report to {html_output_file}: {e!s}")
+
+    return ReportPaths(sarif_path=sarif_output_file, html_path=html_output_file)

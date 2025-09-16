@@ -15,6 +15,7 @@ from typing import Annotated, Dict, List, Literal, Optional
 
 from fraim.actions import add_comment, add_reviewer
 from fraim.core.contextuals import CodeChunk
+from fraim.core.history import History
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
@@ -97,7 +98,9 @@ class RiskFlaggerOutput(sarif.BaseSchema):
     results: List[sarif.Result]
 
 
-class RiskFlaggerWorkflow(Workflow[RiskFlaggerWorkflowOptions, List[sarif.Result]], ChunkProcessor, LLMMixin):
+class RiskFlaggerWorkflow(
+    ChunkProcessor[sarif.Result], LLMMixin, Workflow[RiskFlaggerWorkflowOptions, List[sarif.Result]]
+):
     """Analyzes source code for risks that the security team should investigate further."""
 
     name = "risk_flagger"
@@ -130,12 +133,12 @@ class RiskFlaggerWorkflow(Workflow[RiskFlaggerWorkflowOptions, List[sarif.Result
             },
         )
 
-    async def _process_single_chunk(self, chunk: CodeChunk) -> List[sarif.Result]:
+    async def _process_single_chunk(self, history: History, chunk: CodeChunk) -> List[sarif.Result]:
         """Process a single chunk with multi-step processing and error handling."""
         try:
             # 1. Scan the code for potential risks.
             self.logger.debug("Scanning the code for potential risks")
-            risks = await self.flagger_step.run(RiskFlaggerInput(code=chunk))
+            risks = await self.flagger_step.run(history, RiskFlaggerInput(code=chunk))
 
             # 2. Filter risks by confidence.
             self.logger.debug(f"Filtering {len(risks.results)} risks by confidence")
@@ -175,12 +178,15 @@ class RiskFlaggerWorkflow(Workflow[RiskFlaggerWorkflowOptions, List[sarif.Result
             )
 
         # 2. Create a closure that captures max_concurrent_chunks
-        async def chunk_processor(chunk: CodeChunk) -> List[sarif.Result]:
-            return await self._process_single_chunk(chunk)
+        async def chunk_processor(history: History, chunk: CodeChunk) -> List[sarif.Result]:
+            return await self._process_single_chunk(history, chunk)
 
         # 3. Process chunks concurrently using utility
         results = await self.process_chunks_concurrently(
-            project=self.project, chunk_processor=chunk_processor, max_concurrent_chunks=self.args.max_concurrent_chunks
+            self.history,
+            project=self.project,
+            chunk_processor=chunk_processor,
+            max_concurrent_chunks=self.args.max_concurrent_chunks,
         )
 
         # 4. Format results into PR comment
@@ -204,5 +210,6 @@ class RiskFlaggerWorkflow(Workflow[RiskFlaggerWorkflowOptions, List[sarif.Result
                 self.logger.warning("PR URL and/or approver are missing, skipping Add Reviewer")
 
         self.logger.info(pr_comment)
+        print(pr_comment)
 
         return results

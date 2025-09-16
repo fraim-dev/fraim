@@ -11,6 +11,7 @@ import litellm
 from litellm import CustomStreamWrapper, ModelResponse
 from litellm.types.utils import ChatCompletionMessageToolCall
 
+from fraim.core.history import EventRecord, History, HistoryRecord
 from fraim.core.llms.base import BaseLLM
 from fraim.core.messages import AssistantMessage, Function, Message, ToolCall
 from fraim.core.tools import BaseTool, execute_tool_calls
@@ -101,7 +102,9 @@ class LiteLLM(BaseLLM):
             max_delay=self.max_delay,
         )
 
-    async def _run_once(self, messages: list[Message], use_tools: bool) -> tuple[ModelResponse, list[Message], bool]:
+    async def _run_once(
+        self, history: History, messages: list[Message], use_tools: bool
+    ) -> tuple[ModelResponse, list[Message], bool]:
         """Execute one completion call and return response + updated messages + tools_executed flag.
 
         Returns:
@@ -118,7 +121,9 @@ class LiteLLM(BaseLLM):
             max_delay=self.max_delay,
             retry_predicate=should_retry_acompletion,
         )
+        history.append_record(EventRecord(description=f"Thinking..."))
         response = await completion(**completion_params)
+        history.pop_record()
 
         message = response.choices[0].message  # type: ignore
         message_content = message.content or ""
@@ -128,10 +133,14 @@ class LiteLLM(BaseLLM):
         tool_calls = _convert_tool_calls(message.tool_calls)
 
         if len(tool_calls) == 0:
+            # Final response. Don't log to history.
             return response, messages, False
 
+        if message_content:
+            history.append_record(EventRecord(description=message_content))
+
         # Execute tools using pre-built tools dictionary
-        tool_messages = await execute_tool_calls(tool_calls, self.tools_dict)
+        tool_messages = await execute_tool_calls(history, tool_calls, self.tools_dict)
 
         # Create assistant message with tool calls
         assistant_message = AssistantMessage(content=message_content, tool_calls=tool_calls)
@@ -141,7 +150,7 @@ class LiteLLM(BaseLLM):
 
         return response, updated_messages, True
 
-    async def run(self, messages: list[Message]) -> ModelResponse:
+    async def run(self, history: History, messages: list[Message]) -> ModelResponse:
         """Run completion with optional tool support, handling multiple iterations."""
         current_messages = messages.copy()
 
@@ -149,7 +158,7 @@ class LiteLLM(BaseLLM):
             # Don't provide tools on the final iteration to force a final response
             use_tools = iteration < self.max_tool_iterations
 
-            response, current_messages, tools_executed = await self._run_once(current_messages, use_tools)
+            response, current_messages, tools_executed = await self._run_once(history, current_messages, use_tools)
 
             if not tools_executed:
                 return response

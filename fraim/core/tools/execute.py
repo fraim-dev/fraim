@@ -9,11 +9,14 @@ from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
+from fraim.core.history import EventRecord, History
 from fraim.core.messages import ToolCall, ToolMessage
 from fraim.core.tools.base import BaseTool, ToolError
 
 
-async def execute_tool_calls(tool_calls: list[ToolCall], available_tools: dict[str, BaseTool]) -> list[ToolMessage]:
+async def execute_tool_calls(
+    history: History, tool_calls: list[ToolCall], available_tools: dict[str, BaseTool]
+) -> list[ToolMessage]:
     """Execute multiple tool calls and return list of ToolMessage results.
 
     Args:
@@ -25,12 +28,12 @@ async def execute_tool_calls(tool_calls: list[ToolCall], available_tools: dict[s
     """
     results: list[ToolMessage] = []
     for tool_call in tool_calls:
-        result = await execute_tool_call(tool_call, available_tools)
+        result = await execute_tool_call(history, tool_call, available_tools)
         results.append(result)
     return results
 
 
-async def execute_tool_call(tool_call: ToolCall, available_tools: dict[str, BaseTool]) -> ToolMessage:
+async def execute_tool_call(history: History, tool_call: ToolCall, available_tools: dict[str, BaseTool]) -> ToolMessage:
     """Execute a single tool call and return ToolMessage result.
 
     Args:
@@ -49,9 +52,11 @@ async def execute_tool_call(tool_call: ToolCall, available_tools: dict[str, Base
         args_dict = _deserialize_arguments(tool_call.function.arguments, tool.args_schema)
     except ValidationError as e:
         error_msg = f"Invalid arguments for tool '{tool.name}': {e}"
+
         return ToolMessage(content=f"Error: {error_msg}", tool_call_id=tool_call.id)
 
     try:
+        history.append_record(EventRecord(description=tool.display_message(**args_dict)))
         result = await tool.run(**args_dict)
         logging.getLogger().debug(f"Tool call result: {tool.name}: {result!s}")
         return ToolMessage(content=str(result), tool_call_id=tool_call.id)
@@ -78,7 +83,11 @@ def _deserialize_arguments(arguments: str, schema: type[BaseModel] | None) -> di
     if schema:
         # Use Pydantic schema for proper validation and type conversion
         validated_model = schema.model_validate_json(arguments)
-        return validated_model.model_dump()
+
+        # Return a dictionary of the top-level fields
+        return {
+            field_name: getattr(validated_model, field_name) for field_name in validated_model.__class__.model_fields
+        }
     # Fallback to generic JSON parsing
     parsed_result: dict[str, Any] = json.loads(arguments)
     return parsed_result

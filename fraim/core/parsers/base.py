@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Generic, TypeVar
 
+from fraim.core.history import History
 from fraim.core.llms.base import BaseLLM
 from fraim.core.messages import Message
 
@@ -19,6 +20,7 @@ class ParseContext:
     """Context object containing LLM and conversation history for parsers that need retry functionality"""
 
     llm: BaseLLM
+    history: History
     messages: list[Message]
 
 
