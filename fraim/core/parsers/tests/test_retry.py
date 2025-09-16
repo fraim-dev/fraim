@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 from pydantic import BaseModel
 
+from fraim.core.history import History
 from fraim.core.messages import AssistantMessage, Message, SystemMessage, UserMessage
 from fraim.core.parsers.base import OutputParserError, ParseContext
 from fraim.core.parsers.json import JsonOutputParser
@@ -50,7 +51,7 @@ class TestRetryOnErrorOutputParser:
         """Test successful parsing without retry"""
         mock_llm = Mock()
         messages = Mock()
-        context = ParseContext(llm=mock_llm, messages=messages)
+        context = ParseContext(llm=mock_llm, history=History(), messages=messages)
 
         base_parser = PydanticOutputParser(SimpleModel)
         retry_parser = RetryOnErrorOutputParser(base_parser)
@@ -88,7 +89,7 @@ class TestRetryOnErrorOutputParser:
         mock_llm.with_tools.return_value = mock_llm
 
         messages: list[Message] = [UserMessage(content="Generate a person")]
-        context = ParseContext(llm=mock_llm, messages=messages)
+        context = ParseContext(llm=mock_llm, history=History(), messages=messages)
 
         base_parser = PydanticOutputParser(SimpleModel)
         retry_parser = RetryOnErrorOutputParser(base_parser)
@@ -104,7 +105,7 @@ class TestRetryOnErrorOutputParser:
         mock_llm.run.assert_called_once()
 
         # Verify the retry prompt structure
-        retry_messages = mock_llm.run.call_args[0][0]
+        retry_messages = mock_llm.run.call_args[0][1]
         assert len(retry_messages) == 3  # original user message + failed assistant response + retry request
         assert retry_messages[0].content == "Generate a person"
         assert retry_messages[1].content == invalid_json
@@ -125,7 +126,7 @@ class TestRetryOnErrorOutputParser:
 
         # Create context
         messages: list[Message] = [UserMessage(content="Generate a person")]
-        context = ParseContext(llm=mock_llm, messages=messages)
+        context = ParseContext(llm=mock_llm, history=History(), messages=messages)
 
         base_parser = PydanticOutputParser(SimpleModel)
         retry_parser = RetryOnErrorOutputParser(base_parser, max_retries=2)
@@ -147,7 +148,7 @@ class TestRetryOnErrorOutputParser:
 
         # Create context
         messages: list[Message] = [UserMessage(content="Generate a person")]
-        context = ParseContext(llm=mock_llm, messages=messages)
+        context = ParseContext(llm=mock_llm, history=History(), messages=messages)
 
         base_parser = PydanticOutputParser(SimpleModel)
         retry_parser = RetryOnErrorOutputParser(base_parser)
@@ -199,7 +200,7 @@ class TestRetryOnErrorOutputParser:
 
         # Create context
         messages: list[Message] = [UserMessage(content="Generate JSON")]
-        context = ParseContext(llm=mock_llm, messages=messages)
+        context = ParseContext(llm=mock_llm, history=History(), messages=messages)
 
         base_parser = JsonOutputParser()
         retry_parser = RetryOnErrorOutputParser(base_parser)
@@ -228,7 +229,7 @@ class TestRetryOnErrorOutputParser:
 
         # Create context
         messages: list[Message] = [UserMessage(content="Generate a person")]
-        context = ParseContext(llm=mock_llm, messages=messages)
+        context = ParseContext(llm=mock_llm, history=History(), messages=messages)
 
         base_parser = PydanticOutputParser(SimpleModel)
         retry_parser = RetryOnErrorOutputParser(base_parser, max_retries=2)

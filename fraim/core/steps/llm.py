@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 from litellm.types.utils import StreamingChoices
 
+from fraim.core.contextuals import CodeChunk
+from fraim.core.history import EventRecord, History, HistoryRecord
 from fraim.core.llms.base import BaseLLM
 from fraim.core.messages import Message, SystemMessage, UserMessage
 from fraim.core.parsers.base import BaseOutputParser, ParseContext
@@ -130,9 +132,9 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
         content = f"{rendered}\n{rendered_unused}"
         return UserMessage(content=content)
 
-    async def run(self, input: TDynamicInput, **kwargs: Any) -> TOutput:
+    async def run(self, history: History, input: TDynamicInput, **kwargs: Any) -> TOutput:
         messages = self._prepare_messages(_normalize_input(input))
-        response = await self.llm.run(messages)
+        response = await self.llm.run(history, messages)
 
         choice = response.choices[0]
         if isinstance(choice, StreamingChoices):
@@ -153,7 +155,7 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
             # If/when the Gemini API is fixed, consider removing this workaround.
             message_content = ""
 
-        context = ParseContext(llm=self.llm, messages=messages)
+        context = ParseContext(llm=self.llm, history=history, messages=messages)
         return await self.parser.parse(message_content, context=context)
 
     def _prepare_messages(self, input: dict[str, Any]) -> list[Message]:

@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fraim.core.contextuals import CodeChunk
+from fraim.core.history import History
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
@@ -73,7 +74,7 @@ class IaCCodeChunkOptions:
     code: CodeChunk
 
 
-class IaCWorkflow(Workflow[IaCWorkflowOptions, list[sarif.Result]], ChunkProcessor, LLMMixin):
+class IaCWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[IaCWorkflowOptions, list[sarif.Result]]):
     """Analyzes IaC files for security vulnerabilities, compliance issues, and best practice deviations."""
 
     name = "iac"
@@ -90,13 +91,13 @@ class IaCWorkflow(Workflow[IaCWorkflowOptions, list[sarif.Result]], ChunkProcess
         """IaC file patterns."""
         return FILE_PATTERNS
 
-    async def _process_single_chunk(self, chunk: CodeChunk) -> list[sarif.Result]:
+    async def _process_single_chunk(self, history: History, chunk: CodeChunk) -> list[sarif.Result]:
         """Process a single chunk with error handling."""
         try:
             # 1. Scan the code for vulnerabilities.
             self.logger.info(f"Scanning code for vulnerabilities: {Path(chunk.file_path)}")
             iac_input = IaCCodeChunkOptions(code=chunk)
-            vulns = await self.scanner_step.run(iac_input)
+            vulns = await self.scanner_step.run(history, iac_input)
 
             # 2. Filter the vulnerability by confidence.
             self.logger.info("Filtering vulnerabilities by confidence")
@@ -117,17 +118,22 @@ class IaCWorkflow(Workflow[IaCWorkflowOptions, list[sarif.Result]], ChunkProcess
 
         # 2. Process chunks concurrently using utility
         results = await self.process_chunks_concurrently(
+            history=self.history,
             project=project,
             chunk_processor=self._process_single_chunk,
             max_concurrent_chunks=self.args.max_concurrent_chunks,
         )
 
         # 3. Generate reports (IaC workflow chooses to do this)
-        write_sarif_and_html_report(
+        report_paths = write_sarif_and_html_report(
             results=results,
             repo_name=project.repo_name,
             output_dir=self.args.output,
             logger=self.logger,
         )
+
+        print(f"Found {len(results)} results.")
+        print(f"Wrote SARIF report to {report_paths.sarif_path}")
+        print(f"Wrote HTML report to {report_paths.html_path}")
 
         return results

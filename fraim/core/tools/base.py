@@ -72,6 +72,10 @@ class BaseTool(BaseModel, ABC):
         """Synchronous wrapper around the async run method."""
         return asyncio.run(self.run(*args, **kwargs))
 
+    def display_message(self, *args: Any, **kwargs: Any) -> str:
+        """Get a human-readable message for a tool call to display in the history UI."""
+        return f"Calling tool {self.name}: {kwargs}"
+
     def to_openai_schema(self) -> dict[str, Any]:
         """Convert to OpenAI tool schema format."""
         if not self.args_schema:

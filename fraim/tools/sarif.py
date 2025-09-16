@@ -81,3 +81,6 @@ class AddSarifResultTool(SarifBaseTool):
         """
         self.run_results.results.append(result)
         return f"Success. Total results: {len(self.run_results.results)}"
+
+    def display_message(self, *args: Any, result: Result, **kwargs: Any) -> str:
+        return f"Found result '{result.level}: {result.message.text}'"
