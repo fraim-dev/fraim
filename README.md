@@ -1,3 +1,7 @@
+<div align="left">
+  <img src="assets/fraim-logo.png" alt="Fraim Logo" width="200" />
+</div>
+
 # Fraim - A Security Engineer's AI Toolkit
 
 ## 🔭 Overview
@@ -88,7 +92,7 @@ jobs:
 
     steps:
       - name: Run Fraim Security Scan
-        uses: fraim-dev/fraim-action@v0
+        uses: fraim-dev/fraim-action@8d763963b80e2551c7ec3f5bdbd77bad6ce7658c
         with:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           workflows: "code"
