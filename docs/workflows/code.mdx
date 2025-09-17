@@ -1,0 +1,151 @@
+---
+title: "Code"
+sidebarTitle: "Code"
+---
+
+# Code Security Analysis Workflow
+
+The **Code Security Analysis** workflow examines source code files for security vulnerabilities using AI-powered static analysis. This workflow is ideal for identifying common security issues across multiple programming languages.
+
+## Overview
+
+- **Workflow ID**: `code`
+- **Primary Use Case**: Static analysis of application source code
+- **Output**: SARIF and HTML security reports
+
+## Quick Start
+
+```bash
+# Analyze current directory
+fraim run code --location .
+
+# Analyze a specific repository
+fraim run code --location https://github.com/username/repository
+
+# High-confidence findings only
+fraim run code --location . --confidence 9
+
+# Focus on Python files
+fraim run code --location . --globs "*.py"
+```
+
+## Workflow-Specific Options
+
+The code workflow supports several specialized options:
+
+### `--max-concurrent-triagers <NUMBER>`
+Controls how many vulnerability assessments run in parallel during the triaging phase.
+
+**Default**: `3`
+
+```bash
+# Conservative resource usage
+fraim run code --location . --max-concurrent-triagers 2
+
+# Faster triaging (more resources)
+fraim run code --location . --max-concurrent-triagers 5
+```
+
+### Performance Tuning
+
+For optimal performance with the code workflow:
+
+```bash
+# Balanced performance (recommended)
+fraim run code --location . \
+  --chunk-size 500 \
+  --max-concurrent-chunks 5 \
+  --max-concurrent-triagers 3
+
+# High-performance setup (requires more resources)
+fraim run code --location . \
+  --chunk-size 800 \
+  --max-concurrent-chunks 8 \
+  --max-concurrent-triagers 5
+
+# Conservative setup (limited resources)
+fraim run code --location . \
+  --chunk-size 300 \
+  --max-concurrent-chunks 3 \
+  --max-concurrent-triagers 2
+```
+
+## Common Use Cases
+
+### 1. Pre-Commit Analysis
+```bash
+# Analyze only changed files
+fraim run code --location . --diff
+```
+
+### 2. CI/CD Integration
+```bash
+# Optimized for continuous integration
+fraim --show-logs false \
+  run code --location . \
+  --confidence 8 \
+  --output ./security-reports/ \
+  --limit 1000
+```
+
+### 3. Security Code Review
+```bash
+# Comprehensive analysis with detailed output
+fraim --debug \
+  run code --location . \
+  --confidence 6 \
+  --chunk-size 400
+```
+
+### 4. Language-Specific Analysis
+```bash
+# Python security analysis
+fraim run code --location . --globs "*.py" "requirements.txt"
+
+# JavaScript/Node.js analysis
+fraim run code --location . --globs "*.js" "*.ts" "package.json"
+
+# Java application analysis
+fraim run code --location . --globs "*.java" "pom.xml" "build.gradle"
+```
+
+## GitHub Actions
+
+Use the official Fraim GitHub Action:
+
+```yaml
+name: Code Security Analysis
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run Fraim Code Security Scan
+        uses: fraim-dev/fraim-action@8d763963b80e2551c7ec3f5bdbd77bad6ce7658c
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          workflow: code
+          workflow_args: |
+            {
+              "confidence": 8,
+              "chunk-size": 500,
+              "max-concurrent-chunks": 5,
+              "max-concurrent-triagers": 3
+            }
+```
+
+#### Available workflow_args
+
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `confidence` | integer (1-10) | `7` | Minimum confidence threshold for filtering findings |
+| `chunk-size` | integer | `500` | Number of lines per chunk |
+| `limit` | integer | `null` | Limit the number of files to scan |
+| `globs` | array of strings | `null` | File patterns to include (uses workflow defaults if not provided) |
+| `max-concurrent-chunks` | integer | `5` | Maximum number of chunks to process concurrently |
+| `max-concurrent-triagers` | integer | `3` | Maximum number of triager requests per chunk to run concurrently |
