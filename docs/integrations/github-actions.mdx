@@ -38,8 +38,16 @@ Add your LLM API key to your repository secrets:
 
 1. Go to your repository **Settings** → **Secrets and variables** → **Actions**
 2. Click **New repository secret**
-3. Name: `ANTHROPIC_API_KEY`
-4. Value: Your Anthropic API key
+3. Name: `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` or `GEMINI_API_KEY`
+4. Value: Your LLM Provider API key
+
+### 2. Quick Setup Tool
+
+Use this tool to quickly navigate to your repository's secrets page:
+
+import { GitHubSecretsSetup } from "/snippets/github-secrets-setup.jsx"
+
+<GitHubSecretsSetup />
 
 ## Workflow-Specific GitHub Actions
 
