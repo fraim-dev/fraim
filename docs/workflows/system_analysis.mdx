@@ -13,87 +13,6 @@ The **System Analysis** workflow examines codebases and documentation to extract
 - **Primary Use Case**: System understanding and threat modeling preparation
 - **Output**: JSON report with system characteristics
 
-## Quick Start
-
-```bash
-# Analyze current project
-fraim run system_analysis --location .
-
-# Analyze with business context
-fraim run system_analysis --location . \
-  --business-context "E-commerce platform for small businesses"
-
-# Focus on specific areas
-fraim run system_analysis --location . \
-  --focus-areas "authentication,data_processing,api_endpoints"
-
-# Analyze remote repository
-fraim run system_analysis --location https://github.com/company/app
-```
-
-## Analysis Output
-
-The workflow generates a comprehensive JSON report containing:
-
-### System Characteristics
-```json
-{
-  "system_purpose": "E-commerce platform providing online shopping capabilities",
-  "intended_users": ["customers", "merchants", "administrators"],
-  "business_context": "B2B marketplace for small to medium businesses",
-  "key_features": ["product catalog", "payment processing", "order management"],
-  "user_roles": ["buyer", "seller", "admin", "support"],
-  "external_integrations": ["payment gateway", "shipping API", "email service"],
-  "data_types": ["personal information", "payment data", "product information"]
-}
-```
-
-### Analysis Metadata
-```json
-{
-  "confidence_score": 0.85,
-  "files_analyzed": 12,
-  "analysis_summary": "Analyzed 12 files to understand system characteristics...",
-  "total_chunks_processed": 15
-}
-```
-
-## Workflow-Specific Options
-
-### `--business-context <TEXT>`
-Provide additional business context to improve analysis accuracy.
-
-```bash
-# Financial services context
-fraim run system_analysis --location . \
-  --business-context "Banking application for retail customers"
-
-# Healthcare context  
-fraim run system_analysis --location . \
-  --business-context "Patient management system for medical practices"
-
-# E-commerce context
-fraim run system_analysis --location . \
-  --business-context "Online marketplace connecting buyers and sellers"
-```
-
-### `--focus-areas <AREAS>`
-Specify particular areas to emphasize during analysis.
-
-```bash
-# Authentication focus
-fraim run system_analysis --location . \
-  --focus-areas "authentication,authorization,user_management"
-
-# Data processing focus
-fraim run system_analysis --location . \
-  --focus-areas "data_processing,database,api_endpoints"
-
-# Security focus
-fraim run system_analysis --location . \
-  --focus-areas "security,encryption,access_control,audit_logging"
-```
-
 **Common focus areas:**
 - `authentication` - User authentication and session management
 - `authorization` - Access control and permissions
@@ -145,6 +64,51 @@ fraim run system_analysis --location . \
   --business-context "Legacy financial reporting system"
 ```
 
+
+### 6. Documentation Generation
+```bash
+# Generate system overview for documentation
+fraim run system_analysis --location . \
+  --business-context "Internal API for user management" \
+  --output ./docs/analysis/
+```
+
+## Workflow-Specific Options
+
+### `--business-context <TEXT>`
+Provide additional business context to improve analysis accuracy.
+
+```bash
+# Financial services context
+fraim run system_analysis --location . \
+  --business-context "Banking application for retail customers"
+
+# Healthcare context  
+fraim run system_analysis --location . \
+  --business-context "Patient management system for medical practices"
+
+# E-commerce context
+fraim run system_analysis --location . \
+  --business-context "Online marketplace connecting buyers and sellers"
+```
+
+### `--focus-areas <AREAS>`
+Specify particular areas to emphasize during analysis.
+
+```bash
+# Authentication focus
+fraim run system_analysis --location . \
+  --focus-areas "authentication,authorization,user_management"
+
+# Data processing focus
+fraim run system_analysis --location . \
+  --focus-areas "data_processing,database,api_endpoints"
+
+# Security focus
+fraim run system_analysis --location . \
+  --focus-areas "security,encryption,access_control,audit_logging"
+```
+
 ## GitHub Actions Integration
 
 ```yaml
@@ -191,19 +155,3 @@ jobs:
 | `max-concurrent-chunks` | integer | `5` | Maximum number of chunks to process concurrently |
 | `business-context` | string | `""` | Additional business context to consider during analysis |
 | `focus-areas` | array of strings | `null` | Specific areas to focus on (e.g., authentication, data_processing, api_endpoints) |
-
-### Documentation Generation
-```bash
-# Generate system overview for documentation
-fraim run system_analysis --location . \
-  --business-context "Internal API for user management" \
-  --output ./docs/analysis/
-```
-
-## Output File Structure
-
-The workflow generates timestamped JSON files:
-```
-fraim_output/
-└── system_analysis_myapp_20240915_143022.json
-```
