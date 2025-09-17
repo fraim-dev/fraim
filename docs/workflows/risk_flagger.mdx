@@ -23,10 +23,11 @@ The **Risk Flagger** workflow analyzes code changes for security risks that requ
 <Tab title="CLI">
 ```bash
 # Automated PR analysis with team notification
-fraim run risk_flagger --location . --diff \
+fraim run risk_flagger --location . --diff --base main --head HEAD \
   --pr-url https://github.com/owner/repo/pull/123 \
   --approver security-team \
-  --confidence 7
+  --custom-risk-list-json '{"Example Rule": "Flag this rule on every diff, it is an example to show how the workflow works."}' \
+  --custom-risk-list-action replace
 ```
 </Tab>
 <Tab title="GitHub Actions">
@@ -251,7 +252,7 @@ fraim run risk_flagger --location . --diff \
     "Skip configuration templates"
 ```
 
-## GitHub Actions
+## GitHub Actions Integration
 
 <Note>
 **Prerequisites**: To use the Risk Flagger workflow with GitHub Actions, you need to create a Personal Access Token with the appropriate permissions. This is because the default Github Actions token does not have permissions to create status checks, or to request reviewers. Use the tool below to generate a personalized token creation URL for your repository.
@@ -265,7 +266,7 @@ import { GitHubTokenGenerator } from "/snippets/github-token-generator.jsx"
 name: Risk Assessment
 on:
   pull_request:
-    branches: [dev]
+    branches: [main]
   pull_request_review:
     types: [submitted]
 
@@ -281,20 +282,17 @@ jobs:
         id: fraim-scan
         uses: fraim-dev/fraim-action@8d763963b80e2551c7ec3f5bdbd77bad6ce7658c
         with:
-          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           workflow: risk_flagger
           workflow_args: |
             {
               "approver": "security",
               "should-block-pull-request": true,
               "custom-risk-list-json": {
-                "Change Protection": "All changes to sensitive_data.py should be flagged.",
-                "API Changes": "Any modifications to API endpoints require security review."
+                "Example Risk": "Never flag this risk, it is just an example."
               },
-              "custom-risk-list-action": "replace",
-              "chunk-size": 5000,
-              "confidence": 7
+              "custom-risk-list-action": "append"
             }
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           github-token: ${{ secrets.GH_TOKEN }}
 ```
 
