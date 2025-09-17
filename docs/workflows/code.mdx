@@ -15,44 +15,7 @@ The **Code Security Analysis** workflow examines source code files for security 
 
 ## Common Use Cases
 
-### 1. Pre-Commit Analysis
-
-<Tabs>
-<Tab title="CLI">
-```bash
-# Analyze only changed files
-fraim run code --location . --diff
-```
-</Tab>
-<Tab title="GitHub Action">
-```yaml
-name: Pre-Commit Security Analysis
-on:
-  pull_request:
-    branches: [main]
-
-jobs:
-  security-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # Needed for diff analysis
-      
-      - name: Run Fraim Code Security Scan (Diff Only)
-        uses: fraim-dev/fraim-action@8d763963b80e2551c7ec3f5bdbd77bad6ce7658c
-        with:
-          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          workflow: code
-          workflow_args: |
-            {
-              "diff": true
-            }
-```
-</Tab>
-</Tabs>
-
-### 2. Security Code Review
+### 1. Security Code Review
 
 <Tabs>
 <Tab title="CLI">
@@ -94,6 +57,18 @@ jobs:
 ```
 </Tab>
 </Tabs>
+
+### 2. Pre-Commit Analysis
+
+<Tabs>
+<Tab title="CLI">
+```bash
+# Analyze only changed files
+fraim run code --location . --diff
+```
+</Tab>
+</Tabs>
+
 
 ### 3. Language-Specific Analysis
 
