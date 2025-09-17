@@ -13,82 +13,49 @@ The **Code Security Analysis** workflow examines source code files for security 
 - **Primary Use Case**: Static analysis of application source code
 - **Output**: SARIF and HTML security reports
 
-## Quick Start
-
-```bash
-# Analyze current directory
-fraim run code --location .
-
-# Analyze a specific repository
-fraim run code --location https://github.com/username/repository
-
-# High-confidence findings only
-fraim run code --location . --confidence 9
-
-# Focus on Python files
-fraim run code --location . --globs "*.py"
-```
-
-## Workflow-Specific Options
-
-The code workflow supports several specialized options:
-
-### `--max-concurrent-triagers <NUMBER>`
-Controls how many vulnerability assessments run in parallel during the triaging phase.
-
-**Default**: `3`
-
-```bash
-# Conservative resource usage
-fraim run code --location . --max-concurrent-triagers 2
-
-# Faster triaging (more resources)
-fraim run code --location . --max-concurrent-triagers 5
-```
-
-### Performance Tuning
-
-For optimal performance with the code workflow:
-
-```bash
-# Balanced performance (recommended)
-fraim run code --location . \
-  --chunk-size 500 \
-  --max-concurrent-chunks 5 \
-  --max-concurrent-triagers 3
-
-# High-performance setup (requires more resources)
-fraim run code --location . \
-  --chunk-size 800 \
-  --max-concurrent-chunks 8 \
-  --max-concurrent-triagers 5
-
-# Conservative setup (limited resources)
-fraim run code --location . \
-  --chunk-size 300 \
-  --max-concurrent-chunks 3 \
-  --max-concurrent-triagers 2
-```
-
 ## Common Use Cases
 
 ### 1. Pre-Commit Analysis
+
+<Tabs>
+<Tab title="CLI">
 ```bash
 # Analyze only changed files
 fraim run code --location . --diff
 ```
+</Tab>
+<Tab title="GitHub Action">
+```yaml
+name: Pre-Commit Security Analysis
+on:
+  pull_request:
+    branches: [main]
 
-### 2. CI/CD Integration
-```bash
-# Optimized for continuous integration
-fraim --show-logs false \
-  run code --location . \
-  --confidence 8 \
-  --output ./security-reports/ \
-  --limit 1000
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Needed for diff analysis
+      
+      - name: Run Fraim Code Security Scan (Diff Only)
+        uses: fraim-dev/fraim-action@8d763963b80e2551c7ec3f5bdbd77bad6ce7658c
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          workflow: code
+          workflow_args: |
+            {
+              "diff": true
+            }
 ```
+</Tab>
+</Tabs>
 
-### 3. Security Code Review
+### 2. Security Code Review
+
+<Tabs>
+<Tab title="CLI">
 ```bash
 # Comprehensive analysis with detailed output
 fraim --debug \
@@ -96,8 +63,42 @@ fraim --debug \
   --confidence 6 \
   --chunk-size 400
 ```
+</Tab>
+<Tab title="GitHub Action">
+```yaml
+name: Comprehensive Security Code Review
+on:
+  workflow_dispatch:  # Manual trigger for thorough reviews
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly on Mondays at 2 AM
 
-### 4. Language-Specific Analysis
+jobs:
+  security-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run Fraim Comprehensive Security Review
+        uses: fraim-dev/fraim-action@8d763963b80e2551c7ec3f5bdbd77bad6ce7658c
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          workflow: code
+          workflow_args: |
+            {
+              "confidence": 6,
+              "chunk-size": 400,
+              "max-concurrent-chunks": 3,
+              "max-concurrent-triagers": 2
+            }
+          debug: true
+```
+</Tab>
+</Tabs>
+
+### 3. Language-Specific Analysis
+
+<Tabs>
+<Tab title="CLI">
 ```bash
 # Python security analysis
 fraim run code --location . --globs "*.py" "requirements.txt"
@@ -108,6 +109,68 @@ fraim run code --location . --globs "*.js" "*.ts" "package.json"
 # Java application analysis
 fraim run code --location . --globs "*.java" "pom.xml" "build.gradle"
 ```
+</Tab>
+<Tab title="GitHub Action">
+```yaml
+name: Language-Specific Security Analysis
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  python-security:
+    if: contains(github.event.pull_request.changed_files, '.py') || contains(github.event.pull_request.changed_files, 'requirements.txt')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run Python Security Analysis
+        uses: fraim-dev/fraim-action@8d763963b80e2551c7ec3f5bdbd77bad6ce7658c
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          workflow: code
+          workflow_args: |
+            {
+              "globs": ["*.py", "requirements.txt"],
+              "confidence": 7
+            }
+
+  javascript-security:
+    if: contains(github.event.pull_request.changed_files, '.js') || contains(github.event.pull_request.changed_files, '.ts') || contains(github.event.pull_request.changed_files, 'package.json')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run JavaScript/TypeScript Security Analysis
+        uses: fraim-dev/fraim-action@8d763963b80e2551c7ec3f5bdbd77bad6ce7658c
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          workflow: code
+          workflow_args: |
+            {
+              "globs": ["*.js", "*.ts", "package.json"],
+              "confidence": 7
+            }
+
+  java-security:
+    if: contains(github.event.pull_request.changed_files, '.java') || contains(github.event.pull_request.changed_files, 'pom.xml') || contains(github.event.pull_request.changed_files, 'build.gradle')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run Java Security Analysis
+        uses: fraim-dev/fraim-action@8d763963b80e2551c7ec3f5bdbd77bad6ce7658c
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          workflow: code
+          workflow_args: |
+            {
+              "globs": ["*.java", "pom.xml", "build.gradle"],
+              "confidence": 7
+            }
+```
+</Tab>
+</Tabs>
 
 ## GitHub Actions Integration
 
