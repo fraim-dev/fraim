@@ -32,6 +32,12 @@
               ]
             },
             {
+                "group": "Integrations",
+                "pages": [
+                    "integrations/github-actions"
+                ]
+            },
+            {
                 "group": "CLI",
                 "pages": [
                     "usage",
