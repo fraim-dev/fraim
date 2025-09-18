@@ -8,6 +8,7 @@ import logging
 import multiprocessing as mp
 import os
 from dataclasses import is_dataclass
+from types import UnionType
 from typing import Annotated, Any, Union, get_args, get_origin, get_type_hints
 
 from fraim.core.workflows.discovery import discover_workflows
@@ -179,7 +180,7 @@ def workflow_options_to_cli_args(options_class: type[Any]) -> dict[str, dict[str
             arg_config["type"] = float
         elif get_origin(actual_type) is list:
             arg_config["nargs"] = "+"
-        elif get_origin(actual_type) is Union:
+        elif get_origin(actual_type) is Union or get_origin(actual_type) is UnionType:
             # Handle Optional[T] which is Union[T, None]
             args = get_args(actual_type)
             if len(args) == 2 and type(None) in args:
