@@ -13,7 +13,7 @@ import threading
 from dataclasses import dataclass, field
 from typing import Annotated, Dict, List, Literal, Optional
 
-from fraim.actions import add_reviewer
+from fraim.actions import add_comment, add_reviewer
 from fraim.core.contextuals import CodeChunk
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
@@ -188,10 +188,20 @@ class RiskFlaggerWorkflow(Workflow[RiskFlaggerWorkflowOptions, List[sarif.Result
 
         # 5. Notify Github groups with formatted comment
         if len(results) > 0:
-            if self.args.pr_url and self.args.approver:
-                add_reviewer(self.args.pr_url, pr_comment, self.args.approver)
+            if self.args.pr_url:
+                add_comment(self.args.pr_url, pr_comment, self.args.approver)
             else:
-                self.logger.warning("PR URL and/or approver are missing, skipping GitHub notification")
+                self.logger.warning("PR URL missing, skipping Add Comment")
+
+            if self.args.pr_url and self.args.approver:
+                try:
+                    add_reviewer(self.args.pr_url, self.args.approver)
+                except Exception as e:
+                    self.logger.warning(
+                        f"Failed to add reviewer, check to make sure you have the right permissions: {e}\nContinuing with comment only."
+                    )
+            else:
+                self.logger.warning("PR URL and/or approver are missing, skipping Add Reviewer")
 
         self.logger.info(pr_comment)
 

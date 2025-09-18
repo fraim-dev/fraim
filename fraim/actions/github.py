@@ -7,7 +7,7 @@ import os
 import re
 import shutil
 import subprocess
-from typing import Optional
+from typing import Optional, Tuple
 from urllib.parse import urlparse
 
 from github import Github
@@ -76,26 +76,7 @@ def _get_github_token() -> Optional[str]:
     return None
 
 
-def add_reviewer(pr_url: str, description: str, user_or_group: str) -> None:
-    """
-    Notifies a GitHub user or team by adding them as reviewers and leaving a comment on a PR.
-
-    Simple detection logic:
-    1. First tries to find as organization team (supports "org/team" or just "team")
-    2. Then tries to find as individual user
-    3. Fails if neither exists
-
-    Args:
-        pr_url: The full URL to the GitHub PR
-        description: The description to add as a comment
-        user_or_group: The GitHub user or team to notify
-
-    Raises:
-        ValueError: If the PR URL is invalid
-        RuntimeError: If GitHub token is not set, API calls fail, or user/team cannot be found
-    """
-    logger.info(f"Notifying GitHub user_or_group {user_or_group} for PR: {pr_url}")
-
+def parse_pr_url(pr_url: str) -> Tuple[str, str, str]:
     # Parse PR URL to get owner, repo, and PR number
     logger.debug(f"Parsing PR URL: {pr_url}")
     try:
@@ -107,6 +88,15 @@ def add_reviewer(pr_url: str, description: str, user_or_group: str) -> None:
     except (ValueError, IndexError):
         logger.error(f"Failed to parse PR URL: {pr_url}")
         raise ValueError(f"Invalid PR URL format: {pr_url}")
+
+    return owner, repo, pr_number
+
+
+def add_comment(pr_url: str, description: str, user_or_group: str) -> None:
+    """
+    Adds a comment to a GitHub PR.
+    """
+    owner, repo, pr_number = parse_pr_url(pr_url)
 
     # Get GitHub token from multiple sources
     logger.debug("Getting GitHub authentication token")
@@ -135,14 +125,67 @@ def add_reviewer(pr_url: str, description: str, user_or_group: str) -> None:
         raise RuntimeError(f"Failed to get repository or pull request: {str(e)}") from e
 
     try:
-        # Add comment with user_or_group mention
-        comment_text = f"@{user_or_group}\n\n{description}"
-        logger.debug(f"Adding comment to PR with user_or_group mention: {user_or_group}")
+        # Add comment with optional user_or_group mention
+        if user_or_group.strip():
+            comment_text = f"@{user_or_group}\n\n{description}"
+            logger.info(f"Adding comment to PR with user_or_group mention: {user_or_group}")
+        else:
+            comment_text = description
+            logger.info("Adding comment to PR without user_or_group mention")
         pull_request.create_issue_comment(comment_text)
         logger.info(f"Successfully added comment to PR #{pr_number}")
     except Exception as e:
         logger.error(f"Failed to add comment to PR: {str(e)}")
         raise RuntimeError(f"Failed to add comment to PR: {str(e)}") from e
+
+
+def add_reviewer(pr_url: str, user_or_group: str) -> None:
+    """
+    Notifies a GitHub user or team by adding them as reviewers and leaving a comment on a PR.
+
+    Simple detection logic:
+    1. First tries to find as organization team (supports "org/team" or just "team")
+    2. Then tries to find as individual user
+    3. Fails if neither exists
+
+    Args:
+        pr_url: The full URL to the GitHub PR
+        description: The description to add as a comment
+        user_or_group: The GitHub user or team to notify
+
+    Raises:
+        ValueError: If the PR URL is invalid
+        RuntimeError: If GitHub token is not set, API calls fail, or user/team cannot be found
+    """
+    logger.info(f"Notifying GitHub user_or_group {user_or_group} for PR: {pr_url}")
+
+    owner, repo, pr_number = parse_pr_url(pr_url)
+
+    # Get GitHub token from multiple sources
+    logger.debug("Getting GitHub authentication token")
+    github_token = _get_github_token()
+    if not github_token:
+        logger.error("GitHub authentication failed - no token found")
+        raise RuntimeError(
+            "GitHub authentication required. Please ensure one of the following:\n"
+            "1. Set GITHUB_TOKEN environment variable\n"
+            "2. Configure git credentials for github.com\n"
+            "3. Login with GitHub CLI (`gh auth login`)"
+        )
+
+    # Initialize GitHub client
+    logger.debug("Initializing GitHub client")
+    gh = Github(github_token)
+
+    try:
+        # Get repository and PR
+        logger.debug(f"Getting repository: {owner}/{repo}")
+        repository = gh.get_repo(f"{owner}/{repo}")
+        logger.debug(f"Getting pull request #{pr_number}")
+        pull_request = repository.get_pull(int(pr_number))
+    except Exception as e:
+        logger.error(f"Failed to get repository or pull request: {str(e)}")
+        raise RuntimeError(f"Failed to get repository or pull request: {str(e)}") from e
 
     try:
         # Try to add reviewer - first as team, then as user
