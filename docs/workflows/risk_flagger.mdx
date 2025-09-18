@@ -305,7 +305,11 @@ jobs:
           workflow: risk_flagger
           workflow_args: |
             {
-              "approver": "fraim-dev/security"
+              "approver": "fraim-dev/security",
+              "custom-risk-list-json": {
+                "Example Risk": "Never flag this risk, it is just an example."
+              },
+              "custom-risk-list-action": "append"
             }
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
