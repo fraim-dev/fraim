@@ -4,6 +4,8 @@ sidebarTitle: "Risk Flagger"
 tag: "NEW"
 ---
 
+import { GitHubAppInstaller } from "/snippets/github-app-installer.jsx"
+
 # Risk Flagger Workflow
 
 The **Risk Flagger** workflow analyzes code changes for security risks that require security team investigation. Unlike traditional vulnerability scanners, this workflow focuses on identifying changes that could introduce security risks, making it ideal for pull request analysis and change management.
@@ -254,13 +256,54 @@ fraim run risk_flagger --location . --diff \
 
 ## GitHub Actions Integration
 
+<Tabs>
+<Tab title="Easy Setup">
+**Simple setup with no GitHub token required**
+
+**What this does**: 
+- ✅ Adds risk assessment comments to pull requests
+- ❌ No team notifications or reviewer requests
+- ❌ No status checks or PR blocking
+
+```yaml
+name: Risk Assessment
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  risk-assessment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Run Fraim Risk Flagger Scan
+        uses: fraim-dev/fraim-action@8d763963b80e2551c7ec3f5bdbd77bad6ce7658c
+        with:
+          workflow: risk_flagger
+          workflow_args: |
+            {
+              "approver": "fraim-dev/security"
+            }
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+</Tab>
+
+<Tab title="GitHub App">
+**Advanced setup with GitHub App for team notifications**
+
+**What this does**: 
+- ✅ Adds risk assessment comments to pull requests
+- ✅ Requests review from specified team/user when risks are found
+- ❌ No PR blocking (PRs can still be merged)
+
 <Note>
-**Prerequisites**: To use the Risk Flagger workflow with GitHub Actions, you need to create a Personal Access Token with the appropriate permissions. This is because the default Github Actions token does not have permissions to create status checks, or to request reviewers. Use the tool below to generate a personalized token creation URL for your repository.
+**Prerequisites**: You need to create and install a GitHub App with the appropriate permissions. Use the tool below to set up your GitHub App.
 </Note>
 
-import { GitHubTokenGenerator } from "/snippets/github-token-generator.jsx"
-
-<GitHubTokenGenerator />
+<GitHubAppInstaller />
 
 ```yaml
 name: Risk Assessment
@@ -279,13 +322,60 @@ jobs:
           fetch-depth: 0
       
       - name: Run Fraim Risk Flagger Scan
-        id: fraim-scan
         uses: fraim-dev/fraim-action@8d763963b80e2551c7ec3f5bdbd77bad6ce7658c
         with:
           workflow: risk_flagger
           workflow_args: |
             {
-              "approver": "security",
+              "approver": "fraim-dev/security",
+              "custom-risk-list-json": {
+                "Example Risk": "Never flag this risk, it is just an example."
+              },
+              "custom-risk-list-action": "append"
+            }
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github-app-id: ${{ secrets.GITHUB_APP_ID }}
+          github-app-private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
+```
+</Tab>
+
+<Tab title="Block Pull Request">
+**Full security gate with PR blocking**
+
+**What this does**: 
+- ✅ Adds risk assessment comments to pull requests
+- ✅ Requests review from specified team/user when risks are found
+- ✅ Creates a status check that blocks PR merging until team approves
+
+<Note>
+**Prerequisites**: You need to create and install a GitHub App with the appropriate permissions. Use the tool below to set up your GitHub App.
+</Note>
+
+<GitHubAppInstaller />
+
+```yaml
+name: Risk Assessment
+on:
+  pull_request:
+    branches: [main]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  risk-assessment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Run Fraim Risk Flagger Scan
+        uses: fraim-dev/fraim-action@8d763963b80e2551c7ec3f5bdbd77bad6ce7658c
+        with:
+          workflow: risk_flagger
+          workflow_args: |
+            {
+              "approver": "fraim-dev/security",
               "should-block-pull-request": true,
               "custom-risk-list-json": {
                 "Example Risk": "Never flag this risk, it is just an example."
@@ -293,21 +383,28 @@ jobs:
               "custom-risk-list-action": "append"
             }
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github-token: ${{ secrets.GH_TOKEN }}
+          github-app-id: ${{ secrets.GITHUB_APP_ID }}
+          github-app-private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
 ```
+
+<Warning>
+**Branch Protection Required**: To fully block PR merging, ensure your repository has branch protection rules that require status checks to pass before merging.
+</Warning>
+</Tab>
+</Tabs>
 
 #### Available workflow_args
 
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
-| `confidence` | integer (1-10) | `7` | Minimum confidence threshold for filtering findings |
-| `chunk-size` | integer | `500` | Number of lines per chunk |
-| `limit` | integer | `null` | Limit the number of files to scan |
-| `globs` | array of strings | `null` | File patterns to include (uses workflow defaults if not provided) |
-| `max-concurrent-chunks` | integer | `5` | Maximum number of chunks to process concurrently |
 | `approver` | string | `""` | GitHub username or group to notify for approval |
 | `should-block-pull-request` | boolean | `false` | Whether to block the pull request until security review is complete |
 | `custom-risk-list-action` | string | `"append"` | Whether to `"append"` to or `"replace"` the default risks list |
 | `custom-risk-list-filepath` | string | `null` | Path to JSON/YAML file containing additional risks |
 | `custom-risk-list-json` | object | `null` | JSON object containing additional risks to consider |
 | `custom-false-positive-considerations` | array of strings | `[]` | List of additional considerations to help reduce false positives |
+| `confidence` | integer (1-10) | `7` | Minimum confidence threshold for filtering findings |
+| `chunk-size` | integer | `500` | Number of lines per chunk |
+| `limit` | integer | `null` | Limit the number of files to scan |
+| `globs` | array of strings | `null` | File patterns to include (uses workflow defaults if not provided) |
+| `max-concurrent-chunks` | integer | `5` | Maximum number of chunks to process concurrently |
