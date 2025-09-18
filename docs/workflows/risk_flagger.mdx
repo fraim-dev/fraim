@@ -39,6 +39,11 @@ on:
   pull_request:
     branches: [main, develop]
 
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
 jobs:
   security-gate:
     runs-on: ubuntu-latest
@@ -82,6 +87,11 @@ name: Custom Risk Assessment
 on:
   pull_request:
     branches: [main]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
 
 jobs:
   custom-risk-check:
@@ -127,6 +137,11 @@ name: Release Risk Analysis
 on:
   push:
     tags: ['v*']
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
 
 jobs:
   release-analysis:
@@ -271,6 +286,11 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
 jobs:
   risk-assessment:
     runs-on: ubuntu-latest
@@ -312,6 +332,11 @@ on:
     branches: [main]
   pull_request_review:
     types: [submitted]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
 
 jobs:
   risk-assessment:
@@ -360,6 +385,11 @@ on:
     branches: [main]
   pull_request_review:
     types: [submitted]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
 
 jobs:
   risk-assessment:
