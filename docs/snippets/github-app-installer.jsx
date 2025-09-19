@@ -233,7 +233,7 @@ export const GitHubAppInstaller = () => {
               <p className="font-medium mb-2">Before proceeding to step 5:</p>
               <ol className="list-decimal list-inside space-y-1 text-xs">
                 <li>Copy your App ID from the page that opens in step 4</li>
-                <li>Copy your private key to clipboard using: <code className="bg-zinc-200 dark:bg-zinc-700 px-1 rounded">cat ~/Downloads/your-app-name.*.private-key.pem | pbcopy</code></li>
+                <li>Copy your private key to clipboard using: <code className="bg-zinc-200 dark:bg-zinc-700 px-1 rounded">cat ~/Downloads/fraim-risk-flagger-*.*.private-key.pem | pbcopy</code></li>
               </ol>
             </div>
           </div>
@@ -252,8 +252,8 @@ export const GitHubAppInstaller = () => {
             <div className="bg-zinc-100 dark:bg-zinc-800 p-3 rounded-md">
               <p className="font-medium mb-2">Create these two secrets:</p>
               <ul className="list-disc list-inside space-y-1 text-xs">
-                <li><code className="bg-zinc-200 dark:bg-zinc-700 px-1 rounded">GITHUB_APP_ID</code> - Your App ID from step 4</li>
-                <li><code className="bg-zinc-200 dark:bg-zinc-700 px-1 rounded">GITHUB_APP_PRIVATE_KEY</code> - Your private key (paste from clipboard)</li>
+                <li><code className="bg-zinc-200 dark:bg-zinc-700 px-1 rounded">GH_APP_ID</code> - Your App ID from step 4</li>
+                <li><code className="bg-zinc-200 dark:bg-zinc-700 px-1 rounded">GH_APP_PRIVATE_KEY</code> - Your private key (paste from clipboard)</li>
               </ul>
               <p className="mt-2 text-xs">Now you can use these in your GitHub Action with <code className="bg-zinc-200 dark:bg-zinc-700 px-1 rounded">github-app-id</code> and <code className="bg-zinc-200 dark:bg-zinc-700 px-1 rounded">github-app-private-key</code> parameters.</p>
             </div>
