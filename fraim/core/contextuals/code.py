@@ -2,6 +2,9 @@
 # Copyright (c) 2025 Resourcely Inc.
 import dataclasses
 from pathlib import Path
+from typing import Collection, Literal, AbstractSet, Set
+
+import tiktoken
 
 from fraim.core.contextuals.contextual import Contextual, Location, Locations
 
@@ -57,7 +60,7 @@ class CodeChunk(Contextual[str]):
                 file_path=self.file_path,
                 line_number_start_inclusive=self.line_number_start_inclusive,
                 line_number_end_inclusive=self.line_number_end_inclusive,
-            )
+            ),
         )
 
     @property
@@ -69,6 +72,21 @@ class CodeChunk(Contextual[str]):
 
     def __repr__(self) -> str:
         return str(self)
+
+    def __len__(self) -> int:
+        """Return the length of the combined content of all code chunks in tokens."""
+
+        # Let's just use gpt2 encoding for now, we could get the actual model name, but I worry that this will break
+        # things randomly, and really we only care if the size is approximately correct. Being consistent is more important.
+        enc = tiktoken.get_encoding("gpt2")
+
+        return len(
+            enc.encode(
+                str(self.content),
+                allowed_special=set(),
+                disallowed_special="all",
+            ),
+        )
 
 
 class CodeChunks(list[CodeChunk], Contextual[str]):
@@ -100,6 +118,11 @@ class CodeChunks(list[CodeChunk], Contextual[str]):
 
     def __repr__(self) -> str:
         return str(self)
+
+    def __len__(self) -> int:
+        """Return the length of the combined content of all code chunks in tokens."""
+        return sum(len(chunk) for chunk in self)
+
 
 
 @dataclasses.dataclass

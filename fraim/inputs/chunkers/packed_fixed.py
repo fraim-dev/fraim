@@ -41,7 +41,7 @@ class PackingFixedChunker(SyntacticChunker):
             # Case 3: Try adding the new chunk to the existing pack.
             # We create a temporary CodeChunks object to accurately measure the
             # final string length, including all XML tags and newlines.
-            size_if_added = len(str(CodeChunks(current_pack + [file_chunk])))
+            size_if_added = len(CodeChunks(current_pack + [file_chunk]))
 
             if size_if_added > self.chunk_size:
                 # It doesn't fit. Yield the current pack.
