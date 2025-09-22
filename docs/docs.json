@@ -8,6 +8,9 @@
       "dark": "#15803D"
     },
     "favicon": "/assets/fraim-logo.png",
+    "logo": {
+      "href": "https://www.fraim.dev"
+    },
     "topbar": {
       "github": "https://github.com/fraim-dev/fraim"
     },
