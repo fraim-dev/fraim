@@ -110,7 +110,7 @@ class ChunkProcessor(Generic[T]):
         layout.split_column(
             Layout(base_display, name="history", ratio=1),
             Layout(
-                ProgressPanel(lambda: (f"Analyzing chunks", self._processed_chunks, self._total_chunks)),
+                ProgressPanel(lambda: ("Analyzing chunks", self._processed_chunks, self._total_chunks)),
                 name="progress",
                 size=3,
             ),

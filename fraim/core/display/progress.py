@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 from rich.console import Console, ConsoleOptions, RenderResult
 from rich.panel import Panel

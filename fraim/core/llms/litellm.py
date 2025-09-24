@@ -5,13 +5,13 @@
 
 import logging
 from collections.abc import Iterable
-from typing import Any, Iterable, Protocol, Self, cast
+from typing import Any, Protocol, Self, cast
 
 import litellm
 from litellm import CustomStreamWrapper, ModelResponse
 from litellm.types.utils import ChatCompletionMessageToolCall
 
-from fraim.core.history import EventRecord, History, HistoryRecord
+from fraim.core.history import EventRecord, History
 from fraim.core.llms.base import BaseLLM
 from fraim.core.messages import AssistantMessage, Function, Message, ToolCall
 from fraim.core.tools import BaseTool, execute_tool_calls
@@ -121,7 +121,7 @@ class LiteLLM(BaseLLM):
             max_delay=self.max_delay,
             retry_predicate=should_retry_acompletion,
         )
-        history.append_record(EventRecord(description=f"Thinking..."))
+        history.append_record(EventRecord(description="Thinking..."))
         response = await completion(**completion_params)
         history.pop_record()
 
@@ -223,7 +223,7 @@ async def acompletion_text(**kwargs: Any) -> ModelResponse:
     """
     response = await litellm.acompletion(**kwargs)
     validate_text_model_response(response)
-    return cast(ModelResponse, response)
+    return cast("ModelResponse", response)
 
 
 def validate_text_model_response(response: ModelResponse | CustomStreamWrapper) -> None:
@@ -255,8 +255,6 @@ def validate_text_model_response(response: ModelResponse | CustomStreamWrapper) 
     # (we allow None or empty string content, just need the field to exist)
     if not hasattr(message, "content"):
         raise MalformedModelResponseError("Message has missing 'content' attribute")
-
-    return None
 
 
 def should_retry_acompletion(exception: BaseException) -> bool:

@@ -9,10 +9,11 @@ import logging
 import multiprocessing as mp
 import os
 import sys
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import is_dataclass
 from types import UnionType
-from typing import Annotated, Any, Generator, TextIO, Union, get_args, get_origin, get_type_hints
+from typing import Annotated, Any, TextIO, Union, get_args, get_origin, get_type_hints
 
 from rich.console import Console
 from rich.live import Live

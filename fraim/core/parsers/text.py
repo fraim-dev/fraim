@@ -4,7 +4,6 @@
 """Text output parser that returns raw string responses without interpretation."""
 
 from textwrap import dedent
-from typing import Optional
 
 from .base import BaseOutputParser, ParseContext
 
@@ -27,13 +26,13 @@ class TextOutputParser(BaseOutputParser[str]):
         self.instructions = instructions
 
     def output_prompt_instructions(self) -> str:
-        return dedent(f"""
+        return dedent("""
         <output_format>
-          {{ self.instructions }}
+          { self.instructions }
         </output_format>
         """)
 
-    async def parse(self, text: str, context: Optional[ParseContext] = None) -> str:
+    async def parse(self, text: str, context: ParseContext | None = None) -> str:
         """
         Parse the text by returning it as-is without any modification.
 

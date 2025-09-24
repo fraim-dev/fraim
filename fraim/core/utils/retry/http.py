@@ -3,9 +3,10 @@
 
 """Utility functions for HTTP retry logic and extracting retry-after duration from LiteLLM RateLimitError"""
 
-from datetime import datetime, timedelta, timezone
+from collections.abc import Mapping
+from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
-from typing import Any, Mapping, cast
+from typing import Any, cast
 
 try:
     import aiohttp
@@ -51,8 +52,8 @@ def parse_retry_header(exception: BaseException) -> timedelta | None:
     try:
         dt = parsedate_to_datetime(str(retry_after))
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        seconds = max(0, int((dt - datetime.now(timezone.utc)).total_seconds()))
+            dt = dt.replace(tzinfo=UTC)
+        seconds = max(0, int((dt - datetime.now(UTC)).total_seconds()))
         return timedelta(seconds=seconds)
     except (ValueError, TypeError):
         pass
@@ -132,7 +133,7 @@ def _get_headers(exception: BaseException) -> Mapping[str, str] | None:
     if headers is None:
         return None
 
-    return cast(Mapping[str, str], headers)
+    return cast("Mapping[str, str]", headers)
 
 
 def _get_status_code(exception: BaseException) -> int | None:

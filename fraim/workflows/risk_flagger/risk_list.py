@@ -8,12 +8,11 @@ Handles loading, parsing, and managing lists of risks to be analyzed.
 
 import json
 import os
-from typing import Any, Dict, List
 
 import yaml
 
 
-def load_risks_from_file(filepath: str) -> Dict[str, str]:
+def load_risks_from_file(filepath: str) -> dict[str, str]:
     """Load risks from a JSON or YAML file.
 
     Args:
@@ -28,7 +27,7 @@ def load_risks_from_file(filepath: str) -> Dict[str, str]:
         Exception: If there are any other errors reading the file
     """
     try:
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             content = f.read().strip()
 
         # Determine file format from extension
@@ -36,7 +35,7 @@ def load_risks_from_file(filepath: str) -> Dict[str, str]:
 
         if file_ext == ".json":
             return parse_risks_from_text(content)
-        elif file_ext in [".yaml", ".yml"]:
+        if file_ext in [".yaml", ".yml"]:
             try:
                 risks = yaml.safe_load(content)
                 if not isinstance(risks, dict):
@@ -64,7 +63,7 @@ def load_risks_from_file(filepath: str) -> Dict[str, str]:
         raise Exception(f"Error reading risk file {filepath}: {e}")
 
 
-def parse_risks_from_text(text: str) -> Dict[str, str]:
+def parse_risks_from_text(text: str) -> dict[str, str]:
     """Parse risks from raw JSON text.
 
     Args:
@@ -101,11 +100,11 @@ def parse_risks_from_text(text: str) -> Dict[str, str]:
 
 
 def build_risks_list(
-    default_risks: Dict[str, str],
+    default_risks: dict[str, str],
     custom_risk_list_action: str = "append",
     custom_risk_list_filepath: str | None = None,
     custom_risk_list_json: str | None = None,
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """Build the final dictionary of risks to consider based on input configuration.
 
     Args:
@@ -146,7 +145,7 @@ def build_risks_list(
     return unique_risks
 
 
-def format_risks_for_prompt(risks: Dict[str, str]) -> str:
+def format_risks_for_prompt(risks: dict[str, str]) -> str:
     """Format risks dictionary for inclusion in the prompt using XML-style tags.
 
     Args:

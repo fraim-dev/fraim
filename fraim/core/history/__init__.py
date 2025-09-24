@@ -5,4 +5,4 @@
 
 from .record import EventRecord, History, HistoryRecord
 
-__all__ = ["History", "EventRecord", "HistoryRecord"]
+__all__ = ["EventRecord", "History", "HistoryRecord"]
