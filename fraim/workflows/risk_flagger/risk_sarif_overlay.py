@@ -6,7 +6,6 @@ Risk Flagger workflow-specific SARIF model extensions.
 These models extend the base SARIF models with additional fields.
 """
 
-
 from pydantic import Field
 
 from fraim.outputs.sarif import BaseSchema

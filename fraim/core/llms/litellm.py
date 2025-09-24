@@ -257,7 +257,6 @@ def validate_text_model_response(response: ModelResponse | CustomStreamWrapper) 
         raise MalformedModelResponseError("Message has missing 'content' attribute")
 
 
-
 def should_retry_acompletion(exception: BaseException) -> bool:
     """
     Retry the acompletion request if a retriable HTTP error occurs or if the response is malformed.

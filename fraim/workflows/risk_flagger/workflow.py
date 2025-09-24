@@ -76,9 +76,7 @@ class RiskFlaggerWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceF
     custom_risk_list_filepath: Annotated[
         str | None, {"help": "Path to JSON/YAML file containing additional risks to consider"}
     ] = None
-    custom_risk_list_json: Annotated[str | None, {"help": "JSON string containing additional risks to consider"}] = (
-        None
-    )
+    custom_risk_list_json: Annotated[str | None, {"help": "JSON string containing additional risks to consider"}] = None
     custom_false_positive_considerations: Annotated[
         list[str], {"help": "List of additional considerations to help reduce false positives"}
     ] = field(default_factory=list)
