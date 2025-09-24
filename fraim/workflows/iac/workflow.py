@@ -28,6 +28,8 @@ from fraim.core.workflows.sarif import (
 )
 from fraim.outputs import sarif
 
+logger = logging.getLogger(__name__)
+
 FILE_PATTERNS = [
     "*.tf",
     "*.tfvars",
@@ -79,8 +81,8 @@ class IaCWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[IaCWorkflowOp
 
     name = "iac"
 
-    def __init__(self, logger: logging.Logger, args: IaCWorkflowOptions) -> None:
-        super().__init__(logger, args)
+    def __init__(self, args: IaCWorkflowOptions) -> None:
+        super().__init__(args)
         scanner_parser = PydanticOutputParser(sarif.RunResults)
         self.scanner_step: LLMStep[IaCCodeChunkOptions, sarif.RunResults] = LLMStep(
             self.llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser
@@ -95,17 +97,17 @@ class IaCWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[IaCWorkflowOp
         """Process a single chunk with error handling."""
         try:
             # 1. Scan the code for vulnerabilities.
-            self.logger.info(f"Scanning code for vulnerabilities: {Path(chunk.file_path)}")
+            logger.info(f"Scanning code for vulnerabilities: {Path(chunk.file_path)}")
             iac_input = IaCCodeChunkOptions(code=chunk)
             vulns = await self.scanner_step.run(history, iac_input)
 
             # 2. Filter the vulnerability by confidence.
-            self.logger.info("Filtering vulnerabilities by confidence")
+            logger.info("Filtering vulnerabilities by confidence")
             high_confidence_vulns = filter_results_by_confidence(vulns.results, self.args.confidence)
 
             return high_confidence_vulns
         except Exception as e:
-            self.logger.error(
+            logger.error(
                 f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {e!s}. "
                 "Skipping this chunk and continuing with scan."
             )
@@ -114,7 +116,7 @@ class IaCWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[IaCWorkflowOp
     async def run(self) -> list[sarif.Result]:
         """Main IaC workflow - full control over execution."""
         # 1. Setup project input using utility
-        project = self.setup_project_input(self.logger, self.args)
+        project = self.setup_project_input(self.args)
 
         # 2. Process chunks concurrently using utility
         results = await self.process_chunks_concurrently(
@@ -129,7 +131,6 @@ class IaCWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[IaCWorkflowOp
             results=results,
             repo_name=project.repo_name,
             output_dir=self.args.output,
-            logger=self.logger,
         )
 
         print(f"Found {len(results)} results.")

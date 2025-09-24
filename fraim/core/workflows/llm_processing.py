@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 
-import logging
 from dataclasses import dataclass
 from typing import Annotated
 
@@ -20,7 +19,7 @@ class LLMOptions:
 
 
 class LLMMixin:
-    def __init__(self, logger: logging.Logger, args: LLMOptions):
+    def __init__(self, args: LLMOptions):
         super().__init__(logger, args)  # type: ignore
 
         self.llm = LiteLLM(

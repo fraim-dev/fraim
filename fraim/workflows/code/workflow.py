@@ -27,6 +27,8 @@ from ...core.workflows.llm_processing import LLMMixin, LLMOptions
 from ...core.workflows.sarif import ConfidenceFilterOptions, filter_results_by_confidence, write_sarif_and_html_report
 from . import triage_sarif_overlay
 
+logger = logging.getLogger(__name__)
+
 FILE_PATTERNS = [
     "*.py",
     "*.c",
@@ -85,11 +87,11 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
 
     name = "code"
 
-    def __init__(self, logger: logging.Logger, args: SASTWorkflowOptions) -> None:
-        super().__init__(logger, args)
+    def __init__(self, args: SASTWorkflowOptions) -> None:
+        super().__init__(args)
 
         # Configure the project
-        self.project = self.setup_project_input(self.logger, self.args)
+        self.project = self.setup_project_input(self.args)
 
         # Configure the scanner step
         scanner_parser = PydanticOutputParser(sarif.RunResults)
@@ -122,15 +124,15 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
         """Process a single chunk with multi-step processing and error handling."""
         try:
             # 1. Scan the code for potential vulnerabilities.
-            self.logger.debug("Scanning the code for potential vulnerabilities")
+            logger.debug("Scanning the code for potential vulnerabilities")
             potential_vulns = await self.scanner_step.run(history, SASTInput(code=chunk))
 
             # 2. Filter vulnerabilities by confidence.
-            self.logger.debug("Filtering vulnerabilities by confidence")
+            logger.debug("Filtering vulnerabilities by confidence")
             high_confidence_vulns = filter_results_by_confidence(potential_vulns.results, self.args.confidence)
 
             # 3. Triage the high-confidence vulns with limited concurrency.
-            self.logger.debug("Triaging high-confidence vulns with limited concurrency")
+            logger.debug("Triaging high-confidence vulns with limited concurrency")
 
             # Create semaphore to limit concurrent triager requests
             triager_semaphore = asyncio.Semaphore(max_concurrent_triagers)
@@ -152,7 +154,7 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
             triaged_vulns = [result for result in triaged_results if result is not None]
 
             # 4. Filter the triaged vulnerabilities by confidence
-            self.logger.debug("Filtering the triaged vulnerabilities by confidence")
+            logger.debug("Filtering the triaged vulnerabilities by confidence")
             high_confidence_triaged_vulns = filter_results_by_confidence(triaged_vulns, self.args.confidence)
 
             self.history.append_record(
@@ -162,7 +164,7 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
             return high_confidence_triaged_vulns
 
         except Exception as e:
-            self.logger.error(
+            logger.error(
                 f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {e!s}. "
                 "Skipping this chunk and continuing with scan."
             )
@@ -189,7 +191,6 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
             results=results,
             repo_name=self.project.repo_name,
             output_dir=self.args.output,
-            logger=self.logger,
         )
 
         print(f"Found {len(results)} results.")

@@ -17,6 +17,8 @@ from fraim.outputs import sarif
 from fraim.outputs.sarif import Result, create_sarif_report
 from fraim.reporting.reporting import Reporting
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class ConfidenceFilterOptions:
@@ -48,9 +50,7 @@ class ReportPaths:
     html_path: str
 
 
-def write_sarif_and_html_report(
-    results: list[Result], repo_name: str, output_dir: str, logger: logging.Logger
-) -> ReportPaths:
+def write_sarif_and_html_report(results: list[Result], repo_name: str, output_dir: str) -> ReportPaths:
     """
     Write security scan results to both SARIF (JSON) and HTML report files.
 
