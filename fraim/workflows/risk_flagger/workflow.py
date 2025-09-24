@@ -141,7 +141,8 @@ class RiskFlaggerWorkflow(
 
             # 2. Filter risks by confidence.
             logger.debug(f"Filtering {len(risks.results)} risks by confidence")
-            logger.debug(f"risks: {risks.results}")
+            logger.debug(f"Risks: {risks.results}")
+
             high_confidence_risks: list[sarif.Result] = filter_results_by_confidence(
                 risks.results, self.args.confidence
             )
