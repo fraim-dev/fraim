@@ -24,6 +24,8 @@ from fraim.core.steps.llm import LLMStep
 from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor, Workflow
 from fraim.core.workflows.llm_processing import LLMMixin, LLMOptions
 
+logger = logging.getLogger(__name__)
+
 # File patterns for system analysis - focusing on documentation and key configuration files
 FILE_PATTERNS = [
     # Documentation files
@@ -178,8 +180,8 @@ class SystemAnalysisWorkflow(
 
     name = "system_analysis"
 
-    def __init__(self, logger: logging.Logger, args: SystemAnalysisOptions) -> None:
-        super().__init__(logger, args)
+    def __init__(self, args: SystemAnalysisOptions) -> None:
+        super().__init__(args)
 
         # Step 1: Document assessment and confidence scoring
         assessment_parser = PydanticOutputParser(DocumentAssessmentResult)
@@ -209,7 +211,7 @@ class SystemAnalysisWorkflow(
     ) -> list[SystemAnalysisResult]:
         """Process a single chunk using two-step analysis: assessment then analysis."""
         try:
-            self.logger.debug(f"Processing chunk: {Path(chunk.file_path)}")
+            logger.debug(f"Processing chunk: {Path(chunk.file_path)}")
 
             chunk_input = SystemAnalysisChunkOptions(
                 code=chunk,
@@ -221,7 +223,7 @@ class SystemAnalysisWorkflow(
             # Step 1: Document assessment and confidence scoring
             assessment = await self.assessment_step.run(history, chunk_input)
 
-            self.logger.debug(
+            logger.debug(
                 f"Assessment for {chunk.file_path}: confidence={assessment.confidence_score:.2f}, "
                 f"type='{assessment.document_type}', reasoning='{assessment.reasoning[:100]}...'"
             )
@@ -229,19 +231,19 @@ class SystemAnalysisWorkflow(
             # Only proceed to analysis if confidence is high enough and document type is relevant
             # Lowered threshold to 0.5 and made document type matching case-insensitive
             if assessment.confidence_score < 0.5 or "SYSTEM" not in assessment.document_type.upper():
-                self.logger.debug(
+                logger.debug(
                     f"Skipping chunk {chunk.file_path} - confidence: {assessment.confidence_score:.2f}, "
                     f"type: '{assessment.document_type}'"
                 )
                 return []
 
             # Step 2: System analysis and deduplication
-            self.logger.debug(f"Analyzing chunk: {Path(chunk.file_path)}")
+            logger.debug(f"Analyzing chunk: {Path(chunk.file_path)}")
             result = await self.analysis_step.run(history, chunk_input)
             return [result]
 
         except Exception as e:
-            self.logger.error(
+            logger.error(
                 f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {e!s}"
             )
             return []
@@ -250,7 +252,7 @@ class SystemAnalysisWorkflow(
         """Aggregate results from multiple chunks using LLM-based deduplication."""
 
         if not chunk_results:
-            self.logger.warning(
+            logger.warning(
                 "No chunks passed document assessment filtering. "
                 "This might indicate that the confidence threshold is too high or "
                 "document types are not being classified as expected."
@@ -319,7 +321,7 @@ class SystemAnalysisWorkflow(
             }
 
         except Exception as e:
-            self.logger.error(f"Failed to run final deduplication: {e!s}")
+            logger.error(f"Failed to run final deduplication: {e!s}")
             # Fallback to simple aggregation if LLM step fails
             return self._simple_fallback_aggregation(history, chunk_results)
 
@@ -397,10 +399,10 @@ class SystemAnalysisWorkflow(
 
     async def run(self) -> dict[str, Any]:
         """Main System Analysis workflow."""
-        self.logger.info("Starting System Analysis workflow")
+        logger.info("Starting System Analysis workflow")
 
         # 1. Setup project input using mixin utility
-        project = self.setup_project_input(self.logger, self.args)
+        project = self.setup_project_input(self.args)
 
         # 2. Create a closure that captures business_context and focus_areas
         async def chunk_processor(history: History, chunk: CodeChunk) -> list[SystemAnalysisResult]:
@@ -417,7 +419,7 @@ class SystemAnalysisWorkflow(
         # 4. Aggregate results
         final_result = await self._aggregate_results(self.history, chunk_results)
 
-        self.logger.info(
+        logger.info(
             f"System Analysis completed. Analyzed {final_result['files_analyzed']} files. "
             f"Confidence: {final_result['confidence_score']:.2f}"
         )
@@ -439,9 +441,9 @@ class SystemAnalysisWorkflow(
 
                 with open(output_path, "w", encoding="utf-8") as f:
                     json.dump(final_result, f, indent=2)
-                self.logger.info(f"System analysis results written to {output_path}")
+                logger.info(f"System analysis results written to {output_path}")
                 print(f"Wrote system analysis results to {output_path}")
             except Exception as write_exc:
-                self.logger.error(f"Failed to write system analysis results: {write_exc}")
+                logger.error(f"Failed to write system analysis results: {write_exc}")
 
         return final_result

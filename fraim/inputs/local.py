@@ -14,11 +14,12 @@ from fraim.inputs.chunks import chunk_input
 from fraim.inputs.file import BufferedFile
 from fraim.inputs.input import Input
 
+logger = logging.getLogger(__name__)
+
 
 class Local(Input):
-    def __init__(self, logger: logging.Logger, path: str, globs: list[str] | None = None, limit: int | None = None):
+    def __init__(self, path: str, globs: list[str] | None = None, limit: int | None = None):
         self.path = path
-        self.logger = logger
         # TODO: remove hardcoded globs
         self.globs = (
             globs
@@ -48,7 +49,7 @@ class Local(Input):
         return self.path
 
     def __iter__(self) -> Iterator[CodeChunk]:
-        self.logger.info(f"Scanning local files: {self.path}, with globs: {self.globs}")
+        logger.info(f"Scanning local files: {self.path}, with globs: {self.globs}")
 
         # Load .gitignore patterns if present
         gitignore_spec = None
@@ -72,7 +73,7 @@ class Local(Input):
                 if gitignore_spec and gitignore_spec.match_file(path.relative_to(self.path).as_posix()):
                     continue
                 try:
-                    self.logger.info(f"Reading file: {path}")
+                    logger.info(f"Reading file: {path}")
                     # TODO: Avoid reading files that are too large?
                     file = BufferedFile(os.path.relpath(path, self.root_path()), path.read_text(encoding="utf-8"))
 
@@ -87,9 +88,9 @@ class Local(Input):
 
                 except Exception as e:
                     if isinstance(e, UnicodeDecodeError):
-                        self.logger.warning(f"Skipping file with encoding issues: {path}")
+                        logger.warning(f"Skipping file with encoding issues: {path}")
                         continue
-                    self.logger.error(f"Error reading file: {path} - {e}")
+                    logger.error(f"Error reading file: {path} - {e}")
                     raise e
 
     def __enter__(self) -> Self:

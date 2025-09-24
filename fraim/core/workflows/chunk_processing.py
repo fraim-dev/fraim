@@ -6,7 +6,6 @@ Utilities for workflows that process code chunks with concurrent execution.
 """
 
 import asyncio
-import logging
 from abc import abstractmethod
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -57,7 +56,7 @@ class ChunkProcessor(Generic[T]):
     over their workflow() method and error handling.
     """
 
-    def __init__(self, logger: logging.Logger, args: ChunkProcessingOptions) -> None:
+    def __init__(self, args: ChunkProcessingOptions) -> None:
         super().__init__(logger, args)  # type: ignore
 
         # Progress tracking attributes
@@ -72,7 +71,7 @@ class ChunkProcessor(Generic[T]):
     def file_patterns(self) -> list[str]:
         """File patterns for this workflow (e.g., ['*.py', '*.js'])."""
 
-    def setup_project_input(self, logger: logging.Logger, args: ChunkProcessingOptions) -> ProjectInput:
+    def setup_project_input(self, args: ChunkProcessingOptions) -> ProjectInput:
         """
         Set up ProjectInput from workflow options.
 
@@ -92,7 +91,7 @@ class ChunkProcessor(Generic[T]):
             base=args.base,
             diff=args.diff,
         )
-        return ProjectInput(logger, kwargs=kwargs)
+        return ProjectInput(kwargs=kwargs)
 
     def rich_display(self) -> Layout:
         """

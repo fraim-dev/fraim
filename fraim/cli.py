@@ -20,14 +20,16 @@ from rich.live import Live
 
 from fraim.core.workflows.discovery import discover_workflows
 from fraim.observability import ObservabilityManager, ObservabilityRegistry
-from fraim.observability.logging import make_logger
+from fraim.observability.logging import setup_logging
 from fraim.util import tty
 from fraim.validate_cli import validate_cli_args
 
+logger = logging.getLogger(__name__)
 
-def setup_observability(logger: logging.Logger, args: argparse.Namespace) -> ObservabilityManager:
+
+def setup_observability(args: argparse.Namespace) -> ObservabilityManager:
     """Setup observability backends based on CLI arguments."""
-    manager = ObservabilityManager(args.observability or [], logger=logger)
+    manager = ObservabilityManager(args.observability or [])
     manager.setup()
     return manager
 
@@ -109,15 +111,13 @@ def cli() -> int:
         parsed_args.show_logs or not show_rich_display or not tty.streams_have_same_destination(sys.stdout, sys.stderr)
     )
 
-    # TODO: Set up logger earlier parsing known args, partial arg parse etc.
-    # TODO: Avoid passing logger around, use conventions
-    logger = make_logger(
+    setup_logging(
         level=logging.DEBUG if parsed_args.debug else logging.INFO,
         path=os.path.join(parsed_args.log_output, "fraim_scan.log"),
         show_logs=show_logs,
     )
 
-    setup_observability(logger, parsed_args)
+    setup_observability(parsed_args)
 
     for workflow_name, workflow_class in discovered_workflows.items():
         if workflow_name != parsed_args.workflow:
@@ -144,7 +144,7 @@ def cli() -> int:
                 workflow_class = discovered_workflows[parsed_args.workflow]
                 workflow = workflow_class.from_args(parsed_args)
         """
-        workflow = workflow_class(logger=logger, args=workflow_options(**workflow_kwargs))
+        workflow = workflow_class(args=workflow_options(**workflow_kwargs))
 
         try:
             if show_rich_display:

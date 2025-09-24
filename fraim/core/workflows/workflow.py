@@ -3,7 +3,6 @@
 
 """Base class for workflows"""
 
-import logging
 from abc import ABC, abstractmethod
 from typing import ClassVar, Generic, TypeVar, cast, get_args, get_origin
 
@@ -19,10 +18,9 @@ Result = TypeVar("Result")
 class Workflow(ABC, Generic[Options, Result]):
     name: ClassVar[str]
 
-    def __init__(self, logger: logging.Logger, args: Options) -> None:
+    def __init__(self, args: Options) -> None:
         super().__init__()  # type: ignore
 
-        self.logger = logger
         self.args = args
 
         self.history = History()

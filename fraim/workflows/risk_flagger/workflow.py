@@ -29,6 +29,8 @@ from ...core.workflows.format_pr_comment import format_pr_comment
 from ...core.workflows.llm_processing import LLMMixin, LLMOptions
 from ...core.workflows.sarif import ConfidenceFilterOptions, filter_results_by_confidence
 
+logger = logging.getLogger(__name__)
+
 RISK_FLAGGER_PROMPTS = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__file__), "prompts.yaml"))
 
 # Default risks to consider, these can be overridden by the user
@@ -102,10 +104,10 @@ class RiskFlaggerWorkflow(
 
     name = "risk_flagger"
 
-    def __init__(self, logger: logging.Logger, args: RiskFlaggerWorkflowOptions) -> None:
-        super().__init__(logger, args)
+    def __init__(self, args: RiskFlaggerWorkflowOptions) -> None:
+        super().__init__(args)
 
-        self.project = self.setup_project_input(self.logger, args)
+        self.project = self.setup_project_input(args)
 
         # Initialize the flagger step
         risks_dict = build_risks_list(
@@ -114,7 +116,7 @@ class RiskFlaggerWorkflow(
             custom_risk_list_filepath=self.args.custom_risk_list_filepath,
             custom_risk_list_json=self.args.custom_risk_list_json,
         )
-        self.logger.info(f"Using {len(risks_dict)} risks to consider: {', '.join(risks_dict.keys())}")
+        logger.info(f"Using {len(risks_dict)} risks to consider: {', '.join(risks_dict.keys())}")
 
         risks_to_consider = format_risks_for_prompt(risks_dict)
         flagger_parser = PydanticOutputParser(risk_sarif.RunResults)
@@ -134,21 +136,21 @@ class RiskFlaggerWorkflow(
         """Process a single chunk with multi-step processing and error handling."""
         try:
             # 1. Scan the code for potential risks.
-            self.logger.debug("Scanning the code for potential risks")
+            logger.debug("Scanning the code for potential risks")
             risks = await self.flagger_step.run(history, RiskFlaggerInput(code=chunk))
 
             # 2. Filter risks by confidence.
-            self.logger.debug(f"Filtering {len(risks.results)} risks by confidence")
-            self.logger.debug(f"risks: {risks.results}")
+            logger.debug(f"Filtering {len(risks.results)} risks by confidence")
+            logger.debug(f"risks: {risks.results}")
             high_confidence_risks: list[sarif.Result] = filter_results_by_confidence(
                 risks.results, self.args.confidence
             )
-            self.logger.debug(f"Found {len(high_confidence_risks)} high-confidence risks")
+            logger.debug(f"Found {len(high_confidence_risks)} high-confidence risks")
 
             return high_confidence_risks
 
         except Exception as e:
-            self.logger.error(
+            logger.error(
                 f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {e!s}. "
                 "Skipping this chunk and continuing with scan."
             )
@@ -194,19 +196,19 @@ class RiskFlaggerWorkflow(
             if self.args.pr_url:
                 add_comment(self.args.pr_url, pr_comment, self.args.approver)
             else:
-                self.logger.warning("PR URL missing, skipping Add Comment")
+                logger.warning("PR URL missing, skipping Add Comment")
 
             if self.args.pr_url and self.args.approver:
                 try:
                     add_reviewer(self.args.pr_url, self.args.approver)
                 except Exception as e:
-                    self.logger.warning(
+                    logger.warning(
                         f"Failed to add reviewer, check to make sure you have the right permissions: {e}\nContinuing with comment only."
                     )
             else:
-                self.logger.warning("PR URL and/or approver are missing, skipping Add Reviewer")
+                logger.warning("PR URL and/or approver are missing, skipping Add Reviewer")
 
-        self.logger.info(pr_comment)
+        logger.info(pr_comment)
         print(pr_comment)
 
         return results

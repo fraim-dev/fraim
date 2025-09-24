@@ -1,4 +1,3 @@
-import logging
 import os
 from collections.abc import Iterator
 from typing import Any
@@ -20,8 +19,7 @@ class ProjectInput:
     chunker: type["ProjectInputFileChunker"]
 
     # TODO: **kwargs?
-    def __init__(self, logger: logging.Logger, kwargs: Any) -> None:
-        self.logger = logger
+    def __init__(self, kwargs: Any) -> None:
         path_or_url = kwargs.location or None
         globs = kwargs.globs
         limit = kwargs.limit
@@ -37,7 +35,7 @@ class ProjectInput:
         if path_or_url.startswith("http://") or path_or_url.startswith("https://") or path_or_url.startswith("git@"):
             self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
             # TODO: git diff here?
-            self.input = GitRemote(self.logger, url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_")
+            self.input = GitRemote(url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_")
             self.project_path = self.input.root_path()
         else:
             # Fully resolve the path to the project
@@ -46,7 +44,7 @@ class ProjectInput:
             if self.diff:
                 self.input = GitDiff(self.project_path, head=self.head, base=self.base, globs=globs, limit=limit)
             else:
-                self.input = Local(self.logger, self.project_path, globs=globs, limit=limit)
+                self.input = Local(self.project_path, globs=globs, limit=limit)
 
     def __iter__(self) -> Iterator[CodeChunk]:
         yield from self.input
