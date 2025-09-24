@@ -3,8 +3,7 @@
 
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Union
+from datetime import UTC, datetime
 
 
 @dataclass
@@ -28,7 +27,7 @@ class EventRecord:
     """
 
     description: str
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 @dataclass
@@ -57,13 +56,13 @@ class HistoryRecord:
     """
 
     description: str
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     history: "History" = field(default_factory=lambda: History())
 
 
 # Type alias for any record type that can be stored in history
-type Record = Union[EventRecord, HistoryRecord]
+type Record = EventRecord | HistoryRecord
 
 
 class History:

@@ -4,10 +4,8 @@ Functions for notifying different platforms and services.
 
 import logging
 import os
-import re
 import shutil
 import subprocess
-from typing import Optional, Tuple
 from urllib.parse import urlparse
 
 from github import Github
@@ -15,7 +13,7 @@ from github import Github
 logger = logging.getLogger(__name__)
 
 
-def _get_github_token() -> Optional[str]:
+def _get_github_token() -> str | None:
     """
     Get GitHub token from multiple sources in order of preference:
     1. GITHUB_TOKEN environment variable
@@ -76,7 +74,7 @@ def _get_github_token() -> Optional[str]:
     return None
 
 
-def parse_pr_url(pr_url: str) -> Tuple[str, str, str]:
+def parse_pr_url(pr_url: str) -> tuple[str, str, str]:
     # Parse PR URL to get owner, repo, and PR number
     logger.debug(f"Parsing PR URL: {pr_url}")
     try:
@@ -121,8 +119,8 @@ def add_comment(pr_url: str, description: str, user_or_group: str) -> None:
         logger.debug(f"Getting pull request #{pr_number}")
         pull_request = repository.get_pull(int(pr_number))
     except Exception as e:
-        logger.error(f"Failed to get repository or pull request: {str(e)}")
-        raise RuntimeError(f"Failed to get repository or pull request: {str(e)}") from e
+        logger.error(f"Failed to get repository or pull request: {e!s}")
+        raise RuntimeError(f"Failed to get repository or pull request: {e!s}") from e
 
     try:
         # Add comment with optional user_or_group mention
@@ -135,8 +133,8 @@ def add_comment(pr_url: str, description: str, user_or_group: str) -> None:
         pull_request.create_issue_comment(comment_text)
         logger.info(f"Successfully added comment to PR #{pr_number}")
     except Exception as e:
-        logger.error(f"Failed to add comment to PR: {str(e)}")
-        raise RuntimeError(f"Failed to add comment to PR: {str(e)}") from e
+        logger.error(f"Failed to add comment to PR: {e!s}")
+        raise RuntimeError(f"Failed to add comment to PR: {e!s}") from e
 
 
 def add_reviewer(pr_url: str, user_or_group: str) -> None:
@@ -184,8 +182,8 @@ def add_reviewer(pr_url: str, user_or_group: str) -> None:
         logger.debug(f"Getting pull request #{pr_number}")
         pull_request = repository.get_pull(int(pr_number))
     except Exception as e:
-        logger.error(f"Failed to get repository or pull request: {str(e)}")
-        raise RuntimeError(f"Failed to get repository or pull request: {str(e)}") from e
+        logger.error(f"Failed to get repository or pull request: {e!s}")
+        raise RuntimeError(f"Failed to get repository or pull request: {e!s}") from e
 
     try:
         # Try to add reviewer - first as team, then as user
@@ -223,5 +221,5 @@ def add_reviewer(pr_url: str, user_or_group: str) -> None:
         raise RuntimeError(error_msg)
 
     except Exception as e:
-        logger.error(f"Failed to request review: {str(e)}")
-        raise RuntimeError(f"Failed to request review: {str(e)}") from e
+        logger.error(f"Failed to request review: {e!s}")
+        raise RuntimeError(f"Failed to request review: {e!s}") from e

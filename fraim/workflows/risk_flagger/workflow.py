@@ -9,9 +9,8 @@ Analyzes source code for risks that the security team should investigate further
 
 import logging
 import os
-import threading
 from dataclasses import dataclass, field
-from typing import Annotated, Dict, List, Literal, Optional
+from typing import Annotated, Literal
 
 from fraim.actions import add_comment, add_reviewer
 from fraim.core.contextuals import CodeChunk
@@ -75,13 +74,13 @@ class RiskFlaggerWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceF
         Literal["append", "replace"], {"help": "Whether to append to or replace the default risks list"}
     ] = "append"
     custom_risk_list_filepath: Annotated[
-        Optional[str], {"help": "Path to JSON/YAML file containing additional risks to consider"}
+        str | None, {"help": "Path to JSON/YAML file containing additional risks to consider"}
     ] = None
-    custom_risk_list_json: Annotated[Optional[str], {"help": "JSON string containing additional risks to consider"}] = (
+    custom_risk_list_json: Annotated[str | None, {"help": "JSON string containing additional risks to consider"}] = (
         None
     )
     custom_false_positive_considerations: Annotated[
-        List[str], {"help": "List of additional considerations to help reduce false positives"}
+        list[str], {"help": "List of additional considerations to help reduce false positives"}
     ] = field(default_factory=list)
 
 
@@ -95,11 +94,11 @@ class RiskFlaggerInput:
 class RiskFlaggerOutput(sarif.BaseSchema):
     """Output for the Risk Flagger step."""
 
-    results: List[sarif.Result]
+    results: list[sarif.Result]
 
 
 class RiskFlaggerWorkflow(
-    ChunkProcessor[sarif.Result], LLMMixin, Workflow[RiskFlaggerWorkflowOptions, List[sarif.Result]]
+    ChunkProcessor[sarif.Result], LLMMixin, Workflow[RiskFlaggerWorkflowOptions, list[sarif.Result]]
 ):
     """Analyzes source code for risks that the security team should investigate further."""
 
@@ -133,7 +132,7 @@ class RiskFlaggerWorkflow(
             },
         )
 
-    async def _process_single_chunk(self, history: History, chunk: CodeChunk) -> List[sarif.Result]:
+    async def _process_single_chunk(self, history: History, chunk: CodeChunk) -> list[sarif.Result]:
         """Process a single chunk with multi-step processing and error handling."""
         try:
             # 1. Scan the code for potential risks.
@@ -143,7 +142,7 @@ class RiskFlaggerWorkflow(
             # 2. Filter risks by confidence.
             self.logger.debug(f"Filtering {len(risks.results)} risks by confidence")
             self.logger.debug(f"risks: {risks.results}")
-            high_confidence_risks: List[sarif.Result] = filter_results_by_confidence(
+            high_confidence_risks: list[sarif.Result] = filter_results_by_confidence(
                 risks.results, self.args.confidence
             )
             self.logger.debug(f"Found {len(high_confidence_risks)} high-confidence risks")
@@ -152,12 +151,12 @@ class RiskFlaggerWorkflow(
 
         except Exception as e:
             self.logger.error(
-                f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {str(e)}. "
+                f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {e!s}. "
                 "Skipping this chunk and continuing with scan."
             )
             return []
 
-    async def run(self) -> List[sarif.Result]:
+    async def run(self) -> list[sarif.Result]:
         """Main Risk Flagger workflow.
 
         Args:
@@ -178,7 +177,7 @@ class RiskFlaggerWorkflow(
             )
 
         # 2. Create a closure that captures max_concurrent_chunks
-        async def chunk_processor(history: History, chunk: CodeChunk) -> List[sarif.Result]:
+        async def chunk_processor(history: History, chunk: CodeChunk) -> list[sarif.Result]:
             return await self._process_single_chunk(history, chunk)
 
         # 3. Process chunks concurrently using utility

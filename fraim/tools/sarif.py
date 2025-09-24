@@ -3,8 +3,9 @@
 
 """SARIF result recording tools for collecting analysis results."""
 
+from collections.abc import Iterator
 from textwrap import dedent
-from typing import Any, Iterator, List, Optional, Type
+from typing import Any
 
 from pydantic import BaseModel, Field, create_model
 
@@ -21,7 +22,7 @@ class SarifTools:
     be used to generate complete SARIF reports.
     """
 
-    def __init__(self, run_results: Optional[RunResults] = None):
+    def __init__(self, run_results: RunResults | None = None):
         """Initialize with a RunResults instance to collect results.
 
         Args:
@@ -29,7 +30,7 @@ class SarifTools:
         """
         self.run_results = run_results or RunResults(results=[])
 
-        self.tools: List[BaseTool] = [
+        self.tools: list[BaseTool] = [
             AddSarifResultTool.create(self.run_results),
         ]
 
@@ -65,7 +66,7 @@ class AddSarifResultTool(SarifBaseTool):
                               
                               Use this tool to record your analysis findings.
                               """)
-    args_schema: Type[BaseModel] = create_model(
+    args_schema: type[BaseModel] = create_model(
         "AddSarifResultArgs",
         result=(Result, Field(description="SARIF Result object to add")),
     )

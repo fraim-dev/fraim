@@ -1,4 +1,5 @@
-from typing import Callable, TypeVar, cast
+from collections.abc import Callable
+from typing import TypeVar, cast
 
 from rich.console import Console, ConsoleOptions, RenderResult
 from rich.panel import Panel
@@ -51,7 +52,7 @@ class ResultsPanel:
         # TODO: This is a hacky way to specialize the display for SARIF. Figure out a better
         # way for a workflow to customize the results.
         if results and isinstance(results[0], sarif.Result):
-            for breakdown_text, style in _render_severity_breakdown(cast(list[sarif.Result], results)):
+            for breakdown_text, style in _render_severity_breakdown(cast("list[sarif.Result]", results)):
                 text.append(breakdown_text, style=style)
 
         yield Panel(text, title="Results", border_style="green")
@@ -73,16 +74,16 @@ def _render_severity_breakdown(results: list[sarif.Result]) -> list[tuple[str, s
             severity_counts[result.level] += 1
 
     breakdown_parts = []
-    breakdown_parts.append((f" ( ", "gray"))
-    breakdown_parts.append((f"", "gray"))
+    breakdown_parts.append((" ( ", "gray"))
+    breakdown_parts.append(("", "gray"))
     breakdown_parts.append((f"Errors: {severity_counts['error']}", "bold red"))
 
-    breakdown_parts.append((f" | ", "gray"))
+    breakdown_parts.append((" | ", "gray"))
     breakdown_parts.append((f"Warnings: {severity_counts['warning']}", "bold orange1"))
 
-    breakdown_parts.append((f" | ", "gray"))
+    breakdown_parts.append((" | ", "gray"))
     breakdown_parts.append((f"Notes: {severity_counts['note']}", "bold blue"))
 
-    breakdown_parts.append((f" )", "gray"))
+    breakdown_parts.append((" )", "gray"))
 
     return breakdown_parts

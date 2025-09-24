@@ -3,8 +3,9 @@
 
 """Tests for HTTP retry utility functions"""
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Mapping
+from collections.abc import Mapping
+from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -67,7 +68,7 @@ class TestParseRetryHeader:
     def test_http_date_format(self) -> None:
         """Test parsing HTTP-date format"""
         # Create a future date (1 hour from now)
-        future_time = datetime.now(timezone.utc) + timedelta(hours=1)
+        future_time = datetime.now(UTC) + timedelta(hours=1)
         http_date = future_time.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
         headers = {"retry-after": http_date}
@@ -82,7 +83,7 @@ class TestParseRetryHeader:
     def test_http_date_format_past_date(self) -> None:
         """Test parsing HTTP-date format with past date (should return 0)"""
         # Create a past date (1 hour ago)
-        past_time = datetime.now(timezone.utc) - timedelta(hours=1)
+        past_time = datetime.now(UTC) - timedelta(hours=1)
         http_date = past_time.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
         headers = {"retry-after": http_date}
@@ -94,7 +95,7 @@ class TestParseRetryHeader:
 
     def test_http_date_format_capitalized_header(self) -> None:
         """Test parsing HTTP-date format with capitalized header"""
-        future_time = datetime.now(timezone.utc) + timedelta(minutes=30)
+        future_time = datetime.now(UTC) + timedelta(minutes=30)
         http_date = future_time.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
         headers = {"Retry-After": http_date}
@@ -276,7 +277,7 @@ class TestParseRetryHeader:
     def test_http_date_without_timezone_assumes_utc(self) -> None:
         """Test HTTP-date without explicit timezone (should assume UTC)"""
         # Create a future time without timezone info
-        future_time = datetime.now(timezone.utc) + timedelta(hours=2)
+        future_time = datetime.now(UTC) + timedelta(hours=2)
         # Format without timezone (parsedate_to_datetime will return naive datetime)
         http_date = future_time.strftime("%a, %d %b %Y %H:%M:%S")
 

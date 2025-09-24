@@ -3,9 +3,8 @@
 
 """Rich-based view for History."""
 
-from rich.console import Console, ConsoleOptions, RenderableType, RenderResult
+from rich.console import Console, ConsoleOptions, RenderResult
 from rich.panel import Panel
-from rich.segment import Segment, SegmentLines
 from rich.text import Text
 from rich.tree import Tree
 
@@ -59,7 +58,7 @@ class HistoryView:
         # Add the recent records to tree
         self._add_flattened_records_to_tree(recent_records, tree, available_width)
 
-        yield Panel(tree, title=f"Execution History", border_style="blue", padding=(1, 2))
+        yield Panel(tree, title="Execution History", border_style="blue", padding=(1, 2))
 
     def _flatten_records(self, records: list, depth: int = 0) -> list[tuple]:
         """

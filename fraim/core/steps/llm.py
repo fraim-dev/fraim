@@ -11,8 +11,7 @@ if TYPE_CHECKING:
 
 from litellm.types.utils import StreamingChoices
 
-from fraim.core.contextuals import CodeChunk
-from fraim.core.history import EventRecord, History, HistoryRecord
+from fraim.core.history import History
 from fraim.core.llms.base import BaseLLM
 from fraim.core.messages import Message, SystemMessage, UserMessage
 from fraim.core.parsers.base import BaseOutputParser, ParseContext
@@ -102,13 +101,12 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
                 inputs[OUTPUT_FORMAT_KEY] = self.parser.output_prompt_instructions()
                 rendered, _ = self.system_prompt.render(inputs)
                 return SystemMessage(content=rendered)
-            else:
-                # If the system prompt doesn't use the output format key, add it to the end of the prompt
-                # automatically.
-                rendered, _ = self.system_prompt.render(inputs)
-                output_instructions = self.parser.output_prompt_instructions()
-                content = f"{rendered}\n<output_format>{output_instructions}</output_format>"
-                return SystemMessage(content=content)
+            # If the system prompt doesn't use the output format key, add it to the end of the prompt
+            # automatically.
+            rendered, _ = self.system_prompt.render(inputs)
+            output_instructions = self.parser.output_prompt_instructions()
+            content = f"{rendered}\n<output_format>{output_instructions}</output_format>"
+            return SystemMessage(content=content)
         except PromptTemplateError as e:
             # Convert PromptTemplateError to ValueError for consistency
             raise ValueError(f"Failed to render system prompt: {e}") from e
