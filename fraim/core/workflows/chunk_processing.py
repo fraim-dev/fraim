@@ -57,7 +57,7 @@ class ChunkProcessor(Generic[T]):
     """
 
     def __init__(self, args: ChunkProcessingOptions) -> None:
-        super().__init__(logger, args)  # type: ignore
+        super().__init__(args)  # type: ignore
 
         # Progress tracking attributes
         self._total_chunks = 0
