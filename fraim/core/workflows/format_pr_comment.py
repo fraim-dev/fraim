@@ -33,8 +33,6 @@ The following security risks have been identified and require review:
 {%- endif %}
 {%- endfor %}
 
-**Confidence**: {{ risk.properties.confidence }}%
-
 ---
 {%- endfor %}
 {%- endfor %}
