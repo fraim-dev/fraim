@@ -45,4 +45,4 @@ typecheck:
 build:
 	uv build
 
-check: format-check typecheck test
+check: format-check lint-fix-check typecheck test
