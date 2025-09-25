@@ -58,7 +58,7 @@ def merge_models(
         - Recursively processes nested BaseModel references in field types
         - Handles complex types including List, Tuple, Dict, Set, and Union types
         - Uses caching to handle circular model references efficiently
-        - Preserves field defaults and required/optional status from overlay models
+        - Preserves full Field metadata including descriptions, constraints, and validation rules
         - Registers enhanced models in the calling module for pickling support
 
     Example:
@@ -116,16 +116,16 @@ def merge_models(
         # Start from base model fields
         base_hints = get_type_hints(base_cls, include_extras=True)
         for fname, f in base_cls.model_fields.items():
-            fields[fname] = (base_hints[fname], f.default if not f.is_required() else ...)
+            fields[fname] = (base_hints[fname], f)
 
         # Apply overlay (if present)
         if overlay_cls:
             overlay_hints = get_type_hints(overlay_cls, include_extras=True)
             for fname, f in overlay_cls.model_fields.items():
-                fields[fname] = (overlay_hints[fname], f.default if not f.is_required() else ...)
+                fields[fname] = (overlay_hints[fname], f)
 
         # Recursively rebind BaseModel fields to their overlays
-        for fname, (typ, default) in fields.items():
+        for fname, (typ, field_info) in fields.items():
             origin = getattr(typ, "__origin__", None)
             args = getattr(typ, "__args__", ())
 
@@ -136,11 +136,17 @@ def merge_models(
                         return resolve_model(tname)
                 return t
 
-            if origin in (list, tuple, dict, set, Union := getattr(sys.modules["typing"], "Union", None)):
+            if origin in (
+                list,
+                tuple,
+                dict,
+                set,
+                Union := getattr(sys.modules["typing"], "Union", None),
+            ):  # TODO: just import typing.Union...
                 rebased = tuple(resolve_typ(t) for t in args)
-                fields[fname] = (origin[rebased], default)  # type: ignore[index]
+                fields[fname] = (origin[rebased], field_info)  # type: ignore[index]
             else:
-                fields[fname] = (resolve_typ(typ), default)
+                fields[fname] = (resolve_typ(typ), field_info)
 
         merged: type[BaseModel] = create_model(name, __base__=base_cls, **fields)  # type: ignore[call-overload]
 
