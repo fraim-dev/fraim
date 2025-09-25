@@ -22,7 +22,7 @@ The following security risks have been identified and require review:
 ## {{ risk_type }}
 {%- for risk in type_risks %}
 
-### {{ risk.message }} (Severity: {{ risk.properties.risk_severity }})
+### {{ risk.message.text }} (Severity: {{ risk.properties.risk_severity }})
 
 **Location**: `{{ risk.locations[0].physicalLocation.artifactLocation.uri }}:{{ risk.locations[0].physicalLocation.region.startLine }}`
 
