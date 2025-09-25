@@ -20,7 +20,7 @@ class LLMOptions:
 
 class LLMMixin:
     def __init__(self, args: LLMOptions):
-        super().__init__(logger, args)  # type: ignore
+        super().__init__(args)  # type: ignore
 
         self.llm = LiteLLM(
             model=args.model,
