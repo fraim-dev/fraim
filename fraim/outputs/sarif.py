@@ -101,7 +101,9 @@ class ResultProperties(BaseSchema):
 
     type: str = Field(description="Type of vulnerability (e.g., 'SQL Injection', 'XSS', 'Command Injection', etc.)")
     confidence: int = Field(
-        description="Confidence that the result is a true positive from 1 (least confident) to 10 (most confident)"
+        ge=1,
+        le=10,
+        description="Confidence that the result is a true positive from 1 (least confident) to 10 (most confident)",
     )
     exploitable: bool = Field(description="True if the vulnerability is exploitable, false otherwise.")
     explanation: Message = Field(description="Explanation of the exploitability of the vulnerability.")
