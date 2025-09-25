@@ -61,7 +61,24 @@ jobs:
       run: |
         make format-check
 
-    - name: Run lint check (fixable issues only)
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@bd01e18f51369d5a26f1651c3cb451d3417e3bba
+      with:
+        version: "0.7.14"
+
+    - name: Set up Python
+      run: make init
+
+    - name: Install dependencies
+      run: |
+        make sync
+
+    - name: Run lint check (fixable issues only for now)
       run: |
         make lint-fix-check
 
