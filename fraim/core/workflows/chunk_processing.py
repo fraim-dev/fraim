@@ -176,9 +176,6 @@ class ChunkProcessor(Generic[T]):
                 _done, active_tasks = await asyncio.wait(active_tasks, return_when=asyncio.FIRST_COMPLETED)
 
         # Wait for any remaining tasks to complete
-        if active_tasks:
-            for future in asyncio.as_completed(active_tasks):
-                chunk_results = await future
-                self._results.extend(chunk_results)
+        await asyncio.gather(*active_tasks)
 
         return self._results
