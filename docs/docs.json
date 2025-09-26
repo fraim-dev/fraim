@@ -7,7 +7,12 @@
       "light": "#07C983",
       "dark": "#15803D"
     },
-    "favicon": "/favicon.svg",
+    "favicon": "/assets/fraim-logo.png",
+    "logo": {
+      "light": "/assets/fraim-logo.png",
+      "dark": "/assets/fraim-logo.png",
+      "href": "https://www.fraim.dev"
+    },
     "topbar": {
       "github": "https://github.com/fraim-dev/fraim"
     },
@@ -16,8 +21,26 @@
             {
                 "group": "Get Started",
                 "pages": [
-                    "get-started",
+                    "get_started",
                     "installation"
+                ]
+            },
+            {
+              "group": "Workflows",
+              "pages": [
+                  "workflows/all_workflows",
+                  "workflows/risk_flagger",
+                  "workflows/code",
+                  "workflows/iac",
+                  "workflows/system_analysis",
+                  "workflows/custom_workflows"
+              ]
+            },
+            {
+                "group": "Integrations",
+                "pages": [
+                    "integrations/github-actions",
+                    "integrations/slack"
                 ]
             },
             {
@@ -26,13 +49,7 @@
                     "usage",
                     "observability",
                     "troubleshooting"
-                ]
-            },
-            {
-                "group": "Workflows",
-                "pages": [
-                    "workflows/workflows",
-                    "workflows/custom-workflows"
+
                 ]
             }
         ]
