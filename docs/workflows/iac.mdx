@@ -39,7 +39,7 @@ The **IaC Security Analysis** workflow examines infrastructure configuration fil
           - uses: actions/checkout@v3
 
           - name: Validate Infrastructure
-            uses: fraim-dev/fraim-action@83c1689df0cbe598804cda00f637191d72673daa
+            uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
             with:
               anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
               workflow: iac
@@ -75,7 +75,7 @@ The **IaC Security Analysis** workflow examines infrastructure configuration fil
           - uses: actions/checkout@v3
           
           - name: Run IaC Security Scan
-            uses: fraim-dev/fraim-action@83c1689df0cbe598804cda00f637191d72673daa
+            uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
             with:
               anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
               workflow: iac
@@ -110,7 +110,7 @@ The **IaC Security Analysis** workflow examines infrastructure configuration fil
           - uses: actions/checkout@v3
           
           - name: Terraform Security Analysis
-            uses: fraim-dev/fraim-action@83c1689df0cbe598804cda00f637191d72673daa
+            uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
             with:
               anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
               workflow: iac
@@ -149,7 +149,7 @@ The **IaC Security Analysis** workflow examines infrastructure configuration fil
           - uses: actions/checkout@v3
           
           - name: Kubernetes Manifest Security Scan
-            uses: fraim-dev/fraim-action@83c1689df0cbe598804cda00f637191d72673daa
+            uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
             with:
               anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
               workflow: iac
@@ -189,7 +189,7 @@ The **IaC Security Analysis** workflow examines infrastructure configuration fil
           - uses: actions/checkout@v3
           
           - name: Docker Configuration Security Scan
-            uses: fraim-dev/fraim-action@83c1689df0cbe598804cda00f637191d72673daa
+            uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
             with:
               anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
               workflow: iac
@@ -223,7 +223,7 @@ jobs:
       - uses: actions/checkout@v3
       
       - name: Run Fraim IaC Security Scan
-        uses: fraim-dev/fraim-action@83c1689df0cbe598804cda00f637191d72673daa
+        uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
         with:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           workflow: iac
