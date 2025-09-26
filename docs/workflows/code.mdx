@@ -42,7 +42,7 @@ jobs:
       - uses: actions/checkout@v3
       
       - name: Run Fraim Comprehensive Security Review
-        uses: fraim-dev/fraim-action@83c1689df0cbe598804cda00f637191d72673daa
+        uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
         with:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           workflow: code
@@ -100,7 +100,7 @@ jobs:
       - uses: actions/checkout@v3
       
       - name: Run Python Security Analysis
-        uses: fraim-dev/fraim-action@83c1689df0cbe598804cda00f637191d72673daa
+        uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
         with:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           workflow: code
@@ -117,7 +117,7 @@ jobs:
       - uses: actions/checkout@v3
       
       - name: Run JavaScript/TypeScript Security Analysis
-        uses: fraim-dev/fraim-action@83c1689df0cbe598804cda00f637191d72673daa
+        uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
         with:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           workflow: code
@@ -134,7 +134,7 @@ jobs:
       - uses: actions/checkout@v3
       
       - name: Run Java Security Analysis
-        uses: fraim-dev/fraim-action@83c1689df0cbe598804cda00f637191d72673daa
+        uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
         with:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           workflow: code
@@ -164,7 +164,7 @@ jobs:
       - uses: actions/checkout@v3
       
       - name: Run Fraim Code Security Scan
-        uses: fraim-dev/fraim-action@83c1689df0cbe598804cda00f637191d72673daa
+        uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
         with:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           workflow: code
