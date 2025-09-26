@@ -66,7 +66,8 @@ jobs:
             {
               "approver": "security-team",
               "should-block-pull-request": true,
-              "confidence": 7
+              "confidence": 7,
+              "slack-webhook-url": "${{ secrets.SLACK_WEBHOOK_URL }}"
             }
           github-token: ${{ secrets.GH_TOKEN }}
 ```
@@ -117,7 +118,9 @@ jobs:
               "custom-false-positive-considerations": [
                 "Ignore test files in /tests/",
                 "Skip demo applications"
-              ]
+              ],
+              "slack-webhook-url": "${{ secrets.SLACK_WEBHOOK_URL }}",
+              "no-gh-comment": true
             }
           github-token: ${{ secrets.GH_TOKEN }}
 ```
@@ -213,6 +216,16 @@ fraim run risk_flagger --location . --diff \
   --approver security-team
 ```
 
+#### `--no-gh-comment <BOOLEAN>`
+Set to `true` to disable GitHub comments for risk findings. Useful when you want to use only Slack notifications or other notification methods.
+
+**Default**: `false`
+
+```bash
+fraim run risk_flagger --location . --diff \
+  --no-gh-comment true
+```
+
 #### `--should-block-pull-request <BOOLEAN>` (GitHub Action only)
 Whether to block the pull request until security review is complete. Available only when using the GitHub Action.
 
@@ -221,6 +234,19 @@ Whether to block the pull request until security review is complete. Available o
 ```yaml
 # In GitHub Action workflow_args
 "should-block-pull-request": true
+```
+
+#### `--slack-webhook-url <URL>`
+Provide a Slack webhook URL to send risk notifications to your team's Slack channel.
+
+```bash
+fraim run risk_flagger --location . --diff \
+  --slack-webhook-url https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+```
+
+```yaml
+# In GitHub Action workflow_args
+"slack-webhook-url": "${{ secrets.SLACK_WEBHOOK_URL }}"
 ```
 
 ### Customization Options
@@ -442,6 +468,8 @@ jobs:
 | `custom-risk-list-filepath` | string | `null` | Path to JSON/YAML file containing additional risks |
 | `custom-risk-list-json` | object | `null` | JSON object containing additional risks to consider |
 | `custom-false-positive-considerations` | array of strings | `[]` | List of additional considerations to help reduce false positives |
+| `slack-webhook-url` | string | `null` | Provide a Slack webhook URL to send notifications |
+| `no-gh-comment` | boolean | `false` | Set to `true` to disable GitHub comments for risk findings |
 | `confidence` | integer (1-10) | `7` | Minimum confidence threshold for filtering findings |
 | `chunk-size` | integer | `500` | Number of lines per chunk |
 | `limit` | integer | `null` | Limit the number of files to scan |
