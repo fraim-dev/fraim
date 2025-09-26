@@ -39,7 +39,8 @@
             {
                 "group": "Integrations",
                 "pages": [
-                    "integrations/github-actions"
+                    "integrations/github-actions",
+                    "integrations/slack"
                 ]
             },
             {
