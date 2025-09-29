@@ -28,7 +28,7 @@
             {
               "group": "Workflows",
               "pages": [
-                  "workflows/all_workflows",
+                  "workflows/overview",
                   "workflows/risk_flagger",
                   "workflows/code",
                   "workflows/iac",
