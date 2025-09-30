@@ -57,7 +57,9 @@ resource "aws_iam_policy" "policy_three" {
             "ecr:GetDownloadUrlForLayer",
             "ecr:GetRepositoryPolicy",
             "ecr:DescribeRepositories",
-            "ecr:ListImages"]
+            "ecr:ListImages",
+            "sqs:CreateQueue",
+            "sqs:DeleteQueue"]
         Effect   = "Allow"
         Resource = "*"
       },
