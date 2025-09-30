@@ -30,7 +30,7 @@ resource "aws_iam_policy" "policy_two" {
             "s3:ListAllMyBuckets",
             "s3:ListBucket",
             "s3:HeadBucket",
-            "s3:Wri*"]
+            "s3:Li*"]
         Effect   = "Allow"
         Resource = "*"
       },
