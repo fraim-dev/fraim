@@ -1,13 +1,13 @@
 resource "aws_iam_role" "test_role_container" {
   name                = "test_role_container"
-  assume_role_policy  = data.aws_iam_policy_document.instance_assume_role_policy.json
-  managed_policy_arns = [aws_iam_policy.policy_one.arn, aws_iam_policy.policy_two.arn, aws_iam_policy.policy_three.arn]
+  assume_role_policy  = data.aws_iam_policy_document.instance_assume_role_policy1.json
+  managed_policy_arns = [aws_iam_policy.policy_two.arn]
 }
 
 resource "aws_iam_role" "test_role_instance_profile" {
   name                = "test_role_container_policy"
-  assume_role_policy  = data.aws_iam_policy_document.instance_assume_role_policy.json
-  managed_policy_arns = [aws_iam_policy.policy_one.arn, aws_iam_policy.policy_two.arn, aws_iam_policy.policy_three.arn]
+  assume_role_policy  = data.aws_iam_policy_document.instance_assume_role_policy2.json
+  managed_policy_arns = [aws_iam_policy.policy_one.arn, aws_iam_policy.policy_three.arn]
 }
 
 resource "aws_iam_policy" "policy_one" {
@@ -38,7 +38,7 @@ resource "aws_iam_policy" "policy_two" {
             "s3:HeadBucket",
             "s3:Write*"]
         Effect   = "Allow"
-        Resource = "*"
+        Resource = "fraim-*"
       },
     ]
   })
