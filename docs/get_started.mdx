@@ -1,0 +1,176 @@
+Welcome to Fraim - AI-powered security workflows that help security teams identify vulnerabilities, assess risks, and understand systems at scale.
+
+## What is Fraim?
+
+Fraim provides specialized security workflows powered by AI. Instead of one-size-fits-all scanning, you get targeted analysis tools designed for specific security tasks - from finding vulnerabilities in application code to assessing risks in infrastructure changes.
+
+## Workflows
+
+Fraim offers specialized workflows, each optimized for different security needs:
+
+### ⚠️ Risk Assessment
+**Flag changes that need security review**
+
+Analyzes code changes in pull requests to identify modifications that could introduce security risks, automatically notifying security teams when review is needed.
+
+```bash
+# Assess risks in code changes
+fraim run risk_flagger --location . --diff --pr-url $PR_URL --approver security-team
+```
+
+**Best for**: Pull request security gates, change management, security team triage
+
+### 🔍 Code Security Analysis
+**Find vulnerabilities in application code**
+
+Analyzes source code across multiple languages to identify security vulnerabilities like injection flaws, XSS, authentication issues, and hardcoded secrets.
+
+```bash
+# Scan your application code
+fraim run code --location .
+```
+
+**Best for**: Application security reviews, vulnerability scanning, pre-deployment security checks
+
+### 🏗️ Infrastructure Security Analysis  
+**Identify misconfigurations in infrastructure code**
+
+Examines infrastructure-as-code files (Terraform, Kubernetes, Docker) for security misconfigurations and compliance violations.
+
+```bash
+# Scan infrastructure configurations
+fraim run iac --location .
+```
+
+**Best for**: Cloud security, DevOps security, infrastructure compliance
+
+### 📋 System Understanding
+**Extract system context for threat modeling**
+
+Analyzes documentation and code structure to understand system purpose, users, data flows, and external integrations - perfect for threat modeling preparation.
+
+```bash
+# Understand your system
+fraim run system_analysis --location . --business-context "E-commerce platform"
+```
+
+**Best for**: Threat modeling, security assessments, system documentation
+
+## Key Features
+
+### 🎯 Specialized Analysis
+Each workflow is optimized for specific security tasks, providing more accurate and actionable results than generic scanning tools.
+
+### 🤖 AI-Powered Intelligence
+Uses advanced language models to understand context, reduce false positives, and provide detailed explanations of security findings.
+
+### 🔗 Seamless Integration
+Works with your existing development workflow - analyze local code, remote repositories, or integrate into CI/CD pipelines.
+
+### 📊 Industry-Standard Output
+Generates SARIF reports compatible with security platforms and HTML reports for human review.
+
+## Quick Start
+
+### 1. Install Fraim
+```bash
+pip install fraim
+```
+
+### 2. Set up API Key
+```bash
+# For the default model (Claude)
+export ANTHROPIC_API_KEY="your_api_key_here"
+```
+
+### 3. Run Your First Analysis
+```bash
+# Analyze your current project for vulnerabilities
+fraim run code --location .
+
+# Or assess risks in a pull request
+fraim run risk_flagger --location . --diff
+```
+
+## Choose Your Workflow
+
+### For Application Security Teams
+**Start with**: [Code Security Analysis](workflows/code.mdx)
+- Scan application code for vulnerabilities
+- Integrate into development workflows
+- Generate compliance reports
+
+### For DevOps/Platform Teams  
+**Start with**: [Infrastructure Analysis](workflows/iac.mdx)
+- Scan Terraform, Kubernetes, Docker configs
+- Identify cloud security misconfigurations
+- Ensure infrastructure compliance
+
+### For Security Operations Teams
+**Start with**: [Risk Assessment](workflows/risk_flagger.mdx)
+- Gate pull requests requiring security review
+- Automatically notify security teams of high-risk changes
+- Reduce manual code review overhead
+
+### For Security Architects
+**Start with**: [System Analysis](workflows/system_analysis.mdx)
+- Understand unfamiliar systems quickly
+- Prepare for threat modeling sessions
+- Generate system documentation
+
+## Common Use Cases
+
+### Security Code Reviews
+```bash
+# Comprehensive application security scan
+fraim run code --location . --confidence 7
+```
+
+### CI/CD Security Gates
+```bash
+# Risk-based pull request analysis
+fraim run risk_flagger --location . --diff --pr-url $PR_URL --approver security-team
+```
+
+### Infrastructure Security
+```bash
+# Scan infrastructure configurations
+fraim run iac --location . --confidence 8
+```
+
+### Threat Modeling Prep
+```bash
+# Generate system understanding
+fraim run system_analysis --location . --business-context "Customer portal application"
+```
+
+### Security Assessment Workflow
+```bash
+# Complete security assessment process
+fraim run system_analysis --location .  # Understand the system
+fraim run code --location .             # Find vulnerabilities  
+fraim run iac --location .              # Check infrastructure
+```
+
+## Next Steps
+
+### Learn the Workflows
+- [Code Security Analysis](workflows/code.mdx) - Application vulnerability scanning
+- [Infrastructure Security](workflows/iac.mdx) - Infrastructure misconfiguration detection
+- [Risk Assessment](workflows/risk_flagger.mdx) - Change-based risk analysis
+- [System Analysis](workflows/system_analysis.mdx) - System understanding and documentation
+
+### Advanced Usage
+- [CLI Reference](usage.mdx) - Complete command-line guide
+- [Installation Guide](installation.md) - Detailed setup instructions
+- [Custom Workflows](workflows/custom-workflows.mdx) - Build your own analysis workflows
+
+## Community & Support
+
+- **GitHub Issues**: Report bugs and request features
+- **Discussions**: Join the community for questions and ideas
+- **Contributing**: Help improve Fraim by contributing code, workflows, or documentation
+
+---
+
+*Built by security teams, for security teams. Making AI-powered security accessible to everyone.*

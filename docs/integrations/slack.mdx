@@ -1,0 +1,107 @@
+---
+title: "Slack"
+description: "Send Fraim security notifications directly to your team's Slack channels"
+---
+
+# Slack Integration
+
+Fraim can send security scan results and notifications directly to your team's Slack channels using incoming webhooks. This integration allows your security team to stay informed about risks and vulnerabilities without having to check GitHub or other systems manually.
+
+## Setup Process
+
+### 1. Create a Slack App
+
+Follow the official Slack documentation to create an incoming webhook:
+
+1. **Create a Slack app** - Go to [Slack's app creation page](https://api.slack.com/apps) and create a new app for your workspace
+2. **Enable incoming webhooks** - In your app settings, go to "Incoming Webhooks" and toggle "Activate Incoming Webhooks" to on  
+3. **Create an incoming webhook** - Click "Add New Webhook to Workspace" and select the channel where you want Fraim to send notifications
+
+For detailed step-by-step instructions, see the [official Slack webhook documentation](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/).
+
+After completing these steps, you'll have a webhook URL that looks like:
+```
+https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
+```
+
+<Warning>
+**Keep your webhook URL secure!** This URL contains a secret that allows posting to your Slack channel. Don't share it publicly or commit it to version control. [Slack actively searches for and revokes leaked webhook URLs](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/#keep-it-secret-keep-it-safe).
+</Warning>
+
+## Integration Methods
+
+<Tabs>
+<Tab title="GitHub Actions">
+
+### 2. Add Webhook URL to GitHub Secrets
+
+Store your Slack webhook URL securely in GitHub Actions secrets:
+
+1. Go to your repository **Settings** → **Secrets and variables** → **Actions**
+2. Click **New repository secret**  
+3. Name: `SLACK_WEBHOOK_URL`
+4. Value: Your Slack webhook URL (e.g., `https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX`)
+
+For detailed instructions on managing GitHub secrets, see the [official GitHub documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets).
+
+### 3. Use Webhook URL in Your Workflow
+
+Add the Slack webhook URL to your GitHub Actions workflow:
+
+```yaml
+name: Security Scan with Slack Notifications
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Run Fraim Security Scan
+        id: fraim-scan
+        uses: fraim-dev/fraim-action@v0  # Use v0 for latest v0.x.x releases
+        with:
+          # Required: Workflow to run
+          workflow: 'risk_flagger'
+          
+          # Required: Workflow-specific arguments as JSON object
+          workflow_args: |
+            {
+              "approver": "security-team",
+              "confidence": 7,
+              "slack-webhook-url": "${{ secrets.SLACK_WEBHOOK_URL }}"
+            }
+          
+          # Required: LLM API key
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+</Tab>
+<Tab title="CLI">
+
+### 2. Use Webhook URL with CLI
+
+Pass your Slack webhook URL directly to the Fraim CLI:
+
+```bash
+# Pass webhook URL directly (less secure for shared environments)
+fraim run risk_flagger --location . --diff \
+  --slack-webhook-url "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX" \
+  --confidence 7
+```
+</Tab>
+</Tabs>
+
+## Supported Workflows
+
+Currently, Slack integration is available for the following Fraim workflows:
+
+### Risk Flagger
+The Risk Flagger workflow can send notifications to Slack when security risks are detected in code changes.
+
+[**View Risk Flagger Slack Setup →**](/workflows/risk_flagger#notification-options)

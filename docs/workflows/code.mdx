@@ -1,0 +1,189 @@
+---
+title: "Code"
+sidebarTitle: "Code"
+---
+
+# Code Security Analysis Workflow
+
+The **Code Security Analysis** workflow examines source code files for security vulnerabilities using AI-powered static analysis. This workflow is ideal for identifying common security issues across multiple programming languages.
+
+## Overview
+
+- **Workflow ID**: `code`
+- **Primary Use Case**: Static analysis of application source code
+- **Output**: SARIF and HTML security reports
+
+## Common Use Cases
+
+### 1. Security Code Review
+
+<Tabs>
+<Tab title="CLI">
+```bash
+# Comprehensive analysis with detailed output
+fraim --debug \
+  run code --location . \
+  --confidence 6 \
+  --chunk-size 400
+```
+</Tab>
+<Tab title="GitHub Action">
+```yaml
+name: Comprehensive Security Code Review
+on:
+  workflow_dispatch:  # Manual trigger for thorough reviews
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly on Mondays at 2 AM
+
+jobs:
+  security-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run Fraim Comprehensive Security Review
+        uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          workflow: code
+          workflow_args: |
+            {
+              "confidence": 6,
+              "chunk-size": 400,
+              "max-concurrent-chunks": 3,
+              "max-concurrent-triagers": 2
+            }
+          debug: true
+```
+</Tab>
+</Tabs>
+
+### 2. Pre-Commit Analysis
+
+<Tabs>
+<Tab title="CLI">
+```bash
+# Analyze only changed files
+fraim run code --location . --diff
+```
+</Tab>
+</Tabs>
+
+
+### 3. Language-Specific Analysis
+
+<Tabs>
+<Tab title="CLI">
+```bash
+# Python security analysis
+fraim run code --location . --globs "*.py" "requirements.txt"
+
+# JavaScript/Node.js analysis
+fraim run code --location . --globs "*.js" "*.ts" "package.json"
+
+# Java application analysis
+fraim run code --location . --globs "*.java" "pom.xml" "build.gradle"
+```
+</Tab>
+<Tab title="GitHub Action">
+```yaml
+name: Language-Specific Security Analysis
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  python-security:
+    if: contains(github.event.pull_request.changed_files, '.py') || contains(github.event.pull_request.changed_files, 'requirements.txt')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run Python Security Analysis
+        uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          workflow: code
+          workflow_args: |
+            {
+              "globs": ["*.py", "requirements.txt"],
+              "confidence": 7
+            }
+
+  javascript-security:
+    if: contains(github.event.pull_request.changed_files, '.js') || contains(github.event.pull_request.changed_files, '.ts') || contains(github.event.pull_request.changed_files, 'package.json')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run JavaScript/TypeScript Security Analysis
+        uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          workflow: code
+          workflow_args: |
+            {
+              "globs": ["*.js", "*.ts", "package.json"],
+              "confidence": 7
+            }
+
+  java-security:
+    if: contains(github.event.pull_request.changed_files, '.java') || contains(github.event.pull_request.changed_files, 'pom.xml') || contains(github.event.pull_request.changed_files, 'build.gradle')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run Java Security Analysis
+        uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          workflow: code
+          workflow_args: |
+            {
+              "globs": ["*.java", "pom.xml", "build.gradle"],
+              "confidence": 7
+            }
+```
+</Tab>
+</Tabs>
+
+## GitHub Actions Integration
+
+Use the official Fraim GitHub Action:
+
+```yaml
+name: Code Security Analysis
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run Fraim Code Security Scan
+        uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          workflow: code
+          workflow_args: |
+            {
+              "confidence": 8,
+              "chunk-size": 500,
+              "max-concurrent-chunks": 5,
+              "max-concurrent-triagers": 3
+            }
+```
+
+#### Available workflow_args
+
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `confidence` | integer (1-10) | `7` | Minimum confidence threshold for filtering findings |
+| `chunk-size` | integer | `500` | Number of lines per chunk |
+| `limit` | integer | `null` | Limit the number of files to scan |
+| `globs` | array of strings | `null` | File patterns to include (uses workflow defaults if not provided) |
+| `max-concurrent-chunks` | integer | `5` | Maximum number of chunks to process concurrently |
+| `max-concurrent-triagers` | integer | `3` | Maximum number of triager requests per chunk to run concurrently |

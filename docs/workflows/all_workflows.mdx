@@ -1,0 +1,101 @@
+---
+title: "Overview"
+sidebarTitle: "Overview"
+---
+
+Fraim provides specialized AI-powered workflows for different types of security analysis. Each workflow is optimized for specific use cases and file types, allowing you to choose the right tool for your security needs.
+
+
+## Available Workflows
+
+### ⚠️ [Risk Flagger](/workflows/risk_flagger)
+**Workflow ID**: `risk_flagger`
+
+Identifies code changes that require security team review and investigation. Integrates with Github and allows you to loop in a reviewer and block a PR until that reviewer approves.
+
+```bash
+fraim run risk_flagger --diff --base <base_sha> --head <head_sha>
+```
+
+### 🔍 [Code Security Analysis](/workflows/code)
+**Workflow ID**: `code`
+
+Static analysis of application source code for security vulnerabilities.
+
+```bash
+fraim run code
+```
+
+### 🏗️ [Infrastructure as Code Analysis](/workflows/iac)
+**Workflow ID**: `iac`
+
+Security analysis of infrastructure configuration files and deployment manifests.
+
+```bash
+fraim run iac
+```
+
+### 📋 [System Analysis](/workflows/system_analysis)
+**Workflow ID**: `system_analysis`
+
+Extracts system purpose, users, and business context from codebases and documentation.
+
+```bash
+fraim run system_analysis
+```
+
+## Performance Considerations
+
+### Resource Usage by Workflow
+- **System Analysis**: Low resource usage, focuses on documentation
+- **Risk Flagger**: Low resource usage, analyzes only changed files
+- **Code Analysis**: Moderate to high resource usage, includes triaging phase
+- **IaC Analysis**: Moderate resource usage, single-pass analysis
+
+### Optimization Tips
+- Use `--limit` to test workflows on smaller file sets first
+- Adjust `--chunk-size` based on system capabilities
+- Control concurrency with `--max-concurrent-chunks`
+- Use higher `--confidence` thresholds to reduce processing time
+
+## Getting Started
+
+### 1. Choose Your Workflow
+Select the workflow that matches your security analysis needs.
+
+### 2. Start Simple
+```bash
+# Basic analysis with default settings
+fraim run <workflow> --location .
+```
+
+### 3. Integrate with GitHub Actions (Recommended)
+Use the official Fraim GitHub Action for seamless CI/CD integration:
+
+```yaml
+- name: Run Fraim Security Analysis
+  uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
+  with:
+    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+    workflow: code  # or iac, risk_flagger, system_analysis
+    workflow_args: |
+      {
+        "confidence": 7,
+        "chunk-size": 500
+      }
+```
+
+### 4. Customize as Needed
+Add specific options based on your requirements:
+```bash
+# Example with common customizations
+fraim run code --location . \
+  --confidence 7 \
+  --chunk-size 500 \
+  --output ./security-reports/
+```
+
+### 5. Scale Your Integration
+- Set up automated security gates
+- Create workflow-specific pipelines  
+- Implement custom risk policies
