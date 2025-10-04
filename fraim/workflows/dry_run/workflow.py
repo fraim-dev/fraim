@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import List
 
 from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor, Workflow
+from fraim.core.workflows.llm_processing import LLMMixin
 from fraim.outputs import sarif
 from fraim.workflows.risk_flagger.workflow import RiskFlaggerWorkflowOptions
 
@@ -42,7 +43,7 @@ class DryRunInput(ChunkProcessingOptions):
     pass
 
 
-class DryRunWorkflow(Workflow[DryRunInput, List[sarif.Result]], ChunkProcessor):
+class DryRunWorkflow(Workflow[DryRunInput, list[sarif.Result]], ChunkProcessor, LLMMixin):
     name = "dry_run"
 
     @property
