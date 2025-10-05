@@ -1,0 +1,12 @@
+diff --git a/demos/iam-unnecessary-actions/ec2.tf b/demos/iam-unnecessary-actions/ec2.tf
+new file mode 100644
+index 0000000..8e84bdf
+--- /dev/null
++++ b/demos/iam-unnecessary-actions/ec2.tf
+@@ -0,0 +1,6 @@
++resource "aws_instance" "example" {
++  ami           = data.aws_ami.ubuntu.id
++  instance_type = "t3.micro"
++
++  iam_instance_profile = aws_iam_instance_profile.test_role_instance_profile.name
++}
