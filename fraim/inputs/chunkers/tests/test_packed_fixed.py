@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from fraim.core.contextuals import CodeChunk
-from fraim.inputs.chunkers.packed_fixed import PackingFixedChunker
+from fraim.inputs.chunkers.packed_fixed import PackingSyntacticChunker
 from fraim.inputs.chunkers.tests.lib import InMemory
 
 # from fraim.inputs.file import File
@@ -26,10 +26,10 @@ def test_pack_multiple_small_files_into_one_chunk(project_path: str) -> None:
     _input = InMemory(file_1, file_2, root_path=project_path)
 
     # Set chunk_size large enough to hold both files.
-    chunks = list(PackingFixedChunker(_input, chunk_size=1000, logger=log).packed_chunks())
+    chunks = list(PackingSyntacticChunker(_input, chunk_size=1000, logger=log).chunks())
 
     assert len(chunks) == 1
-    assert len(chunks[0]) == 2
+    assert len(chunks[0]) == 8
     assert chunks[0][0].file_path == "file1.py"
     assert chunks[0][1].file_path == "file2.py"
 
@@ -42,14 +42,13 @@ def test_pack_files_into_multiple_chunks(project_path: str) -> None:
     _input = InMemory(file_1, file_2, file_3, root_path=project_path)
 
     # Set chunk_size so that first two files fit, but adding the third exceeds it.
-    # A single chunk is ~150 chars. Let's set it to 350 to fit two.
-    chunks = list(PackingFixedChunker(_input, chunk_size=350, chunk_overlap=100, logger=log).packed_chunks())
+    chunks = list(PackingSyntacticChunker(_input, chunk_size=10, chunk_overlap=0, logger=log).chunks())
 
     assert len(chunks) == 2
-    assert len(chunks[0]) == 2  # First two files
+    assert len(chunks[0]) == 10  # First two files
     assert chunks[0][0].file_path == "file1.py"
     assert chunks[0][1].file_path == "file2.py"
-    assert len(chunks[1]) == 1  # Third file
+    assert len(chunks[1]) == 5  # Third file
     assert chunks[1][0].file_path == "file3.py"
 
 
@@ -63,7 +62,7 @@ def test_small_files_are_packed(project_path: str) -> None:
     _input = InMemory(*[chunk] * num_of_small_files, root_path=project_path)
 
     # chunk_size for PackingFixedChunker (bytes) is 500, so packed chunks should be small.
-    chunks = list(PackingFixedChunker(_input, chunk_size=chunk_size, logger=log).packed_chunks())
+    chunks = list(PackingSyntacticChunker(_input, chunk_size=chunk_size, logger=log).chunks())
 
     # PackingFixedChunker with byte chunk_size=500 will receive these two CodeChunk.
     # The first CodeChunk is added. The second one is checked.
@@ -72,7 +71,7 @@ def test_small_files_are_packed(project_path: str) -> None:
     # So each CodeChunk is well under 500. The two combined should also be under 500.
     # So they should be packed into one CodeChunks.
     assert len(chunks) == 1
-    assert len(chunks[0]) == num_of_small_files
+    assert len(chunks[0]) == 120 # Measured in tokens
     assert chunks[0][0].file_path == "small_file.py"
     assert chunks[0][1].file_path == "small_file.py"
     assert chunks[0][0].line_number_start_inclusive == 1
@@ -87,24 +86,24 @@ def test_single_large_file_violates_chunk_size(project_path: str) -> None:
     _input = InMemory(chunk, root_path=project_path)
 
     # Set chunk_size for PackingFixedChunker (bytes) smaller than the file content.
-    chunks = list(PackingFixedChunker(_input, chunk_size=400, chunk_lines=1000, logger=log).packed_chunks())
+    chunks = list(PackingSyntacticChunker(_input, chunk_size=400, chunk_lines=1000, logger=log).chunks())
 
     assert len(chunks) == 1
-    assert len(chunks[0]) == 1
+    assert len(chunks[0]) == 125 # Measured in tokens
     assert len(str(chunks[0])) > 400
 
 
 def test_empty_input(project_path: str) -> None:
     _input = InMemory(root_path=project_path)
-    chunks = list(PackingFixedChunker(input=_input, chunk_size=1000, logger=log).packed_chunks())
+    chunks = list(PackingSyntacticChunker(input=_input, chunk_size=1000, logger=log).chunks())
     assert len(chunks) == 0
 
 
 def test_single_small_file(project_path: str) -> None:
     chunk = CodeChunk("single.py", "print('single')", line_number_start_inclusive=1, line_number_end_inclusive=1)
     _input = InMemory(chunk, root_path=project_path)
-    chunks = list(PackingFixedChunker(input=_input, chunk_size=1000, logger=log).packed_chunks())
+    chunks = list(PackingSyntacticChunker(input=_input, chunk_size=1000, logger=log).chunks())
 
     assert len(chunks) == 1
-    assert len(chunks[0]) == 1
+    assert len(chunks[0]) == 4 # Measured in tokens
     assert chunks[0][0].file_path == "single.py"

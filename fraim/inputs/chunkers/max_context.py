@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
-from typing import Any, Iterator
+from typing import Any
 
 from litellm import get_max_tokens
 
-from fraim.inputs.chunkers.packed_fixed import PackingFixedChunker
+from fraim.inputs.chunkers.packed_fixed import PackingFixedTokenChunker
 
 
-class MaxContextChunker(PackingFixedChunker):
+class MaxContextChunker(PackingFixedTokenChunker):
     """
     MaxContextChunker for using the full context window of an LLM.
 

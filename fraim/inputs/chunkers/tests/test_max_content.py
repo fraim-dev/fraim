@@ -28,11 +28,11 @@ def test_max_content_chunker() -> None:
     _input = InMemory(file_1, file_2, root_path="/project")
 
     chunks = list(
-        MaxContextChunker(input=_input, model="gemini/gemini-2.5-flash", fraction=fraction, logger=log).packed_chunks()
+        MaxContextChunker(input=_input, model="gemini/gemini-2.5-flash", fraction=fraction, logger=log).chunks()
     )
 
     assert len(chunks) == 1
-    assert len(chunks[0]) == 2
+    assert len(chunks[0]) == 18 # Measured in tokens
     assert chunks[0][0].content == file_1.content
     assert chunks[0][0].file_path == str(file_1.file_path)
     assert chunks[0][0].line_number_start_inclusive == 1
@@ -66,15 +66,15 @@ def test_max_content_chunker_overflow(mock_get_max_tokens: MagicMock) -> None:
     )
     _input = InMemory(file_1, file_2, root_path="/project")
 
-    chunks = list(MaxContextChunker(input=_input, model="test", fraction=fraction, logger=log).packed_chunks())
+    chunks = list(MaxContextChunker(input=_input, model="test", fraction=fraction, logger=log).chunks())
 
     assert len(chunks) == 2
     assert isinstance(chunks[0], CodeChunks)
-    assert len(chunks[0]) == 1
+    assert len(chunks[0]) == 9
     assert chunks[0][0].content == file_1.content
     assert chunks[0][0].file_path == str(file_1.file_path)
 
     assert isinstance(chunks[1], CodeChunks)
-    assert len(chunks[1]) == 1
+    assert len(chunks[1]) == 121
     assert chunks[1][0].content == file_2.content
     assert chunks[1][0].file_path == str(file_2.file_path)

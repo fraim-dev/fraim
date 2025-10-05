@@ -21,6 +21,11 @@ class FixedTokenChunker(Chunker):
         self.input = input
 
     def __iter__(self) -> Iterator[Contextual[str]]:
+        for file in self.chunks():
+            yield from self.split_file(self.splitter, file)
+
+    # Chunks is kept separate from iterator so we have a type annotation that returns the concrete class
+    def chunks(self) -> Iterator[CodeChunk]:
         with self.input as input:
             for file in input:
                 yield from self.split_file(self.splitter, file)

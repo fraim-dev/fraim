@@ -9,7 +9,7 @@ from fraim.inputs.chunkers import FileChunker, MaxContextChunker
 from fraim.inputs.chunkers.base import Chunker
 from fraim.inputs.chunkers.fixed import FixedTokenChunker
 from fraim.inputs.chunkers.original import OriginalChunker
-from fraim.inputs.chunkers.packed_fixed import PackingFixedChunker
+from fraim.inputs.chunkers.packed_fixed import PackingSyntacticChunker, PackingFixedTokenChunker
 from fraim.inputs.chunkers.syntactic import SyntacticChunker
 from fraim.inputs.git import GitRemote
 from fraim.inputs.git_diff import GitDiff
@@ -19,7 +19,8 @@ from fraim.inputs.local import Local
 CHUNKING_METHODS = {
     "syntactic": SyntacticChunker,
     "fixed_token": FixedTokenChunker,
-    "packed": PackingFixedChunker,
+    "packed": PackingSyntacticChunker,
+    "packed_fixed": PackingFixedTokenChunker,
     "file": FileChunker,
     "project": MaxContextChunker,
     "original": OriginalChunker,
