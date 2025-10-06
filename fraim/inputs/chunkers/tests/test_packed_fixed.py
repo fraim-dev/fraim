@@ -71,7 +71,7 @@ def test_small_files_are_packed(project_path: str) -> None:
     # So each CodeChunk is well under 500. The two combined should also be under 500.
     # So they should be packed into one CodeChunks.
     assert len(chunks) == 1
-    assert len(chunks[0]) == 120 # Measured in tokens
+    assert len(chunks[0]) == 117 # Measured in tokens
     assert chunks[0][0].file_path == "small_file.py"
     assert chunks[0][1].file_path == "small_file.py"
     assert chunks[0][0].line_number_start_inclusive == 1

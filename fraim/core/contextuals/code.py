@@ -65,7 +65,15 @@ class CodeChunk(Contextual[str]):
 
     @property
     def language(self) -> str | None:
-        return LANGUAGE_EXTENSIONS.get(str(Path(self.file_path).suffix), None)
+        suffix = Path(self.file_path).suffix
+        if not suffix:
+            return None
+
+        sanitized = suffix.lstrip(".").lower()
+        if not sanitized:
+            return None
+
+        return LANGUAGE_EXTENSIONS.get(sanitized, None)
 
     def __str__(self) -> str:
         return f'<code_chunk file_path="{self.file_path}" line_number_start_inclusive="{self.line_number_start_inclusive}" line_number_end_inclusive="{self.line_number_end_inclusive}">\n{self.content}\n</code_chunk>'

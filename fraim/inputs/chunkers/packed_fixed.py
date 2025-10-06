@@ -5,7 +5,7 @@ from typing import Iterator
 
 from fraim.core.contextuals import Contextual
 from fraim.core.contextuals.code import CodeChunks, CodeChunk
-from fraim.inputs.chunkers import FixedTokenChunker
+from fraim.inputs.chunkers.fixed import FixedTokenChunker
 from fraim.inputs.chunkers.syntactic import SyntacticChunker
 
 
