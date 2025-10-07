@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 from github import Github
 
 from fraim.core.history import EventRecord, History
+from fraim.outputs import sarif
 
 logger = logging.getLogger(__name__)
 
@@ -230,3 +231,137 @@ def add_reviewer(history: History, pr_url: str, user_or_group: str) -> None:
     except Exception as e:
         logger.error(f"Failed to request review: {e!s}")
         raise RuntimeError(f"Failed to request review: {e!s}") from e
+
+
+def add_code_annotation(
+    history: History, pr_url: str, results: list[sarif.Result], user_or_group: str = ""
+) -> None:
+    """
+    Adds inline code annotations (review comments) to GitHub PR based on SARIF results.
+
+    Args:
+        history: The history object to record events
+        pr_url: The full URL to the GitHub PR
+        results: List of SARIF Result objects containing location and message information
+        user_or_group: Optional GitHub user or team to mention in the comments
+
+    Raises:
+        ValueError: If the PR URL is invalid
+        RuntimeError: If GitHub token is not set, API calls fail, or the file/line cannot be found
+    """
+    if not results:
+        logger.info("No SARIF results provided, skipping code annotations")
+        return
+
+    logger.info(f"Adding {len(results)} code annotations to PR: {pr_url}")
+    history.append_record(
+        EventRecord(description=f"Adding {len(results)} code annotations to PR: {pr_url}")
+    )
+
+    owner, repo, pr_number = parse_pr_url(pr_url)
+
+    # Get GitHub token from multiple sources
+    logger.debug("Getting GitHub authentication token")
+    github_token = _get_github_token()
+    if not github_token:
+        logger.error("GitHub authentication failed - no token found")
+        raise RuntimeError(
+            "GitHub authentication required. Please ensure one of the following:\n"
+            "1. Set GITHUB_TOKEN environment variable\n"
+            "2. Configure git credentials for github.com\n"
+            "3. Login with GitHub CLI (`gh auth login`)"
+        )
+
+    # Initialize GitHub client
+    logger.debug("Initializing GitHub client")
+    gh = Github(github_token)
+
+    try:
+        # Get repository and PR
+        logger.debug(f"Getting repository: {owner}/{repo}")
+        repository = gh.get_repo(f"{owner}/{repo}")
+        logger.debug(f"Getting pull request #{pr_number}")
+        pull_request = repository.get_pull(int(pr_number))
+    except Exception as e:
+        logger.error(f"Failed to get repository or pull request: {e!s}")
+        raise RuntimeError(f"Failed to get repository or pull request: {e!s}") from e
+
+    try:
+        # Get the latest commit SHA from the PR
+        logger.debug("Getting latest commit SHA from PR")
+        commit_sha = pull_request.head.sha
+        commit = repository.get_commit(commit_sha)
+        logger.debug(f"Using commit SHA: {commit_sha}")
+
+        successful_annotations = 0
+        failed_annotations = 0
+
+        # Process each SARIF result
+        for i, result in enumerate(results):
+            try:
+                # Extract file path and line number from SARIF result
+                if not result.locations:
+                    logger.warning(f"SARIF result {i} has no locations, skipping")
+                    failed_annotations += 1
+                    continue
+
+                location = result.locations[0].physicalLocation
+                if not location or not location.artifactLocation:
+                    logger.warning(f"SARIF result {i} has invalid location, skipping")
+                    failed_annotations += 1
+                    continue
+
+                # Get file path (remove file:// prefix if present)
+                file_path = location.artifactLocation.uri
+                if file_path.startswith("file://"):
+                    file_path = file_path[7:]
+                
+                # Get line number from region
+                if not location.region:
+                    logger.warning(f"SARIF result {i} has no region information, skipping")
+                    failed_annotations += 1
+                    continue
+
+                line_number = location.region.startLine
+
+                # Create comment text from SARIF result
+                comment_text = result.message.text
+                if hasattr(result.properties, 'explanation') and result.properties.explanation:
+                    explanation = result.properties.explanation.text if hasattr(result.properties.explanation, 'text') else str(result.properties.explanation)
+                    comment_text += f"\n\n**Explanation:** {explanation}"
+
+                # Add severity if available
+                if hasattr(result, 'level') and result.level:
+                    comment_text += f"\n**Severity:** {result.level}"
+
+                # Add user_or_group mention if provided
+                if user_or_group.strip():
+                    comment_text = f"@{user_or_group}\n\n{comment_text}"
+                    logger.debug(f"Adding code annotation with user_or_group mention: {user_or_group}")
+
+                # Create the review comment on the specific line
+                logger.debug(f"Creating review comment on {file_path}:{line_number}")
+                pull_request.create_review_comment(
+                    body=comment_text,
+                    commit=commit,
+                    path=file_path,
+                    line=line_number,
+                )
+                logger.debug(f"Successfully added code annotation to {file_path}:{line_number}")
+                successful_annotations += 1
+
+            except Exception as e:
+                logger.warning(f"Failed to add code annotation for result {i}: {e!s}")
+                failed_annotations += 1
+                continue
+
+        logger.info(f"Code annotation summary: {successful_annotations} successful, {failed_annotations} failed")
+        
+        if successful_annotations == 0:
+            raise RuntimeError("Failed to add any code annotations")
+
+    except Exception as e:
+        if "Failed to add any code annotations" in str(e):
+            raise
+        logger.error(f"Failed to add code annotations: {e!s}")
+        raise RuntimeError(f"Failed to add code annotations: {e!s}") from e
