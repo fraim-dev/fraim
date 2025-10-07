@@ -13,9 +13,6 @@ system: |
   - If you see a security vulnerability but it is not directly expressed as a vulnerability to consider, then ignore it.
   - If the vulnerability involves a change to a resource, make sure to ignore it if the resource is not being changed (which can be seen by the + or - in the git diff)
   - If the vulnerability is fixed by the change seen in the diff, then ignore it.
-  {% for consideration in custom_false_positive_considerations %}
-  - {{ consideration }}
-  {% endfor %}
 
   Valid vulnerability types with their definitions:
   <vulnerability_types>
