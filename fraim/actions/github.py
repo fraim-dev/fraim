@@ -16,6 +16,37 @@ from fraim.outputs import sarif
 logger = logging.getLogger(__name__)
 
 
+def _normalize_file_path(file_uri: str) -> str:
+    """
+    Normalize file path from SARIF result for GitHub API.
+    
+    Args:
+        file_uri: The file URI from SARIF result
+        
+    Returns:
+        Normalized relative file path suitable for GitHub API
+    """
+    if not file_uri:
+        return ""
+    
+    # Strip file:// prefix if present
+    if file_uri.startswith("file://"):
+        file_uri = file_uri[7:]
+    
+    # Convert backslashes to forward slashes
+    file_uri = file_uri.replace("\\", "/")
+    
+    # Remove leading slashes to ensure relative path
+    file_uri = file_uri.lstrip("/")
+    
+    # Basic security check for path traversal
+    if "../" in file_uri or "..\\" in file_uri:
+        logger.warning(f"Potential path traversal detected in file path: {file_uri}")
+        return ""
+    
+    return file_uri
+
+
 def _get_github_token() -> str | None:
     """
     Get GitHub token from multiple sources in order of preference:
@@ -296,6 +327,15 @@ def add_code_annotation(
         successful_annotations = 0
         failed_annotations = 0
 
+        # Get list of changed files in the PR for validation
+        try:
+            pr_files = list(pull_request.get_files())
+            pr_file_paths = {f.filename for f in pr_files}
+            logger.debug(f"PR contains {len(pr_file_paths)} changed files: {sorted(pr_file_paths)}")
+        except Exception as e:
+            logger.warning(f"Could not get PR files list: {e}. Will attempt annotations without validation.")
+            pr_file_paths = set()
+
         # Process each SARIF result
         for i, result in enumerate(results):
             try:
@@ -311,10 +351,25 @@ def add_code_annotation(
                     failed_annotations += 1
                     continue
 
-                # Get file path (remove file:// prefix if present)
-                file_path = location.artifactLocation.uri
-                if file_path.startswith("file://"):
-                    file_path = file_path[7:]
+                # Get and normalize file path
+                raw_file_path = location.artifactLocation.uri
+                file_path = _normalize_file_path(raw_file_path)
+                
+                if not file_path:
+                    logger.warning(f"SARIF result {i} has invalid or empty file path: {raw_file_path}")
+                    failed_annotations += 1
+                    continue
+                
+                logger.debug(f"Normalized file path from '{raw_file_path}' to '{file_path}'")
+                
+                # Validate that the file is part of the PR's changed files
+                if pr_file_paths and file_path not in pr_file_paths:
+                    logger.warning(
+                        f"File '{file_path}' is not in PR's changed files. "
+                        f"Available files: {sorted(pr_file_paths)}"
+                    )
+                    failed_annotations += 1
+                    continue
                 
                 # Get line number from region
                 if not location.region:
@@ -341,14 +396,36 @@ def add_code_annotation(
 
                 # Create the review comment on the specific line
                 logger.debug(f"Creating review comment on {file_path}:{line_number}")
-                pull_request.create_review_comment(
-                    body=comment_text,
-                    commit=commit,
-                    path=file_path,
-                    line=line_number,
-                )
-                logger.debug(f"Successfully added code annotation to {file_path}:{line_number}")
-                successful_annotations += 1
+                logger.debug(f"Comment text preview: {comment_text[:100]}...")
+                
+                try:
+                    pull_request.create_review_comment(
+                        body=comment_text,
+                        commit=commit,
+                        path=file_path,
+                        line=line_number,
+                    )
+                    logger.debug(f"Successfully added code annotation to {file_path}:{line_number}")
+                    successful_annotations += 1
+                except Exception as github_api_error:
+                    # Enhanced error logging for GitHub API issues
+                    error_msg = str(github_api_error)
+                    if "could not be resolved" in error_msg:
+                        logger.warning(
+                            f"File path '{file_path}' could not be resolved in PR. "
+                            f"This usually means the file is not part of the PR's changed files. "
+                            f"Original path: '{raw_file_path}'"
+                        )
+                    elif "422" in error_msg:
+                        logger.warning(
+                            f"GitHub API validation error for {file_path}:{line_number}. "
+                            f"Error: {error_msg}"
+                        )
+                    else:
+                        logger.warning(f"GitHub API error for {file_path}:{line_number}: {error_msg}")
+                    
+                    failed_annotations += 1
+                    continue
 
             except Exception as e:
                 logger.warning(f"Failed to add code annotation for result {i}: {e!s}")
