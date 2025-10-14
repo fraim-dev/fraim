@@ -92,29 +92,35 @@ async def grep(
     assert proc.stderr is not None  # We used PIPE, so this is guaranteed
 
     # Consume stdout and stderr concurrently
-    stdout = _head(proc.stdout, head_limit)
+    head_result = _head(proc.stdout, head_limit)
     stderr = proc.stderr.read()
 
     # Run process until we have the results
-    results = (await stdout).decode("utf-8", errors="replace")
+    stdout, complete = await head_result
+    results = stdout.decode("utf-8", errors="replace")
 
-    # Attempt to explicitly terminate in case _head returned early due to head_limit
-    try:
-        proc.terminate()
-        await proc.wait()
-    except ProcessLookupError:
-        # Process already finished, that's fine
-        pass
+    # Attempt to explicitly terminate if _head returned early due to head_limit
+    if not complete:
+        try:
+            proc.terminate()
+        except ProcessLookupError:
+            # Process already finished, that's fine
+            pass
 
-    # Get the return code and any errors
-    returncode = proc.returncode or 0
+    # Consume the complete error stream
     errors = (await stderr).decode("utf-8", errors="replace")
+
+    # Get the return code
+    await proc.wait()
+    returncode = proc.returncode or 0
 
     # ripgrep returns 0 if matches found, 1 if none, >1 on error
     if returncode == 0:
         return results
     if returncode == 1:
         return ""  # no matches
+    if returncode == -15 and not complete:
+        return results  # we intentionally terminated early due to head_limit
     # On actual errors, surface stderr
     raise ValueError(f"ripgrep failed with return code {returncode}: {errors}")
 
@@ -189,7 +195,7 @@ def _build_cmd(
     return args
 
 
-async def _head(stream: asyncio.StreamReader, count: int | None) -> bytes:
+async def _head(stream: asyncio.StreamReader, count: int | None) -> tuple[bytes, bool]:
     """Return the first N lines of the stream.
 
     Args:
@@ -197,21 +203,23 @@ async def _head(stream: asyncio.StreamReader, count: int | None) -> bytes:
         count: Maximum number of lines to keep (None means no limit)
 
     Returns:
-        First N lines of output
+        First N lines of output and a boolean indicating if the stream was read completely
     """
     if count is None or count <= 0:
         # No limit, read everything
-        return await stream.read()
+        return await stream.read(), True
 
+    complete = False
     lines = []
     line_count = 0
 
     while line_count < count:
         line_bytes = await stream.readline()
         if not line_bytes:  # EOF
+            complete = True
             break
 
         lines.append(line_bytes)  # line already includes \n or \r\n
         line_count += 1
 
-    return b"".join(lines)
+    return b"".join(lines), complete

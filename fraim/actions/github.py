@@ -10,6 +10,8 @@ from urllib.parse import urlparse
 
 from github import Github
 
+from fraim.core.history import EventRecord, History
+
 logger = logging.getLogger(__name__)
 
 
@@ -90,10 +92,12 @@ def parse_pr_url(pr_url: str) -> tuple[str, str, str]:
     return owner, repo, pr_number
 
 
-def add_comment(pr_url: str, description: str, user_or_group: str) -> None:
+def add_comment(history: History, pr_url: str, description: str, user_or_group: str) -> None:
     """
     Adds a comment to a GitHub PR.
     """
+    history.append_record(EventRecord(description=f"Adding comment to PR {pr_url}"))
+
     owner, repo, pr_number = parse_pr_url(pr_url)
 
     # Get GitHub token from multiple sources
@@ -137,7 +141,7 @@ def add_comment(pr_url: str, description: str, user_or_group: str) -> None:
         raise RuntimeError(f"Failed to add comment to PR: {e!s}") from e
 
 
-def add_reviewer(pr_url: str, user_or_group: str) -> None:
+def add_reviewer(history: History, pr_url: str, user_or_group: str) -> None:
     """
     Notifies a GitHub user or team by adding them as reviewers and leaving a comment on a PR.
 
@@ -155,7 +159,10 @@ def add_reviewer(pr_url: str, user_or_group: str) -> None:
         ValueError: If the PR URL is invalid
         RuntimeError: If GitHub token is not set, API calls fail, or user/team cannot be found
     """
-    logger.info(f"Notifying GitHub user_or_group {user_or_group} for PR: {pr_url}")
+    logger.info(f"Adding GitHub user_or_group {user_or_group} as reviewer for PR: {pr_url}")
+    history.append_record(
+        EventRecord(description=f"Adding GitHub user_or_group {user_or_group} as reviewer for PR: {pr_url}")
+    )
 
     owner, repo, pr_number = parse_pr_url(pr_url)
 
