@@ -12,7 +12,10 @@ import os
 from dataclasses import dataclass, field
 from typing import Annotated, Literal
 
-from fraim.actions import add_comment, add_reviewer
+from rich.console import Console
+from rich.markdown import Markdown
+
+from fraim.actions import add_comment, add_reviewer, send_message
 from fraim.core.contextuals import CodeChunk
 from fraim.core.history import History
 from fraim.core.parsers import PydanticOutputParser
@@ -26,6 +29,7 @@ from fraim.workflows.risk_flagger import risk_sarif_overlay
 from fraim.workflows.risk_flagger.risk_list import build_risks_list, format_risks_for_prompt
 
 from ...core.workflows.format_pr_comment import format_pr_comment
+from ...core.workflows.format_slack_message import format_slack_message
 from ...core.workflows.llm_processing import LLMMixin, LLMOptions
 from ...core.workflows.sarif import ConfidenceFilterOptions, filter_results_by_confidence
 
@@ -72,6 +76,8 @@ class RiskFlaggerWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceF
 
     pr_url: Annotated[str, {"help": "URL of the pull request to analyze"}] = field(default="")
     approver: Annotated[str, {"help": "GitHub username or group to notify for approval"}] = field(default="")
+    slack_webhook_url: Annotated[str, {"help": "Slack webhook URL to send notifications to"}] = field(default="")
+    no_gh_comment: Annotated[bool, {"help": "Whether to skip adding a comment to the pull request"}] = False
     custom_risk_list_action: Annotated[
         Literal["append", "replace"], {"help": "Whether to append to or replace the default risks list"}
     ] = "append"
@@ -189,19 +195,25 @@ class RiskFlaggerWorkflow(
             max_concurrent_chunks=self.args.max_concurrent_chunks,
         )
 
-        # 4. Format results into PR comment
-        pr_comment = format_pr_comment(results)
+        logger.info(f"Found {len(results)} results")
 
-        # 5. Notify Github groups with formatted comment
         if len(results) > 0:
-            if self.args.pr_url:
-                add_comment(self.args.pr_url, pr_comment, self.args.approver)
-            else:
-                logger.warning("PR URL missing, skipping Add Comment")
+            pr_comment = format_pr_comment(results)
 
+            # 4. Print comment to console
+            console = Console()
+            console.print(Markdown(pr_comment))
+
+            # 5. Add comment to PR, if enabled
+            if self.args.pr_url and not self.args.no_gh_comment:
+                add_comment(self.history, self.args.pr_url, pr_comment, self.args.approver)
+            else:
+                logger.warning("PR URL missing or no_gh_comment is True, skipping Add Comment")
+
+            # 5. Add reviewer to PR, if enabled
             if self.args.pr_url and self.args.approver:
                 try:
-                    add_reviewer(self.args.pr_url, self.args.approver)
+                    add_reviewer(self.history, self.args.pr_url, self.args.approver)
                 except Exception as e:
                     logger.warning(
                         f"Failed to add reviewer, check to make sure you have the right permissions: {e}\nContinuing with comment only."
@@ -209,7 +221,9 @@ class RiskFlaggerWorkflow(
             else:
                 logger.warning("PR URL and/or approver are missing, skipping Add Reviewer")
 
-        logger.info(pr_comment)
-        print(pr_comment)
+            # 6. Send message to Slack, if enabled
+            if self.args.slack_webhook_url:
+                slack_message = format_slack_message(results, workflow_name=self.name, pr_url=self.args.pr_url)
+                send_message(self.history, self.args.slack_webhook_url, slack_message)
 
         return results

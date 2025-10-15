@@ -1,0 +1,19 @@
+diff --git a/demos/admin-ports-detect-5938/main.tf b/demos/admin-ports-detect-5938/main.tf
+new file mode 100644
+index 0000000..67d76dd
+--- /dev/null
++++ b/demos/admin-ports-detect-5938/main.tf
+@@ -0,0 +1,13 @@
++resource "aws_security_group" "example" {
++  name        = "example_security_group"
++  description = "Example Description"
++  vpc_id      = aws_vpc.main.id
++
++  ingress {
++    from_port        = 5938
++    to_port          = 5938
++    protocol         = "-1"
++    cidr_blocks      = ["0.0.0.0/0"]
++    ipv6_cidr_blocks = ["::/0"]
++  }
++}
