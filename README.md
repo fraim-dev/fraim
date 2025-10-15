@@ -1,4 +1,9 @@
 # Fraim - A Security Engineer's AI Toolkit
+[![PyPI - Version](https://img.shields.io/pypi/v/fraim?style=flat&logo=python&logoColor=whitesmoke)](https://pypi.org/project/fraim/)
+[![GitHub Action - Version](https://img.shields.io/github/v/release/fraim-dev/fraim-action?style=flat&logo=githubactions&logoColor=whitesmoke&label=github%20action)](https://github.com/marketplace/actions/fraim-security)
+[![GitHub Repo stars](https://img.shields.io/github/stars/fraim-dev/fraim?style=flat&logo=github)](https://github.com/fraim-dev/fraim/stargazers)
+[![Build](https://img.shields.io/github/actions/workflow/status/fraim-dev/fraim/ci.yml?branch=main&style=flat)](https://github.com/fraim-dev/fraim/actions/workflows/ci.yml)
+
 
 ## 🔭 Overview
 
@@ -306,6 +311,14 @@ user: |
 
   {{ code }}
 ```
+
+## Stargazers
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=fraim-dev/fraim&type=Date&theme=dark" />
+  <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=fraim-dev/fraim&type=Date" />
+  <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=fraim-dev/fraim&type=Date" />
+</picture>
 
 ## 📄 License
 

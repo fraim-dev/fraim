@@ -29,11 +29,9 @@ The following security risks have been identified and require review:
 **Explanation**:
 {%- for explanation in risk.properties.explanation.split('. ') %}
 {%- if explanation.strip() %}
-* {{ explanation.strip() }}.
+* {{ explanation.strip() }}
 {%- endif %}
 {%- endfor %}
-
-**Confidence**: {{ risk.properties.confidence * 10 }}%
 
 ---
 {%- endfor %}

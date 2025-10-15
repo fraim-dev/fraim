@@ -1,0 +1,45 @@
+diff --git a/demos/overly-permissive-iam-actions/main.tf b/demos/overly-permissive-iam-actions/main.tf
+new file mode 100644
+index 0000000..0d08be5
+--- /dev/null
++++ b/demos/overly-permissive-iam-actions/main.tf
+@@ -0,0 +1,39 @@
++resource "aws_iam_role" "example" {
++  name                = "test_role"
++  assume_role_policy  = data.aws_iam_policy_document.instance_assume_role_policy.json
++  managed_policy_arns = [aws_iam_policy.policy_one.arn, aws_iam_policy.policy_two.arn]
++}
++
++resource "aws_iam_policy" "policy_one" {
++  name = "policy-618033"
++
++  policy = jsonencode({
++    Version = "2012-10-17"
++    Statement = [
++      {
++        Action   = ["ec2:Describe*"]
++        Effect   = "Allow"
++        Resource = "*"
++      },
++    ]
++  })
++}
++
++resource "aws_iam_policy" "policy_two" {
++  name = "policy-381966"
++
++  policy = jsonencode({
++    Version = "2012-10-17"
++    Statement = [
++      {
++        Action   = [
++            "s3:ListAllMyBuckets",
++            "s3:ListBucket",
++            "s3:HeadBucket",
++            "s3:Pu*"]
++        Effect   = "Allow"
++        Resource = "*"
++      },
++    ]
++  })
++}
