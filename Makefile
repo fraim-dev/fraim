@@ -1,4 +1,4 @@
-.PHONY: setup sync test test-cov lint format typecheck build check
+.PHONY: setup sync test test-cov lint format typecheck build check check-version-consistency
 
 init:
 	make setup-python
@@ -45,4 +45,7 @@ typecheck:
 build:
 	uv build
 
-check: format-check lint-fix-check typecheck test
+check-version-consistency:
+	uv run python check_version_consistency.py
+
+check: format-check lint-fix-check typecheck test check-version-consistency

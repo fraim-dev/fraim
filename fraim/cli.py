@@ -18,6 +18,7 @@ from typing import Annotated, Any, TextIO, Union, get_args, get_origin, get_type
 from rich.console import Console
 from rich.live import Live
 
+from fraim import __version__
 from fraim.core.workflows.discovery import discover_workflows
 from fraim.observability import ObservabilityManager, ObservabilityRegistry
 from fraim.observability.logging import setup_logging
@@ -46,7 +47,8 @@ def build_observability_arg(parser: argparse.ArgumentParser) -> None:
         description = backend_descriptions.get(backend, "No description available")
         observability_help_parts.append(f"{backend}: {description}")
 
-    observability_help = f"Enable LLM observability backends.\n - {'\n - '.join(observability_help_parts)}"
+    newline_separator = '\n - '
+    observability_help = f"Enable LLM observability backends.\n - {newline_separator.join(observability_help_parts)}"
 
     parser.add_argument("--observability", nargs="+", choices=available_backends, default=[], help=observability_help)
 
@@ -54,6 +56,7 @@ def build_observability_arg(parser: argparse.ArgumentParser) -> None:
 def cli() -> int:
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 
+    parser.add_argument("-v", "--version", action="version", version=f"fraim {__version__}")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     parser.add_argument(
         "--show-logs",
