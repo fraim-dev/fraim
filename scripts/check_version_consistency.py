@@ -3,7 +3,6 @@
 CI script to verify version consistency between pyproject.toml and __init__.py
 """
 
-import os
 import re
 import sys
 from pathlib import Path
@@ -18,7 +17,7 @@ def get_pyproject_version() -> str:
     if not pyproject_path.exists():
         raise FileNotFoundError(f"pyproject.toml not found at {pyproject_path}")
 
-    with open(pyproject_path, "r") as f:
+    with open(pyproject_path) as f:
         content = f.read()
 
     # Look for version = "x.y.z" pattern
@@ -36,7 +35,7 @@ def get_init_version() -> str:
     if not init_path.exists():
         raise FileNotFoundError(f"__init__.py not found at {init_path}")
 
-    with open(init_path, "r") as f:
+    with open(init_path) as f:
         content = f.read()
 
     # Look for __version__ = "x.y.z" pattern
@@ -59,10 +58,9 @@ def main() -> int:
         if pyproject_version == init_version:
             print("✅ Version consistency check PASSED")
             return 0
-        else:
-            print("❌ Version consistency check FAILED")
-            print(f"Versions do not match: pyproject.toml='{pyproject_version}' vs __init__.py='{init_version}'")
-            return 1
+        print("❌ Version consistency check FAILED")
+        print(f"Versions do not match: pyproject.toml='{pyproject_version}' vs __init__.py='{init_version}'")
+        return 1
 
     except Exception as e:
         print(f"❌ Error during version check: {e}")
