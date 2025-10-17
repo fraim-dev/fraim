@@ -42,7 +42,7 @@ Please review these risks and ensure appropriate mitigations are in place before
 """
 
 
-def format_pr_comment(risks: list[Any]) -> str:
+def format_pr_comment(risks: list[Any], pr_template: str = PR_COMMENT_TEMPLATE) -> str:
     """Format a list of risks into a PR comment using a Jinja template.
 
     Args:
@@ -60,6 +60,6 @@ def format_pr_comment(risks: list[Any]) -> str:
         risks_by_type[risk_type].append(risk)
 
     # Render the Jinja template
-    template = Template(PR_COMMENT_TEMPLATE)
+    template = Template(pr_template)
 
     return template.render(risks_by_type=risks_by_type).strip()

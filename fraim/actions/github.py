@@ -9,10 +9,76 @@ import subprocess
 from urllib.parse import urlparse
 
 from github import Github
+from jinja2 import Template
 
 from fraim.core.history import EventRecord, History
+from fraim.outputs import sarif
 
 logger = logging.getLogger(__name__)
+
+# Jinja template for GitHub review comments
+GITHUB_REVIEW_COMMENT_TEMPLATE = """
+{{ result.message.text }}
+{%- if result.properties and result.properties.remediation %}
+
+**Remediation**:
+{%- for remediation in risk.properties.remediation.split('. ') %}
+{%- if remediation.strip() %}
+* {{ remediation.strip() }}
+{%- endif %}
+{%- endfor %}
+{%- endif %}
+{%- if result.level %}
+
+**Severity:** {{ result.level }}
+{%- endif %}
+"""
+
+
+def _render_review_comment(result: sarif.Result, user_or_group: str = "") -> str:
+    """
+    Render a GitHub review comment using a Jinja template.
+
+    Args:
+        result: SARIF Result object containing the issue information
+        user_or_group: Optional GitHub user or team to mention in the comment
+
+    Returns:
+        Formatted comment text ready for GitHub review comment
+    """
+    template = Template(GITHUB_REVIEW_COMMENT_TEMPLATE.strip())
+    return template.render(result=result, user_or_group=user_or_group.strip()).strip()
+
+
+def _normalize_file_path(file_uri: str) -> str:
+    """
+    Normalize file path from SARIF result for GitHub API.
+
+    Args:
+        file_uri: The file URI from SARIF result
+
+    Returns:
+        Normalized relative file path suitable for GitHub API
+    """
+    if not file_uri:
+        return ""
+
+    # Strip file:// prefix if present
+    if file_uri.startswith("file://"):
+        file_uri = file_uri[7:]
+
+    # Convert backslashes to forward slashes
+    file_uri = file_uri.replace("\\", "/")
+
+    # Remove leading slashes to ensure relative path
+    file_uri = file_uri.lstrip("/")
+
+    # Basic security check for path traversal
+    if "../" in file_uri or "..\\" in file_uri:
+        logger.warning(f"Potential path traversal detected in file path: {file_uri}")
+        return ""
+
+    return file_uri
 
 
 def _get_github_token() -> str | None:
@@ -230,3 +296,168 @@ def add_reviewer(history: History, pr_url: str, user_or_group: str) -> None:
     except Exception as e:
         logger.error(f"Failed to request review: {e!s}")
         raise RuntimeError(f"Failed to request review: {e!s}") from e
+
+
+def add_code_annotation(history: History, pr_url: str, results: list[sarif.Result], user_or_group: str = "") -> None:
+    """
+    Adds inline code annotations (review comments) to GitHub PR based on SARIF results.
+
+    Args:
+        history: The history object to record events
+        pr_url: The full URL to the GitHub PR
+        results: List of SARIF Result objects containing location and message information
+        user_or_group: Optional GitHub user or team to mention in the comments
+
+    Raises:
+        ValueError: If the PR URL is invalid
+        RuntimeError: If GitHub token is not set, API calls fail, or the file/line cannot be found
+    """
+    if not results:
+        logger.info("No SARIF results provided, skipping code annotations")
+        return
+
+    logger.info(f"Adding {len(results)} code annotations to PR: {pr_url}")
+    history.append_record(EventRecord(description=f"Adding {len(results)} code annotations to PR: {pr_url}"))
+
+    owner, repo, pr_number = parse_pr_url(pr_url)
+
+    # Get GitHub token from multiple sources
+    logger.debug("Getting GitHub authentication token")
+    github_token = _get_github_token()
+    if not github_token:
+        logger.error("GitHub authentication failed - no token found")
+        raise RuntimeError(
+            "GitHub authentication required. Please ensure one of the following:\n"
+            "1. Set GITHUB_TOKEN environment variable\n"
+            "2. Configure git credentials for github.com\n"
+            "3. Login with GitHub CLI (`gh auth login`)"
+        )
+
+    # Initialize GitHub client
+    logger.debug("Initializing GitHub client")
+    gh = Github(github_token)
+
+    try:
+        # Get repository and PR
+        logger.debug(f"Getting repository: {owner}/{repo}")
+        repository = gh.get_repo(f"{owner}/{repo}")
+        logger.debug(f"Getting pull request #{pr_number}")
+        pull_request = repository.get_pull(int(pr_number))
+    except Exception as e:
+        logger.error(f"Failed to get repository or pull request: {e!s}")
+        raise RuntimeError(f"Failed to get repository or pull request: {e!s}") from e
+
+    try:
+        # Get the latest commit SHA from the PR
+        logger.debug("Getting latest commit SHA from PR")
+        commit_sha = pull_request.head.sha
+        commit = repository.get_commit(commit_sha)
+        logger.debug(f"Using commit SHA: {commit_sha}")
+
+        successful_annotations = 0
+        failed_annotations = 0
+
+        # Get list of changed files in the PR for validation
+        try:
+            pr_files = list(pull_request.get_files())
+            pr_file_paths = {f.filename for f in pr_files}
+            logger.debug(f"PR contains {len(pr_file_paths)} changed files: {sorted(pr_file_paths)}")
+        except Exception as e:
+            logger.warning(f"Could not get PR files list: {e}. Will attempt annotations without validation.")
+            pr_file_paths = set()
+
+        # Process each SARIF result
+        for i, result in enumerate(results):
+            try:
+                # Extract file path and line number from SARIF result
+                if not result.locations:
+                    logger.warning(f"SARIF result {i} has no locations, skipping")
+                    failed_annotations += 1
+                    continue
+
+                location = result.locations[0].physicalLocation
+                if not location or not location.artifactLocation:
+                    logger.warning(f"SARIF result {i} has invalid location, skipping")
+                    failed_annotations += 1
+                    continue
+
+                # Get and normalize file path
+                raw_file_path = location.artifactLocation.uri
+                file_path = _normalize_file_path(raw_file_path)
+
+                if not file_path:
+                    logger.warning(f"SARIF result {i} has invalid or empty file path: {raw_file_path}")
+                    failed_annotations += 1
+                    continue
+
+                logger.debug(f"Normalized file path from '{raw_file_path}' to '{file_path}'")
+
+                # Validate that the file is part of the PR's changed files
+                if pr_file_paths and file_path not in pr_file_paths:
+                    logger.warning(
+                        f"File '{file_path}' is not in PR's changed files. Available files: {sorted(pr_file_paths)}"
+                    )
+                    failed_annotations += 1
+                    continue
+
+                # Get line number from region
+                if not location.region:
+                    logger.warning(f"SARIF result {i} has no region information, skipping")
+                    failed_annotations += 1
+                    continue
+
+                line_number = location.region.startLine
+
+                # Create comment text from SARIF result using Jinja template
+                comment_text = self._render_review_comment(result, user_or_group)
+                logger.debug(
+                    f"Adding code annotation with user_or_group mention: {user_or_group}"
+                    if user_or_group.strip()
+                    else "Adding code annotation without user mention"
+                )
+
+                # Create the review comment on the specific line
+                logger.debug(f"Creating review comment on {file_path}:{line_number}")
+                logger.debug(f"Comment text preview: {comment_text[:100]}...")
+
+                try:
+                    pull_request.create_review_comment(
+                        body=comment_text,
+                        commit=commit,
+                        path=file_path,
+                        line=line_number,
+                    )
+                    logger.debug(f"Successfully added code annotation to {file_path}:{line_number}")
+                    successful_annotations += 1
+                except Exception as github_api_error:
+                    # Enhanced error logging for GitHub API issues
+                    error_msg = str(github_api_error)
+                    if "could not be resolved" in error_msg:
+                        logger.warning(
+                            f"File path '{file_path}' could not be resolved in PR. "
+                            f"This usually means the file is not part of the PR's changed files. "
+                            f"Original path: '{raw_file_path}'"
+                        )
+                    elif "422" in error_msg:
+                        logger.warning(f"GitHub API validation error for {file_path}:{line_number}. Error: {error_msg}")
+                    else:
+                        logger.warning(f"GitHub API error for {file_path}:{line_number}: {error_msg}")
+
+                    failed_annotations += 1
+                    continue
+
+            except Exception as e:
+                logger.warning(f"Failed to add code annotation for result {i}: {e!s}")
+                failed_annotations += 1
+                continue
+
+        logger.info(f"Code annotation summary: {successful_annotations} successful, {failed_annotations} failed")
+
+        if successful_annotations == 0:
+            raise RuntimeError("Failed to add any code annotations")
+
+    except Exception as e:
+        if "Failed to add any code annotations" in str(e):
+            raise
+        logger.error(f"Failed to add code annotations: {e!s}")
+        raise RuntimeError(f"Failed to add code annotations: {e!s}") from e
