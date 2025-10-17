@@ -129,6 +129,10 @@ jobs:
       run: |
         make build
 
+    - name: Check version consistency
+      run: |
+        make check-version-consistency
+
     - name: Test CLI installation
       run: |
         uv run fraim --help

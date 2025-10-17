@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Annotated
 
+from fraim import __version__
 from fraim.outputs import sarif
 from fraim.outputs.sarif import Result, create_sarif_report
 from fraim.reporting.reporting import Reporting
@@ -71,7 +72,7 @@ def write_sarif_and_html_report(results: list[Result], repo_name: str, output_di
         >>> print(reports.html_path)
         '/output/fraim_report_my_repo_20250917_143022.html'
     """
-    report = create_sarif_report(results)
+    report = create_sarif_report(results, __version__)
 
     # Create filename with sanitized repo name
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")

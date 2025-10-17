@@ -8,7 +8,7 @@ A modular, extensible framework for analyzing code repositories
 for security vulnerabilities using Large Language Models.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.7.0"
 __author__ = "Fraim Contributors"
 __license__ = "MIT"
 

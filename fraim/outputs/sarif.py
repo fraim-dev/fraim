@@ -171,7 +171,7 @@ class SarifReport(BaseSchema):
     runs: list[Run] = Field(description="The set of runs contained in a SARIF log.")
 
 
-def create_sarif_report(results: list[Result], tool_version: str = "1.0.0") -> SarifReport:
+def create_sarif_report(results: list[Result], tool_version: str) -> SarifReport:
     """
     Create a complete SARIF report from a list of results.
 
