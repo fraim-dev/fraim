@@ -19,3 +19,8 @@ jobs:
         uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
         with:
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+          workflow: code
+          workflow_args: |
+            {
+              "model": "gemini/gemini-2.5-pro"
+            }
