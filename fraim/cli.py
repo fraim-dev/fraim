@@ -47,7 +47,7 @@ def build_observability_arg(parser: argparse.ArgumentParser) -> None:
         description = backend_descriptions.get(backend, "No description available")
         observability_help_parts.append(f"{backend}: {description}")
 
-    newline_separator = '\n - '
+    newline_separator = "\n - "
     observability_help = f"Enable LLM observability backends.\n - {newline_separator.join(observability_help_parts)}"
 
     parser.add_argument("--observability", nargs="+", choices=available_backends, default=[], help=observability_help)
