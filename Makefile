@@ -46,6 +46,6 @@ build:
 	uv build
 
 check-version-consistency:
-	uv run python check_version_consistency.py
+	uv run python scripts/check_version_consistency.py
 
 check: format-check lint-fix-check typecheck test check-version-consistency

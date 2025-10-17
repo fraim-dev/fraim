@@ -8,10 +8,12 @@ import re
 import sys
 from pathlib import Path
 
+project_root = Path(__file__).parent.parent
+
 
 def get_pyproject_version() -> str:
     """Extract version from pyproject.toml"""
-    pyproject_path = Path(__file__).parent / "pyproject.toml"
+    pyproject_path = project_root / "pyproject.toml"
 
     if not pyproject_path.exists():
         raise FileNotFoundError(f"pyproject.toml not found at {pyproject_path}")
@@ -29,7 +31,7 @@ def get_pyproject_version() -> str:
 
 def get_init_version() -> str:
     """Extract version from fraim/__init__.py"""
-    init_path = Path(__file__).parent / "fraim" / "__init__.py"
+    init_path = project_root / "fraim" / "__init__.py"
 
     if not init_path.exists():
         raise FileNotFoundError(f"__init__.py not found at {init_path}")
