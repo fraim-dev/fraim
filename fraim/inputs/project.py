@@ -1,14 +1,15 @@
 import os
 from collections.abc import Iterator
-from typing import Any
+from typing import Any, cast
 
-from fraim.core.contextuals.code import CodeChunk
+from fraim.core.contextuals import CodeChunk
 from fraim.inputs.chunks import chunk_input
 from fraim.inputs.file import BufferedFile
 from fraim.inputs.git import GitRemote
 from fraim.inputs.git_diff import GitDiff
 from fraim.inputs.input import Input
 from fraim.inputs.local import Local
+from fraim.inputs.status_check import StatusCheckInput
 
 
 class ProjectInput:
@@ -43,11 +44,14 @@ class ProjectInput:
             self.repo_name = os.path.basename(self.project_path)
             if self.diff:
                 self.input = GitDiff(self.project_path, head=self.head, base=self.base, globs=globs, limit=limit)
+            elif kwargs.status_check:
+                self.input = StatusCheckInput(path_or_url)
             else:
                 self.input = Local(self.project_path, globs=globs, limit=limit)
 
     def __iter__(self) -> Iterator[CodeChunk]:
-        yield from self.input
+        for chunk in self.input:
+            yield cast("CodeChunk", chunk) # TODO: Remove cast if/when we can use contextuals generally.
 
 
 class ProjectInputFileChunker:
@@ -57,4 +61,4 @@ class ProjectInputFileChunker:
         self.chunk_size = chunk_size
 
     def __iter__(self) -> Iterator[CodeChunk]:
-        return chunk_input(self.file, self.chunk_size)
+        yield from chunk_input(self.file, self.chunk_size)
