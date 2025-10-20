@@ -51,7 +51,7 @@ class ProjectInput:
 
     def __iter__(self) -> Iterator[CodeChunk]:
         for chunk in self.input:
-            yield cast("CodeChunk", chunk) # TODO: Remove cast if/when we can use contextuals generally.
+            yield cast("CodeChunk", chunk)  # TODO: Remove cast if/when we can use contextuals generally.
 
 
 class ProjectInputFileChunker:
