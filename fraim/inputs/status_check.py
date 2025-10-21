@@ -4,6 +4,7 @@
 import logging
 import os
 from collections.abc import Iterator
+from types import TracebackType
 from typing import Self
 
 from fraim.core.contextuals.status_check import GithubStatusCheck
