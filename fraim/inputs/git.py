@@ -7,7 +7,7 @@ from collections.abc import Iterator
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from fraim.core.contextuals import Contextual
+from fraim.core.contextuals import CodeChunk
 from fraim.inputs.input import Input
 from fraim.inputs.local import Local
 
@@ -39,7 +39,7 @@ class GitRemote(Input):
     ) -> None:
         self.tempdir.cleanup()
 
-    def __iter__(self) -> Iterator[Contextual]:
+    def __iter__(self) -> Iterator[CodeChunk]:
         logger.debug("Starting git repository input iterator")
 
         # Clone remote repository to a local directory, delegate to file iterator.

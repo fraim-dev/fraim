@@ -9,7 +9,7 @@ from fraim.inputs.git import GitRemote
 from fraim.inputs.git_diff import GitDiff
 from fraim.inputs.input import Input
 from fraim.inputs.local import Local
-from fraim.inputs.status_check import StatusCheckInput
+from fraim.inputs.status_check import StatusCheck
 
 
 class ProjectInput:
@@ -45,13 +45,13 @@ class ProjectInput:
             if self.diff:
                 self.input = GitDiff(self.project_path, head=self.head, base=self.base, globs=globs, limit=limit)
             elif kwargs.status_check:
-                self.input = StatusCheckInput(path_or_url)
+                self.input = StatusCheck(self.project_path)
             else:
                 self.input = Local(self.project_path, globs=globs, limit=limit)
 
     def __iter__(self) -> Iterator[CodeChunk]:
         for chunk in self.input:
-            yield cast("CodeChunk", chunk)  # TODO: Remove cast if/when we can use contextuals generally.
+            yield cast("CodeChunk", chunk)  # TODO: Remove cast when Input yields Iterator[Contextual]
 
 
 class ProjectInputFileChunker:
@@ -61,4 +61,4 @@ class ProjectInputFileChunker:
         self.chunk_size = chunk_size
 
     def __iter__(self) -> Iterator[CodeChunk]:
-        yield from chunk_input(self.file, self.chunk_size)
+        return chunk_input(self.file, self.chunk_size)

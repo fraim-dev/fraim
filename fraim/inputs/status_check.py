@@ -2,9 +2,8 @@
 # Copyright (c) 2025 Resourcely Inc.
 
 import logging
+import os
 from collections.abc import Iterator
-from pathlib import Path
-from types import TracebackType
 
 from fraim.core.contextuals.status_check import GithubStatusCheck
 from fraim.inputs.input import Input
@@ -12,31 +11,27 @@ from fraim.inputs.input import Input
 logger = logging.getLogger(__name__)
 
 
-class StatusCheckInput(Input):
-    def __init__(self, path: Path):
+class StatusCheck(Input):
+
+    # TODO: Can this be a buffered file, to avoid the read here?
+    def __init__(self, path: str):
         self.path = path
-
-    def __enter__(self) -> "StatusCheckInput":
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> bool | None:
-        return None
 
     def root_path(self) -> str:
         return str(self.path)
 
     def __iter__(self) -> Iterator[GithubStatusCheck]:
-        if not self.path.is_file():
+        if not os.path.isfile(self.path):
+            logger.error(f"Path is not file: {self.path}")
             return
+
         logger.info(f"Reading file: {self.path}")
-        yield GithubStatusCheck(self.path.read_text(encoding="utf-8"))
+        with open(self.path, "r") as f:
+            yield GithubStatusCheck(f.read())
 
 
+# See: https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28
+#
 # {
 #     "action": "completed",
 #     "check_run": {
