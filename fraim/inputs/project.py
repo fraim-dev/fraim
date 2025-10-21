@@ -28,7 +28,7 @@ class ProjectInput:
         self.base = kwargs.base
         self.head = kwargs.head
         self.diff = kwargs.diff
-        self.status_check = getattr(kwargs, 'status_check', None)
+        self.status_check = getattr(kwargs, "status_check", None)
         self.chunker = ProjectInputFileChunker
 
         if path_or_url is None:
