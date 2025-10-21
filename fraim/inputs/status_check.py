@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 
 class StatusCheck(Input):
-
     # TODO: Can this be a buffered file, to avoid the read here?
     def __init__(self, path: str):
         self.path = path
@@ -26,7 +25,7 @@ class StatusCheck(Input):
             return
 
         logger.info(f"Reading file: {self.path}")
-        with open(self.path, "r") as f:
+        with open(self.path) as f:
             yield GithubStatusCheck(f.read())
 
 
