@@ -4,6 +4,7 @@
 import logging
 import os
 from collections.abc import Iterator
+from typing import Self
 
 from fraim.core.contextuals.status_check import GithubStatusCheck
 from fraim.inputs.input import Input
@@ -18,6 +19,14 @@ class StatusCheck(Input):
 
     def root_path(self) -> str:
         return str(self.path)
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None
+    ) -> None:
+        pass
 
     def __iter__(self) -> Iterator[GithubStatusCheck]:
         if not os.path.isfile(self.path):

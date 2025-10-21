@@ -28,6 +28,7 @@ class ProjectInput:
         self.base = kwargs.base
         self.head = kwargs.head
         self.diff = kwargs.diff
+        self.status_check = kwargs.status_check
         self.chunker = ProjectInputFileChunker
 
         if path_or_url is None:
@@ -44,7 +45,7 @@ class ProjectInput:
             self.repo_name = os.path.basename(self.project_path)
             if self.diff:
                 self.input = GitDiff(self.project_path, head=self.head, base=self.base, globs=globs, limit=limit)
-            elif kwargs.status_check:
+            elif self.status_check:
                 self.input = StatusCheck(self.project_path)
             else:
                 self.input = Local(self.project_path, globs=globs, limit=limit)
