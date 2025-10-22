@@ -157,7 +157,7 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
             logger.debug("Filtering the triaged vulnerabilities by confidence")
             high_confidence_triaged_vulns = filter_results_by_confidence(triaged_vulns, self.args.confidence)
 
-            self.history.append_record(
+            history.append_record(
                 EventRecord(description=f"Done. Found {len(high_confidence_triaged_vulns)} results.")
             )
 
