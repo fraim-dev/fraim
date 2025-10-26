@@ -218,6 +218,7 @@ def workflow_options_to_cli_args(options_class: type[Any]) -> dict[str, dict[str
                         annotation_metadata.update(metadata_item)
 
         # Handle different field types (use actual_type instead of field_type)
+        origin = get_origin(actual_type)
         if actual_type == bool:
             if field.default is False:
                 arg_config["action"] = "store_true"
@@ -227,9 +228,9 @@ def workflow_options_to_cli_args(options_class: type[Any]) -> dict[str, dict[str
             arg_config["type"] = int
         elif actual_type == float:
             arg_config["type"] = float
-        elif get_origin(actual_type) is list:
+        elif origin is list:
             arg_config["nargs"] = "+"
-        elif get_origin(actual_type) is Union:
+        elif origin in {Union, UnionType}:
             # Handle Optional[T] which is Union[T, None]
             args = get_args(actual_type)
             if len(args) == 2 and type(None) in args:
