@@ -108,7 +108,7 @@ def cli() -> int:
     validate_cli_args(parser, parsed_args)
 
     # Determine whether to show rich display (on stdout) and logs (on stderr)
-    show_rich_display = parsed_args.show_rich_display or tty.is_tty(sys.stdout)
+    show_rich_display = (parsed_args.show_rich_display or tty.is_tty(sys.stdout)) and not parsed_args.debug
     show_logs = (
         parsed_args.show_logs or not show_rich_display or not tty.streams_have_same_destination(sys.stdout, sys.stderr)
     )
