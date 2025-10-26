@@ -49,13 +49,7 @@ class GitRemote(Input):
 
         # Clone remote repository to a local directory, delegate to file iterator.
         self._clone_to_path()
-        for file in Local(self.path, self.globs, self.limit):
-            yield CodeChunk(
-                file_path=file.file_path,
-                content=file.content,
-                line_number_start_inclusive=1,
-                line_number_end_inclusive=len(file.content),
-            )
+        yield from Local(self.path, self.globs, self.limit)
 
     def _clone_to_path(self) -> None:
         if not _is_directory_empty(self.path):
