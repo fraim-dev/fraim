@@ -49,7 +49,13 @@ class GitRemote(Input):
 
         # Clone remote repository to a local directory, delegate to file iterator.
         self._clone_to_path()
-        yield from Local(self.path, self.globs, self.limit)
+        yield from Local(
+            root_path=self.path,
+            paths=self.paths,
+            globs=self.globs,
+            limit=self.limit,
+            exclude_globs=self.exclude_globs,
+        )
 
     def _clone_to_path(self) -> None:
         if not _is_directory_empty(self.path):
