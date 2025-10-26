@@ -14,7 +14,8 @@ from typing import List
 from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor, Workflow
 from fraim.core.workflows.llm_processing import LLMMixin
 from fraim.outputs import sarif
-from fraim.workflows.risk_flagger.workflow import RiskFlaggerWorkflowOptions
+
+logger = logging.getLogger(__name__)
 
 FILE_PATTERNS = [
     "*.py",
@@ -53,9 +54,9 @@ class DryRunWorkflow(Workflow[DryRunInput, list[sarif.Result]], ChunkProcessor, 
 
     async def run(self) -> List[sarif.Result]:
         """Main Code workflow - full control over execution with multi-step processing."""
-        project = self.setup_project_input(self.logger, self.args)
+        project = self.setup_project_input(self.args)
 
         for chunk in project:
-            self.logger.debug("DryRun workflow received chunk: %s", chunk)
+            logger.debug("DryRun workflow received chunk: %s", chunk)
 
         return []
