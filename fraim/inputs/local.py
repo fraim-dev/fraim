@@ -121,7 +121,7 @@ class Local(Input):
         # Skip git-ignored file
         # TODO: skipping here still requires the `rglob` step to iterate every file. Replace with a
         #       custom walk function that can skip entire branches.
-        if self.gitignore_spec and self.gitignore_spec.match_file(path.relative_to(path).as_posix()):
+        if self.gitignore_spec and self.gitignore_spec.match_file(path.relative_to(self.root_path).as_posix()):
             logger.debug(f"Skipping, ignored by .gitignore: {path}")
             return False
         return True
