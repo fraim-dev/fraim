@@ -14,8 +14,6 @@ from fraim.inputs.input import Input
 
 class FixedTokenChunker(Chunker):
     def __init__(self, input: Input, chunk_size: int | None, chunk_overlap: int | None = None, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-
         self.chunk_size = chunk_size if chunk_size else 3_000
         self.chunk_overlap = chunk_overlap if chunk_overlap else int(self.chunk_size / 10)  # Default to 10% overlap
         self.input = input
