@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fraim"
-version = "0.5.1"
+version = "0.8.0"
 description = "A CLI app that runs AI-powered security workflows"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -23,18 +23,21 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
-    "langchain-text-splitters>=0.3.9",
+    "gitpython>=3.1,<4.0",
+    "langchain-text-splitters>=1.0.0",
     "litellm>=1.72.7",
     "mcp-server-tree-sitter>=0.5.1",
-    "packaging>=21.0",
-    "pydantic>=2.11.1",
-    "gitpython>=3.1,<4.0",
-    "unidiff>=0.7,<1.0",
-    "types-unidiff>=0.7.0.20240505",
     "openai==1.99.9",
-    "tenacity==9.1.2",
+    "packaging>=21.0",
+    "pathspec>=0.12.1",
+    "pydantic>=2.11.1",
     "PyGithub>=2.2.0",
     "pyyaml>=6.0.2",
+    "rich>=13.0.0",
+    "slack-sdk>=3.21.0",
+    "tenacity==9.1.2",
+    "types-unidiff>=0.7.0.20240505",
+    "unidiff>=0.7,<1.0",
 ]
 
 [dependency-groups]
@@ -48,9 +51,9 @@ lint = [
     "ruff>=0.11.13",
 ]
 test = [
+    "pytest-asyncio>=1.0.0",
     "pytest-cov>=4.0.0",
     "pytest-xdist>=3.0.0",
-    "pytest-asyncio>=1.0.0",
 ]
 langfuse = [
     "langfuse>=2.0.0,<3.0.0",
@@ -64,9 +67,6 @@ dev-dependencies = [
     "pytest>=7.0.0",
     "mypy>=1.0.0",
 ]
-
-[tool.uv.sources]
-refraim = { git = "https://github.com/fraim-dev/refraim.git" }
 
 [tool.mypy]
 python_version = "3.12"

@@ -5,7 +5,7 @@
 Format PR comment for risks.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 from jinja2 import Template
 
@@ -22,18 +22,16 @@ The following security risks have been identified and require review:
 ## {{ risk_type }}
 {%- for risk in type_risks %}
 
-### {{ risk.message }} (Severity: {{ risk.properties.risk_severity }})
+### {{ risk.message.text }} (Severity: {{ risk.properties.risk_severity }})
 
 **Location**: `{{ risk.locations[0].physicalLocation.artifactLocation.uri }}:{{ risk.locations[0].physicalLocation.region.startLine }}`
 
 **Explanation**:
-{%- for explanation in risk.properties.explanation.split('.') %}
+{%- for explanation in risk.properties.explanation.split('. ') %}
 {%- if explanation.strip() %}
-* {{ explanation.strip() }}.
+* {{ explanation.strip() }}
 {%- endif %}
 {%- endfor %}
-
-**Confidence**: {{ risk.properties.confidence }}%
 
 ---
 {%- endfor %}
@@ -44,7 +42,7 @@ Please review these risks and ensure appropriate mitigations are in place before
 """
 
 
-def format_pr_comment(risks: List[Any]) -> str:
+def format_pr_comment(risks: list[Any]) -> str:
     """Format a list of risks into a PR comment using a Jinja template.
 
     Args:
@@ -54,7 +52,7 @@ def format_pr_comment(risks: List[Any]) -> str:
         A formatted string suitable for a PR comment
     """
     # Group risks by risk type for better organization
-    risks_by_type: Dict[str, List[Any]] = {}
+    risks_by_type: dict[str, list[Any]] = {}
     for risk in risks:
         risk_type = risk.properties.risk_type
         if risk_type not in risks_by_type:

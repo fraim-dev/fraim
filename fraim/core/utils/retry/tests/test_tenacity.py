@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -61,7 +61,7 @@ class TestWaitRetryAfter:
         wait_strategy = WaitRetryAfter(fallback=fallback)
 
         # Create a future date (30 seconds from now)
-        future_time = datetime.now(timezone.utc) + timedelta(seconds=30)
+        future_time = datetime.now(UTC) + timedelta(seconds=30)
         http_date = future_time.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
         response = Mock()

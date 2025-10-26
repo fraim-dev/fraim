@@ -10,7 +10,9 @@ if TYPE_CHECKING:
     from _typeshed import DataclassInstance
 
 from litellm.types.utils import StreamingChoices
+from rich.markup import escape
 
+from fraim.core.history import EventRecord, History
 from fraim.core.llms.base import BaseLLM
 from fraim.core.messages import Message, SystemMessage, UserMessage
 from fraim.core.parsers.base import BaseOutputParser, OutputParserError, ParseContext
@@ -100,13 +102,12 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
                 inputs[OUTPUT_FORMAT_KEY] = self.parser.output_prompt_instructions()
                 rendered, _ = self.system_prompt.render(inputs)
                 return SystemMessage(content=rendered)
-            else:
-                # If the system prompt doesn't use the output format key, add it to the end of the prompt
-                # automatically.
-                rendered, _ = self.system_prompt.render(inputs)
-                output_instructions = self.parser.output_prompt_instructions()
-                content = f"{rendered}\n<output_format>{output_instructions}</output_format>"
-                return SystemMessage(content=content)
+            # If the system prompt doesn't use the output format key, add it to the end of the prompt
+            # automatically.
+            rendered, _ = self.system_prompt.render(inputs)
+            output_instructions = self.parser.output_prompt_instructions()
+            content = f"{rendered}\n<output_format>{output_instructions}</output_format>"
+            return SystemMessage(content=content)
         except PromptTemplateError as e:
             # Convert PromptTemplateError to ValueError for consistency
             raise ValueError(f"Failed to render system prompt: {e}") from e
@@ -130,31 +131,37 @@ class LLMStep(BaseStep[TDynamicInput, TOutput], Generic[TDynamicInput, TOutput])
         content = f"{rendered}\n{rendered_unused}"
         return UserMessage(content=content)
 
-    async def run(self, input: TDynamicInput, **kwargs: Any) -> TOutput:
-        messages = self._prepare_messages(_normalize_input(input))
-        response = await self.llm.run(messages)
+    async def run(self, history: History, input: TDynamicInput, **kwargs: Any) -> TOutput:
+        try:
+            messages = self._prepare_messages(_normalize_input(input))
+            response = await self.llm.run(history, messages)
 
-        choice = response.choices[0]
-        if isinstance(choice, StreamingChoices):
-            raise ValueError("Streaming responses are not supported")
+            choice = response.choices[0]
+            if isinstance(choice, StreamingChoices):
+                raise ValueError("Streaming responses are not supported")
 
-        # At this point, choice is guaranteed to be of type Choices
-        message_content = choice.message.content
-        if message_content is None:
-            # Setting message_content to empty string will always fail to parse, which will trigger a retry.
-            #
-            # The model API _should_ always return a message here, but the Gemini API (as of August 2025)
-            # sometimes does not.
-            #
-            # See the similar issues reported other projects:
-            # gemini-cli: https://github.com/google-gemini/gemini-cli/issues/6306
-            # n8n: https://github.com/n8n-io/n8n/issues/18481
-            #
-            # If/when the Gemini API is fixed, consider removing this workaround.
-            message_content = ""
+            # At this point, choice is guaranteed to be of type Choices
+            message_content = choice.message.content
+            if message_content is None:
+                # Setting message_content to empty string will always fail to parse, which will trigger a retry.
+                #
+                # The model API _should_ always return a message here, but the Gemini API (as of August 2025)
+                # sometimes does not.
+                #
+                # See the similar issues reported other projects:
+                # gemini-cli: https://github.com/google-gemini/gemini-cli/issues/6306
+                # n8n: https://github.com/n8n-io/n8n/issues/18481
+                #
+                # If/when the Gemini API is fixed, consider removing this workaround.
+                message_content = ""
 
-        context = ParseContext(llm=self.llm, messages=messages)
-        return await self.parser.parse(message_content, context=context)
+            context = ParseContext(llm=self.llm, history=history, messages=messages)
+            return await self.parser.parse(message_content, context=context)
+        except Exception as e:
+            # Escape Rich markup in the exception message and render in red
+            event = EventRecord(description=f"[red]Error: {escape(str(e))}[/red]")
+            history.append_record(event)
+            raise e
 
     def _prepare_messages(self, input: dict[str, Any]) -> list[Message]:
         user_message = self._render_user_message(input)

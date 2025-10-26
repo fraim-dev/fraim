@@ -12,21 +12,22 @@ import litellm
 
 from .registry import ObservabilityRegistry
 
+logger = logging.getLogger(__name__)
+
 
 class ObservabilityManager:
     """Manager for setting up and configuring observability backends."""
 
-    def __init__(self, enabled_backends: list[str], logger: logging.Logger):
+    def __init__(self, enabled_backends: list[str]):
         """Initialize with list of backend names to enable and a logger."""
         self.enabled_backends = enabled_backends
         self.configured_backends: list[str] = []
         self.failed_backends: list[str] = []
-        self.logger = logger
 
     def setup(self) -> None:
         """Setup all enabled and properly configured backends."""
         if not self.enabled_backends:
-            self.logger.info("No observability backends enabled. Use --observability to enable.")
+            logger.info("No observability backends enabled. Use --observability to enable.")
             return
 
         success_callbacks: list[Any] = []
@@ -35,7 +36,7 @@ class ObservabilityManager:
         for backend_name in self.enabled_backends:
             backend = ObservabilityRegistry.get_backend(backend_name)
             if not backend:
-                self.logger.warning(f"Unknown observability backend: {backend_name}")
+                logger.warning(f"Unknown observability backend: {backend_name}")
                 self.failed_backends.append(backend_name)
                 continue
 
@@ -50,20 +51,20 @@ class ObservabilityManager:
                     failure_callbacks.extend(callbacks)
 
                     self.configured_backends.append(backend_name)
-                    self.logger.info(f"{backend.get_name()} observability enabled")
+                    logger.info(f"{backend.get_name()} observability enabled")
                 else:
-                    self.logger.warning(f"{backend.get_name()} not configured properly")
-                    self.logger.info(f"Configuration help for {backend.get_name()}:\n{backend.get_config_help()}")
+                    logger.warning(f"{backend.get_name()} not configured properly")
+                    logger.info(f"Configuration help for {backend.get_name()}:\n{backend.get_config_help()}")
                     self.failed_backends.append(backend_name)
             except Exception as e:
-                self.logger.error(f"Error setting up {backend_name}: {e}")
+                logger.error(f"Error setting up {backend_name}: {e}")
                 self.failed_backends.append(backend_name)
 
         # Configure litellm callbacks if we have any working backends
         if success_callbacks:
             litellm.success_callback = success_callbacks
             litellm.failure_callback = failure_callbacks
-            self.logger.info(f"LLM observability active with {len(self.configured_backends)} backend(s)")
+            logger.info(f"LLM observability active with {len(self.configured_backends)} backend(s)")
 
     def get_status(self) -> dict[str, Any]:
         """Return status of all backends."""

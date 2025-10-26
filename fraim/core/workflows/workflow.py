@@ -3,9 +3,13 @@
 
 """Base class for workflows"""
 
-import logging
 from abc import ABC, abstractmethod
 from typing import ClassVar, Generic, TypeVar, cast, get_args, get_origin
+
+from rich.layout import Layout
+
+from fraim.core.display import HistoryView
+from fraim.core.history import History
 
 Options = TypeVar("Options")
 Result = TypeVar("Result")
@@ -14,15 +18,20 @@ Result = TypeVar("Result")
 class Workflow(ABC, Generic[Options, Result]):
     name: ClassVar[str]
 
-    def __init__(self, logger: logging.Logger, args: Options) -> None:
+    def __init__(self, args: Options) -> None:
         super().__init__(args)  # type: ignore
 
-        self.logger = logger
         self.args = args
+
+        self.history = History()
 
     @abstractmethod
     async def run(self) -> Result:
-        raise NotImplementedError
+        pass
+
+    def rich_display(self) -> Layout:
+        layout = Layout(renderable=HistoryView(self.history, title=self.name), name="history", ratio=1)
+        return layout
 
     @classmethod
     def options(cls) -> type[Options] | None:

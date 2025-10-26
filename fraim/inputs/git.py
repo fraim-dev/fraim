@@ -3,6 +3,7 @@
 import logging
 import os
 import subprocess
+from collections.abc import Iterator
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Iterator, List, Optional, Type
@@ -11,11 +12,12 @@ from fraim.core.contextuals import CodeChunk
 from fraim.inputs.input import Input
 from fraim.inputs.local import Local
 
+logger = logging.getLogger(__name__)
+
 
 class GitRemote(Input):
     def __init__(
         self,
-        logger: logging.Logger,
         url: str,
         globs: list[str] | None = None,
         exclude_globs: list[str] | None = None,
@@ -23,7 +25,6 @@ class GitRemote(Input):
         prefix: str | None = None,
         paths: List[str] | None = None,
     ):
-        self.logger = logger
         self.url = url
         self.globs = globs
         self.exclude_globs = exclude_globs
@@ -33,7 +34,7 @@ class GitRemote(Input):
         self.paths = paths
 
     def root_path(self) -> str:
-        return Path(self.path).absolute().name
+        return str(Path(self.path).absolute())
 
     def __enter__(self) -> "GitRemote":
         return self
@@ -44,11 +45,11 @@ class GitRemote(Input):
         self.tempdir.cleanup()
 
     def __iter__(self) -> Iterator[CodeChunk]:
-        self.logger.debug("Starting git repository input iterator")
+        logger.debug("Starting git repository input iterator")
 
         # Clone remote repository to a local directory, delegate to file iterator.
         self._clone_to_path()
-        for file in Local(self.logger, self.path, self.paths, self.globs, self.limit, self.exclude_globs):
+        for file in Local(self.path, self.globs, self.limit):
             yield CodeChunk(
                 file_path=file.file_path,
                 content=file.content,
@@ -58,18 +59,18 @@ class GitRemote(Input):
 
     def _clone_to_path(self) -> None:
         if not _is_directory_empty(self.path):
-            self.logger.debug(f"Target directory {self.path} not empty, skipping git clone")
+            logger.debug(f"Target directory {self.path} not empty, skipping git clone")
             return
 
-        self.logger.info(f"Cloning repository: {self.url}")
+        logger.info(f"Cloning repository: {self.url}")
         result = subprocess.run(
             args=["git", "clone", "--depth", "1", self.url, self.path], check=False, capture_output=True, text=True
         )
 
         if result.returncode != 0:
-            self.logger.error(f"Git clone failed: {result.stderr}")
+            logger.error(f"Git clone failed: {result.stderr}")
             raise subprocess.CalledProcessError(result.returncode, result.args, result.stdout, result.stderr)
-        self.logger.info("Repository cloned: {tempdir}")
+        logger.info("Repository cloned: {tempdir}")
 
 
 def _is_directory_empty(path: str) -> bool:

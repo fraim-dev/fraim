@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 from pydantic import BaseModel, Field
 
+from fraim.core.history import History
 from fraim.core.messages import Function, ToolCall, ToolMessage
 from fraim.core.tools.base import BaseTool, ToolError
 from fraim.core.tools.execute import execute_tool_call, execute_tool_calls
@@ -91,7 +92,7 @@ class TestExecuteToolCall:
         """Test successful multiplication - happy path"""
         tool_call = self.create_tool_call(tool_name="multiply", arguments='{"a": 5, "b": 3}')
 
-        result = await execute_tool_call(tool_call, available_tools)
+        result = await execute_tool_call(History(), tool_call, available_tools)
 
         assert isinstance(result, ToolMessage)
         assert result.content == "15"
@@ -103,7 +104,7 @@ class TestExecuteToolCall:
         """Test error when tool is not found"""
         tool_call = self.create_tool_call(tool_name="nonexistent_tool", arguments='{"a": 5, "b": 3}')
 
-        result = await execute_tool_call(tool_call, available_tools)
+        result = await execute_tool_call(History(), tool_call, available_tools)
 
         assert isinstance(result, ToolMessage)
         assert result.content == "Error: Tool 'nonexistent_tool' not found"
@@ -117,7 +118,7 @@ class TestExecuteToolCall:
             arguments='{"a": 5, "b":}',  # Invalid JSON
         )
 
-        result = await execute_tool_call(tool_call, available_tools)
+        result = await execute_tool_call(History(), tool_call, available_tools)
 
         assert isinstance(result, ToolMessage)
         assert "Error: Invalid arguments for tool 'multiply'" in result.content
@@ -131,7 +132,7 @@ class TestExecuteToolCall:
             arguments='{"a": 5}',  # Missing 'b'
         )
 
-        result = await execute_tool_call(tool_call, available_tools)
+        result = await execute_tool_call(History(), tool_call, available_tools)
 
         assert isinstance(result, ToolMessage)
         assert "Error: Invalid arguments for tool 'multiply'" in result.content
@@ -145,7 +146,7 @@ class TestExecuteToolCall:
             arguments='{"a": "not_a_number", "b": 3}',  # Wrong type for 'a'
         )
 
-        result = await execute_tool_call(tool_call, available_tools)
+        result = await execute_tool_call(History(), tool_call, available_tools)
 
         assert isinstance(result, ToolMessage)
         assert "Error: Invalid arguments for tool 'multiply'" in result.content
@@ -156,7 +157,7 @@ class TestExecuteToolCall:
         """Test that extra arguments are ignored when schema is present"""
         tool_call = self.create_tool_call(tool_name="multiply", arguments='{"a": 5, "b": 3, "extra": "ignored"}')
 
-        result = await execute_tool_call(tool_call, available_tools)
+        result = await execute_tool_call(History(), tool_call, available_tools)
 
         assert result.content == "15"
         assert result.tool_call_id == "test-call-1"
@@ -166,7 +167,7 @@ class TestExecuteToolCall:
         """Test error when arguments are empty but schema requires them"""
         tool_call = self.create_tool_call(tool_name="multiply", arguments="")
 
-        result = await execute_tool_call(tool_call, available_tools)
+        result = await execute_tool_call(History(), tool_call, available_tools)
 
         assert isinstance(result, ToolMessage)
         assert "Error: Invalid arguments for tool 'multiply'" in result.content
@@ -177,7 +178,7 @@ class TestExecuteToolCall:
         """Test handling when tool raises ToolError"""
         tool_call = self.create_tool_call(tool_name="error_tool", arguments='{"a": 5, "b": 3}')
 
-        result = await execute_tool_call(tool_call, available_tools)
+        result = await execute_tool_call(History(), tool_call, available_tools)
 
         assert isinstance(result, ToolMessage)
         assert result.content == "Error: This tool always fails"
@@ -188,7 +189,7 @@ class TestExecuteToolCall:
         """Test tool execution without argument schema"""
         tool_call = self.create_tool_call(tool_name="no_schema", arguments='{"any": "arguments", "are": "accepted"}')
 
-        result = await execute_tool_call(tool_call, available_tools)
+        result = await execute_tool_call(History(), tool_call, available_tools)
 
         assert isinstance(result, ToolMessage)
         assert "Called with: {'any': 'arguments', 'are': 'accepted'}" in result.content
@@ -199,7 +200,7 @@ class TestExecuteToolCall:
         """Test tool execution without schema and empty arguments"""
         tool_call = self.create_tool_call(tool_name="no_schema", arguments="")
 
-        result = await execute_tool_call(tool_call, available_tools)
+        result = await execute_tool_call(History(), tool_call, available_tools)
 
         assert isinstance(result, ToolMessage)
         assert "Called with: {}" in result.content
@@ -210,7 +211,7 @@ class TestExecuteToolCall:
         """Test that tool call IDs are preserved correctly"""
         tool_call = self.create_tool_call(tool_name="multiply", arguments='{"a": 2, "b": 4}', call_id="custom-id-123")
 
-        result = await execute_tool_call(tool_call, available_tools)
+        result = await execute_tool_call(History(), tool_call, available_tools)
 
         assert result.content == "8"
         assert result.tool_call_id == "custom-id-123"
@@ -242,7 +243,7 @@ class TestExecuteToolCalls:
             self.create_tool_call("multiply", '{"a": 6, "b": 7}', "call-3"),
         ]
 
-        results = await execute_tool_calls(tool_calls, available_tools)
+        results = await execute_tool_calls(History(), tool_calls, available_tools)
 
         assert len(results) == 3
         assert all(isinstance(result, ToolMessage) for result in results)
@@ -265,7 +266,7 @@ class TestExecuteToolCalls:
             self.create_tool_call("multiply", '{"a": "invalid", "b": 7}', "call-3"),
         ]
 
-        results = await execute_tool_calls(tool_calls, available_tools)
+        results = await execute_tool_calls(History(), tool_calls, available_tools)
 
         assert len(results) == 3
 
@@ -284,6 +285,6 @@ class TestExecuteToolCalls:
     @pytest.mark.asyncio
     async def test_empty_tool_calls_list(self, available_tools: dict[str, BaseTool]) -> None:
         """Test execution with empty list of tool calls"""
-        results = await execute_tool_calls([], available_tools)
+        results = await execute_tool_calls(History(), [], available_tools)
 
         assert results == []

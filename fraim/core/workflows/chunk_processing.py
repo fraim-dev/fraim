@@ -6,16 +6,20 @@ Utilities for workflows that process code chunks with concurrent execution.
 """
 
 import asyncio
-import logging
 from abc import abstractmethod
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Annotated, Optional, TypeVar
+from typing import Annotated, Generic, TypeVar, Optional
 
-from fraim.core.contextuals import Contextual
+from rich.layout import Layout
+from rich.progress import Progress, TaskID
+
+from fraim.core.contextuals import CodeChunk, Contextual
+from fraim.core.display import ProgressPanel, ResultsPanel
+from fraim.core.history import EventRecord, History, HistoryRecord
 from fraim.core.workflows.llm_processing import LLMOptions
-from fraim.inputs.project import CHUNKING_METHODS, ProjectInput
+from fraim.inputs.project import ProjectInput, CHUNKING_METHODS
 
 # Type variable for generic result types
 T = TypeVar("T")
@@ -27,7 +31,6 @@ class ChunkProcessingOptions(LLMOptions):
 
     location: Annotated[str, {"help": "Repository URL or path to scan"}] = "."
     limit: Annotated[int | None, {"help": "Limit the number of files to scan"}] = None
-
     diff: Annotated[bool, {"help": "Whether to use git diff input"}] = False
     head: Annotated[str | None, {"help": "Git head commit for diff input, uses HEAD if not provided"}] = None
     base: Annotated[str | None, {"help": "Git base commit for diff input, assumes the empty tree if not provided"}] = (
@@ -37,10 +40,13 @@ class ChunkProcessingOptions(LLMOptions):
         list[str] | None,
         {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
     ] = None
+
+    # NOTE: There is a bug that causes `exclude_globs` to be interpreted as str if `Annotated[list[str] | None, ...]` used here.
     exclude_globs: Annotated[
-        list[str] | None,
+        Optional[list[str]],
         {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
     ] = None
+
     chunking_method: Annotated[
         str,
         {
@@ -59,11 +65,14 @@ class ChunkProcessingOptions(LLMOptions):
             )
         },
     ] = 500
+
+    # NOTE: There is a bug that causes `paths` to be interpreted as str if `Annotated[list[str] | None, ...]` used here.
     paths: Annotated[
         Optional[list[str]], {"help": "Optionally limit scanning to these paths (relative to `--location`)"}
     ] = None
+
     chunk_overlap: Annotated[
-        Optional[int],  # TODO: Support int | None notation, this value get's set as a string if that is used now.
+        int|None,  # TODO: Support int | None notation, this value get's set as a string if that is used now.
         {
             "help": (
                 "Number of characters of overlap per chunk. Does not apply when the original, file, or project chunking "
@@ -74,17 +83,28 @@ class ChunkProcessingOptions(LLMOptions):
     max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
 
 
-class ChunkProcessor:
+class ChunkProcessor(Generic[T]):
     """
     Mixin class providing utilities for chunk-based workflows.
 
     This class provides reusable utilities for:
     - Setting up ProjectInput from workflow input
     - Managing concurrent chunk processing with semaphores
+    - Rich display with progress tracking
 
     Workflows can use these utilities as needed while maintaining full control
     over their workflow() method and error handling.
     """
+
+    def __init__(self, args: ChunkProcessingOptions) -> None:
+        super().__init__(args)  # type: ignore
+
+        # Progress tracking attributes
+        self._total_chunks = 0
+        self._processed_chunks = 0
+        self._results: list[T] = []
+        self._progress: Progress | None = None
+        self._progress_task: TaskID | None = None
 
     @property
     @abstractmethod
@@ -100,7 +120,7 @@ class ChunkProcessor:
             "*.min.css",
         ]
 
-    def setup_project_input(self, logger: logging.Logger, args: ChunkProcessingOptions) -> ProjectInput:
+    def setup_project_input(self, args: ChunkProcessingOptions) -> ProjectInput:
         """
         Set up ProjectInput from workflow options.
 
@@ -126,18 +146,45 @@ class ChunkProcessor:
             diff=args.diff,
             model=args.model,
         )
-        return ProjectInput(logger, kwargs=kwargs)
+        return ProjectInput(kwargs=kwargs)
 
-    @staticmethod
+    def rich_display(self) -> Layout:
+        """
+        Create a rich display layout showing:
+        - Base class rich_display in the upper panel
+        - Progress bar showing percentage of chunks processed
+        - Panel showing number of results found so far
+        """
+        # Get the base class display - since workflows inherit from Workflow class,
+        # this should always work for ChunkProcessor mixins
+        base_display = super().rich_display()  # type: ignore[misc]
+
+        # Create the main layout with three sections
+        layout = Layout()
+        layout.split_column(
+            Layout(base_display, name="history", ratio=1),
+            Layout(
+                ProgressPanel(lambda: ("Analyzing chunks", self._processed_chunks, self._total_chunks)),
+                name="progress",
+                size=3,
+            ),
+            Layout(ResultsPanel(lambda: self._results), name="results", size=3),
+        )
+
+        return layout
+
     async def process_chunks_concurrently(
+        self,
+        history: History,
         project: ProjectInput,
-        chunk_processor: Callable[[Contextual[str]], Awaitable[list[T]]],
+        chunk_processor: Callable[[History, Contextual[str]], Awaitable[list[T]]],
         max_concurrent_chunks: int = 5,
     ) -> list[T]:
         """
         Process chunks concurrently using the provided processor function.
 
         Args:
+            history: History instance for tracking
             project: ProjectInput instance to iterate over
             chunk_processor: Async function that processes a single chunk and returns a list of results
             max_concurrent_chunks: Maximum concurrent chunk processing
@@ -145,35 +192,45 @@ class ChunkProcessor:
         Returns:
             Combined results from all chunks
         """
-        results: list[T] = []
+        # Initialize progress tracking
+        chunks_list = list(project)
+        self._total_chunks = len(chunks_list)
+        self._processed_chunks = 0
+        self._results = []
 
         # Create semaphore to limit concurrent chunk processing
         semaphore = asyncio.Semaphore(max_concurrent_chunks)
 
-        async def process_chunk_with_semaphore(chunk: Contextual[str]) -> list[T]:
+        async def process_chunk_with_semaphore(history: History, chunk: CodeChunk) -> list[T]:
             """Process a chunk with semaphore to limit concurrency."""
             async with semaphore:
-                return await chunk_processor(chunk)
+                chunk_results = await chunk_processor(history, chunk)
 
-        # Process chunks as they stream in from the ProjectInput iterator
+                history.append_record(EventRecord(description=f"Done. Found {len(chunk_results)} results."))
+                self._results.extend(chunk_results)
+                self._processed_chunks += 1
+
+                return chunk_results
+
+        # Process chunks concurrently
         active_tasks: set[asyncio.Task] = set()
 
-        for chunk in project:
+        for chunk in chunks_list:
+            # Create a subhistory for this task
+            task_record = HistoryRecord(
+                description=f"Analyzing {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}"
+            )
+            history.append_record(task_record)
+
             # Create task for this chunk and add to active tasks
-            task = asyncio.create_task(process_chunk_with_semaphore(chunk))
+            task = asyncio.create_task(process_chunk_with_semaphore(task_record.history, chunk))
             active_tasks.add(task)
 
             # If we've hit our concurrency limit, wait for some tasks to complete
             if len(active_tasks) >= max_concurrent_chunks:
-                done, active_tasks = await asyncio.wait(active_tasks, return_when=asyncio.FIRST_COMPLETED)
-                for completed_task in done:
-                    chunk_results = await completed_task
-                    results.extend(chunk_results)
+                _done, active_tasks = await asyncio.wait(active_tasks, return_when=asyncio.FIRST_COMPLETED)
 
         # Wait for any remaining tasks to complete
-        if active_tasks:
-            for future in asyncio.as_completed(active_tasks):
-                chunk_results = await future
-                results.extend(chunk_results)
+        await asyncio.gather(*active_tasks)
 
-        return results
+        return self._results

@@ -1,4 +1,4 @@
-.PHONY: setup sync test test-cov lint format typecheck build check
+.PHONY: setup sync test test-cov lint format typecheck build check check-version-consistency
 
 init:
 	make setup-python
@@ -26,6 +26,16 @@ format:
 lint:
 	uv run ruff check .
 
+lint-fix-check:
+	@count=$$(uv run ruff check . --output-format json \
+	  | jq -rs 'flatten \
+	    | map(select(.fix and (.fix.applicability=="safe" or .fix.applicability=="automatic"))) \
+	    | length'); \
+	if [ $$count -gt 0 ]; then \
+	  echo "$$count fixable issues found"; \
+	  exit 1; \
+	fi
+
 lint-fix:
 	uv run ruff check --fix .
 
@@ -35,4 +45,7 @@ typecheck:
 build:
 	uv build
 
-check: format-check typecheck test
+check-version-consistency:
+	uv run python scripts/check_version_consistency.py
+
+check: format-check lint-fix-check typecheck test check-version-consistency

@@ -14,7 +14,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
 
-from fraim.core.contextuals import CodeChunk, CodeChunkFailure, Contextual
+from fraim.core.contextuals import CodeChunk, CodeChunkFailure
+from fraim.core.history import History
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
@@ -26,6 +27,8 @@ from fraim.core.workflows.sarif import (
     write_sarif_and_html_report,
 )
 from fraim.outputs import sarif
+
+logger = logging.getLogger(__name__)
 
 FILE_PATTERNS = [
     "*.tf",
@@ -70,16 +73,16 @@ class IaCWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceFilterOpt
 class IaCCodeChunkOptions:
     """Options to process a single IaC chunk."""
 
-    code: Contextual[str]
+    code: CodeChunk
 
 
-class IaCWorkflow(Workflow[IaCWorkflowOptions, list[sarif.Result]], ChunkProcessor, LLMMixin):
+class IaCWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[IaCWorkflowOptions, list[sarif.Result]]):
     """Analyzes IaC files for security vulnerabilities, compliance issues, and best practice deviations."""
 
     name = "iac"
 
-    def __init__(self, logger: logging.Logger, args: IaCWorkflowOptions) -> None:
-        super().__init__(logger, args)
+    def __init__(self, args: IaCWorkflowOptions) -> None:
+        super().__init__(args)
         self.failed_chunks: list[CodeChunkFailure] = []
         scanner_parser = PydanticOutputParser(sarif.RunResults)
         self.scanner_step: LLMStep[IaCCodeChunkOptions, sarif.RunResults] = LLMStep(
@@ -91,22 +94,22 @@ class IaCWorkflow(Workflow[IaCWorkflowOptions, list[sarif.Result]], ChunkProcess
         """IaC file patterns."""
         return FILE_PATTERNS
 
-    async def _process_single_chunk(self, chunk: Contextual[str]) -> list[sarif.Result]:
+    async def _process_single_chunk(self, history: History, chunk: CodeChunk) -> list[sarif.Result]:
         """Process a single chunk with error handling."""
         try:
             # 1. Scan the code for vulnerabilities.
-            self.logger.info(f"Scanning code for vulnerabilities: {str(chunk.locations)}")
+            logger.info(f"Scanning code for vulnerabilities: {str(chunk.locations)}")
             iac_input = IaCCodeChunkOptions(code=chunk)
-            vulns = await self.scanner_step.run(iac_input)
+            vulns = await self.scanner_step.run(history, iac_input)
 
             # 2. Filter the vulnerability by confidence.
-            self.logger.info("Filtering vulnerabilities by confidence")
+            logger.info("Filtering vulnerabilities by confidence")
             high_confidence_vulns = filter_results_by_confidence(vulns.results, self.args.confidence)
 
             return high_confidence_vulns
         except Exception as e:
             self.failed_chunks.append(CodeChunkFailure(chunk=chunk, reason=str(e)))
-            self.logger.error(
+            logger.error(
                 f"Failed to process chunk {str(chunk.locations)}: {e!s}. Skipping this chunk and continuing with scan."
             )
             return []
@@ -114,22 +117,26 @@ class IaCWorkflow(Workflow[IaCWorkflowOptions, list[sarif.Result]], ChunkProcess
     async def run(self) -> list[sarif.Result]:
         """Main IaC workflow - full control over execution."""
         # 1. Setup project input using utility
-        project = self.setup_project_input(self.logger, self.args)
+        project = self.setup_project_input(self.args)
 
         # 2. Process chunks concurrently using utility
         results = await self.process_chunks_concurrently(
+            history=self.history,
             project=project,
             chunk_processor=self._process_single_chunk,
             max_concurrent_chunks=self.args.max_concurrent_chunks,
         )
 
         # 3. Generate reports (IaC workflow chooses to do this)
-        write_sarif_and_html_report(
+        report_paths = write_sarif_and_html_report(
             results=results,
             repo_name=project.repo_name,
             output_dir=self.args.output,
-            logger=self.logger,
             failed_chunks=self.failed_chunks,
         )
+
+        print(f"Found {len(results)} results.")
+        print(f"Wrote SARIF report to {report_paths.sarif_path}")
+        print(f"Wrote HTML report to {report_paths.html_path}")
 
         return results

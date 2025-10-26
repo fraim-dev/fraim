@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import Callable, ParamSpec, TypeVar
+from collections.abc import Callable
+from typing import ParamSpec, TypeVar
 
 import tenacity
 from tenacity import RetryCallState, after_log, before_log, before_sleep_log

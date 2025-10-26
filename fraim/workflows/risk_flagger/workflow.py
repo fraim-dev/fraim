@@ -9,12 +9,15 @@ Analyzes source code for risks that the security team should investigate further
 
 import logging
 import os
-import threading
 from dataclasses import dataclass, field
-from typing import Annotated, Dict, List, Literal, Optional
+from typing import Annotated, Literal
 
-from fraim.actions import add_reviewer
-from fraim.core.contextuals import CodeChunk, Contextual
+from rich.console import Console
+from rich.markdown import Markdown
+
+from fraim.actions import add_comment, add_reviewer, send_message
+from fraim.core.contextuals import CodeChunk
+from fraim.core.history import History
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
@@ -26,8 +29,12 @@ from fraim.workflows.risk_flagger import risk_sarif_overlay
 from fraim.workflows.risk_flagger.risk_list import build_risks_list, format_risks_for_prompt
 
 from ...core.workflows.format_pr_comment import format_pr_comment
+from ...core.workflows.format_slack_message import format_slack_message
 from ...core.workflows.llm_processing import LLMMixin, LLMOptions
 from ...core.workflows.sarif import ConfidenceFilterOptions, filter_results_by_confidence
+from ...core.workflows.status_checks import StatusCheckOptions
+
+logger = logging.getLogger(__name__)
 
 RISK_FLAGGER_PROMPTS = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__file__), "prompts.yaml"))
 
@@ -70,17 +77,17 @@ class RiskFlaggerWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceF
 
     pr_url: Annotated[str, {"help": "URL of the pull request to analyze"}] = field(default="")
     approver: Annotated[str, {"help": "GitHub username or group to notify for approval"}] = field(default="")
+    slack_webhook_url: Annotated[str, {"help": "Slack webhook URL to send notifications to"}] = field(default="")
+    no_gh_comment: Annotated[bool, {"help": "Whether to skip adding a comment to the pull request"}] = False
     custom_risk_list_action: Annotated[
         Literal["append", "replace"], {"help": "Whether to append to or replace the default risks list"}
     ] = "append"
     custom_risk_list_filepath: Annotated[
-        Optional[str], {"help": "Path to JSON/YAML file containing additional risks to consider"}
+        str | None, {"help": "Path to JSON/YAML file containing additional risks to consider"}
     ] = None
-    custom_risk_list_json: Annotated[Optional[str], {"help": "JSON string containing additional risks to consider"}] = (
-        None
-    )
+    custom_risk_list_json: Annotated[str | None, {"help": "JSON string containing additional risks to consider"}] = None
     custom_false_positive_considerations: Annotated[
-        List[str], {"help": "List of additional considerations to help reduce false positives"}
+        list[str], {"help": "List of additional considerations to help reduce false positives"}
     ] = field(default_factory=list)
 
 
@@ -88,24 +95,26 @@ class RiskFlaggerWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceF
 class RiskFlaggerInput:
     """Input for the Risk Flagger step."""
 
-    code: Contextual[str]
+    code: CodeChunk
 
 
 class RiskFlaggerOutput(sarif.BaseSchema):
     """Output for the Risk Flagger step."""
 
-    results: List[sarif.Result]
+    results: list[sarif.Result]
 
 
-class RiskFlaggerWorkflow(Workflow[RiskFlaggerWorkflowOptions, List[sarif.Result]], ChunkProcessor, LLMMixin):
+class RiskFlaggerWorkflow(
+    ChunkProcessor[sarif.Result], LLMMixin, Workflow[RiskFlaggerWorkflowOptions, list[sarif.Result]]
+):
     """Analyzes source code for risks that the security team should investigate further."""
 
     name = "risk_flagger"
 
-    def __init__(self, logger: logging.Logger, args: RiskFlaggerWorkflowOptions) -> None:
-        super().__init__(logger, args)
+    def __init__(self, args: RiskFlaggerWorkflowOptions) -> None:
+        super().__init__(args)
 
-        self.project = self.setup_project_input(self.logger, args)
+        self.project = self.setup_project_input(args)
 
         # Initialize the flagger step
         risks_dict = build_risks_list(
@@ -114,7 +123,7 @@ class RiskFlaggerWorkflow(Workflow[RiskFlaggerWorkflowOptions, List[sarif.Result
             custom_risk_list_filepath=self.args.custom_risk_list_filepath,
             custom_risk_list_json=self.args.custom_risk_list_json,
         )
-        self.logger.info(f"Using {len(risks_dict)} risks to consider: {', '.join(risks_dict.keys())}")
+        logger.info(f"Using {len(risks_dict)} risks to consider: {', '.join(risks_dict.keys())}")
 
         risks_to_consider = format_risks_for_prompt(risks_dict)
         flagger_parser = PydanticOutputParser(risk_sarif.RunResults)
@@ -130,31 +139,32 @@ class RiskFlaggerWorkflow(Workflow[RiskFlaggerWorkflowOptions, List[sarif.Result
             },
         )
 
-    async def _process_single_chunk(self, chunk: Contextual[str]) -> List[sarif.Result]:
+    async def _process_single_chunk(self, history: History, chunk: CodeChunk) -> list[sarif.Result]:
         """Process a single chunk with multi-step processing and error handling."""
         try:
             # 1. Scan the code for potential risks.
-            self.logger.debug("Scanning the code for potential risks")
-            risks = await self.flagger_step.run(RiskFlaggerInput(code=chunk))
+            logger.debug("Scanning the code for potential risks")
+            risks = await self.flagger_step.run(history, RiskFlaggerInput(code=chunk))
 
             # 2. Filter risks by confidence.
-            self.logger.debug(f"Filtering {len(risks.results)} risks by confidence")
-            self.logger.debug(f"risks: {risks.results}")
-            high_confidence_risks: List[sarif.Result] = filter_results_by_confidence(
+            logger.debug(f"Filtering {len(risks.results)} risks by confidence")
+            logger.debug(f"Risks: {risks.results}")
+
+            high_confidence_risks: list[sarif.Result] = filter_results_by_confidence(
                 risks.results, self.args.confidence
             )
-            self.logger.debug(f"Found {len(high_confidence_risks)} high-confidence risks")
+            logger.debug(f"Found {len(high_confidence_risks)} high-confidence risks")
 
             return high_confidence_risks
 
         except Exception as e:
-            self.logger.error(
+            logger.error(
                 f"Failed to process chunk at {str(chunk.locations)}: {str(e)}. "
                 "Skipping this chunk and continuing with scan."
             )
             return []
 
-    async def run(self) -> List[sarif.Result]:
+    async def run(self) -> list[sarif.Result]:
         """Main Risk Flagger workflow.
 
         Args:
@@ -175,24 +185,46 @@ class RiskFlaggerWorkflow(Workflow[RiskFlaggerWorkflowOptions, List[sarif.Result
             )
 
         # 2. Create a closure that captures max_concurrent_chunks
-        async def chunk_processor(chunk: Contextual[str]) -> List[sarif.Result]:
-            return await self._process_single_chunk(chunk)
+        async def chunk_processor(history: History, chunk: CodeChunk) -> list[sarif.Result]:
+            return await self._process_single_chunk(history, chunk)
 
         # 3. Process chunks concurrently using utility
         results = await self.process_chunks_concurrently(
-            project=self.project, chunk_processor=chunk_processor, max_concurrent_chunks=self.args.max_concurrent_chunks
+            self.history,
+            project=self.project,
+            chunk_processor=chunk_processor,
+            max_concurrent_chunks=self.args.max_concurrent_chunks,
         )
 
-        # 4. Format results into PR comment
-        pr_comment = format_pr_comment(results)
+        logger.info(f"Found {len(results)} results")
 
-        # 5. Notify Github groups with formatted comment
         if len(results) > 0:
-            if self.args.pr_url and self.args.approver:
-                add_reviewer(self.args.pr_url, pr_comment, self.args.approver)
-            else:
-                self.logger.warning("PR URL and/or approver are missing, skipping GitHub notification")
+            pr_comment = format_pr_comment(results)
 
-        self.logger.info(pr_comment)
+            # 4. Print comment to console
+            console = Console()
+            console.print(Markdown(pr_comment))
+
+            # 5. Add comment to PR, if enabled
+            if self.args.pr_url and not self.args.no_gh_comment:
+                add_comment(self.history, self.args.pr_url, pr_comment, self.args.approver)
+            else:
+                logger.warning("PR URL missing or no_gh_comment is True, skipping Add Comment")
+
+            # 5. Add reviewer to PR, if enabled
+            if self.args.pr_url and self.args.approver:
+                try:
+                    add_reviewer(self.history, self.args.pr_url, self.args.approver)
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to add reviewer, check to make sure you have the right permissions: {e}\nContinuing with comment only."
+                    )
+            else:
+                logger.warning("PR URL and/or approver are missing, skipping Add Reviewer")
+
+            # 6. Send message to Slack, if enabled
+            if self.args.slack_webhook_url:
+                slack_message = format_slack_message(results, workflow_name=self.name, pr_url=self.args.pr_url)
+                send_message(self.history, self.args.slack_webhook_url, slack_message)
 
         return results

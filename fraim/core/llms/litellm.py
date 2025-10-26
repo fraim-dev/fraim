@@ -5,20 +5,28 @@
 
 import logging
 from collections.abc import Iterable
-from typing import Any, Iterable, Protocol, Self, cast
+from typing import Any, Protocol, Self, cast
 
 import litellm
-from litellm.files.main import ModelResponse
+from litellm import CustomStreamWrapper, ModelResponse
 from litellm.types.utils import ChatCompletionMessageToolCall
 
+from fraim.core.history import EventRecord, History
 from fraim.core.llms.base import BaseLLM
 from fraim.core.messages import AssistantMessage, Function, Message, ToolCall
 from fraim.core.tools import BaseTool, execute_tool_calls
+from fraim.core.utils.retry.http import should_retry_request as should_retry_http_request
 from fraim.core.utils.retry.tenacity import with_retry
 
 
-def _configure_litellm_logging() -> None:
-    """Configure LiteLLM logging to be less verbose."""
+# Configure LiteLLM on module import
+def _configure_litellm() -> None:
+    # Allow LiteLLM to modify completion paramters to paper over
+    # differences across the various providers. For example,
+    # OpenAI allows a null "tools" parameter, while Anthropic requires
+    # an empty list instead.
+    litellm.modify_params = True
+
     # Silence LiteLLM loggers
     litellm_loggers = [
         "httpx",
@@ -41,8 +49,7 @@ def _configure_litellm_logging() -> None:
         logger.setLevel(logging.ERROR)
 
 
-# Configure LiteLLM logging on module import
-_configure_litellm_logging()
+_configure_litellm()
 
 
 class Config(Protocol):
@@ -95,7 +102,9 @@ class LiteLLM(BaseLLM):
             max_delay=self.max_delay,
         )
 
-    async def _run_once(self, messages: list[Message], use_tools: bool) -> tuple[ModelResponse, list[Message], bool]:
+    async def _run_once(
+        self, history: History, messages: list[Message], use_tools: bool
+    ) -> tuple[ModelResponse, list[Message], bool]:
         """Execute one completion call and return response + updated messages + tools_executed flag.
 
         Returns:
@@ -105,13 +114,16 @@ class LiteLLM(BaseLLM):
 
         logging.getLogger().debug(f"LLM request: {completion_params}")
 
-        acompletion = with_retry(
-            litellm.acompletion, max_retries=self.max_retries, base_delay=self.base_delay, max_delay=self.max_delay
+        completion = with_retry(
+            acompletion_text,
+            max_retries=self.max_retries,
+            base_delay=self.base_delay,
+            max_delay=self.max_delay,
+            retry_predicate=should_retry_acompletion,
         )
-        response = await acompletion(**completion_params)
-
-        # Type assertion - we're not using streaming so this should be ModelResponse
-        response = cast(ModelResponse, response)
+        history.append_record(EventRecord(description="Thinking..."))
+        response = await completion(**completion_params)
+        history.pop_record()
 
         message = response.choices[0].message  # type: ignore
         message_content = message.content or ""
@@ -121,10 +133,14 @@ class LiteLLM(BaseLLM):
         tool_calls = _convert_tool_calls(message.tool_calls)
 
         if len(tool_calls) == 0:
+            # Final response. Don't log to history.
             return response, messages, False
 
+        if message_content:
+            history.append_record(EventRecord(description=message_content))
+
         # Execute tools using pre-built tools dictionary
-        tool_messages = await execute_tool_calls(tool_calls, self.tools_dict)
+        tool_messages = await execute_tool_calls(history, tool_calls, self.tools_dict)
 
         # Create assistant message with tool calls
         assistant_message = AssistantMessage(content=message_content, tool_calls=tool_calls)
@@ -134,7 +150,7 @@ class LiteLLM(BaseLLM):
 
         return response, updated_messages, True
 
-    async def run(self, messages: list[Message]) -> ModelResponse:
+    async def run(self, history: History, messages: list[Message]) -> ModelResponse:
         """Run completion with optional tool support, handling multiple iterations."""
         current_messages = messages.copy()
 
@@ -142,7 +158,7 @@ class LiteLLM(BaseLLM):
             # Don't provide tools on the final iteration to force a final response
             use_tools = iteration < self.max_tool_iterations
 
-            response, current_messages, tools_executed = await self._run_once(current_messages, use_tools)
+            response, current_messages, tools_executed = await self._run_once(history, current_messages, use_tools)
 
             if not tools_executed:
                 return response
@@ -182,3 +198,73 @@ def _convert_tool_calls(raw_tool_calls: list[ChatCompletionMessageToolCall] | No
         )
         for tc in raw_tool_calls
     ]
+
+
+class MalformedModelResponseError(ValueError):
+    """An error raised when a model response is malformed"""
+
+
+async def acompletion_text(**kwargs: Any) -> ModelResponse:
+    """
+    Wrapper around litellm.acompletion that validates the response has the expected shape for a non-streaming
+    text completion response.
+
+    This is needed because some model providers (e.g., Google Gemini 2.5) can return
+    200 HTTP responses with malformed response objects that lack the expected 'choices' array.
+
+    Args:
+        **kwargs: Arguments to pass to litellm.acompletion
+
+    Returns:
+        ModelResponse with guaranteed valid text completion structure
+
+    Raises:
+        MalformedModelResponseError: If the response lacks expected structure, with detailed error message
+    """
+    response = await litellm.acompletion(**kwargs)
+    validate_text_model_response(response)
+    return cast("ModelResponse", response)
+
+
+def validate_text_model_response(response: ModelResponse | CustomStreamWrapper) -> None:
+    """
+    Validate that a response is a proper text completion ModelResponse.
+
+    Args:
+        response: The response to validate
+
+    Raises:
+        MalformedModelResponseError: With detailed message describing the specific validation failure
+    """
+    # Check if it's a ModelResponse-like object
+    if not hasattr(response, "choices"):
+        raise MalformedModelResponseError("Response missing 'choices' attribute")
+
+    # Check that choices exists and is not empty
+    choices = getattr(response, "choices", None)
+    if not choices:
+        raise MalformedModelResponseError("Response has empty or missing 'choices' field")
+    first_choice = choices[0]
+
+    # Check that the first choice has a message
+    message = getattr(first_choice, "message", None)
+    if not message:
+        raise MalformedModelResponseError("First choice has missing 'message' attribute")
+
+    # For non-streaming responses, check that message has content field
+    # (we allow None or empty string content, just need the field to exist)
+    if not hasattr(message, "content"):
+        raise MalformedModelResponseError("Message has missing 'content' attribute")
+
+
+def should_retry_acompletion(exception: BaseException) -> bool:
+    """
+    Retry the acompletion request if a retriable HTTP error occurs or if the response is malformed.
+
+    Args:
+        exception: The exception to check
+
+    Returns:
+        True if the completion should be retried, False otherwise
+    """
+    return should_retry_http_request(exception) or isinstance(exception, MalformedModelResponseError)

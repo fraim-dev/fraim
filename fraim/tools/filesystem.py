@@ -159,6 +159,9 @@ class GrepTool(FilesystemBaseTool):
         ),
     )
 
+    def display_message(self, *args: Any, **kwargs: Any) -> str:
+        return f"Grepping for {kwargs['pattern']} in {kwargs['path']}"
+
 
 class ListDirTool(FilesystemBaseTool):
     name: str = "list_dir"
@@ -187,6 +190,9 @@ class ListDirTool(FilesystemBaseTool):
         ),
     )
 
+    def display_message(self, *args: Any, **kwargs: Any) -> str:
+        return f"Listing {kwargs['target_path']}"
+
 
 class ReadFileTool(FilesystemBaseTool):
     name: str = "read_file"
@@ -213,3 +219,6 @@ class ReadFileTool(FilesystemBaseTool):
             Field(default=None, description="Maximum number of lines to read. If None, read all lines. (optional)"),
         ),
     )
+
+    def display_message(self, *args: Any, **kwargs: Any) -> str:
+        return f"Reading {kwargs['target_path']}"

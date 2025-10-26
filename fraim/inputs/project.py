@@ -1,20 +1,19 @@
-import logging
 import os
 from collections.abc import Iterator
 from typing import Any, Literal
 
-from fraim.config.config import Config
-from fraim.core.contextuals import CodeChunk, Contextual
-from fraim.inputs.chunkers import FileChunker, MaxContextChunker
+from fraim.core.contextuals import Contextual
+
+from fraim.inputs.chunkers import MaxContextChunker, FileChunker, FixedTokenChunker
 from fraim.inputs.chunkers.base import Chunker
-from fraim.inputs.chunkers.fixed import FixedTokenChunker
 from fraim.inputs.chunkers.original import OriginalChunker
-from fraim.inputs.chunkers.packed_fixed import PackingSyntacticChunker, PackingFixedTokenChunker
+from fraim.inputs.chunkers.packed_fixed import PackingFixedTokenChunker, PackingSyntacticChunker
 from fraim.inputs.chunkers.syntactic import SyntacticChunker
 from fraim.inputs.git import GitRemote
 from fraim.inputs.git_diff import GitDiff
 from fraim.inputs.input import Input
 from fraim.inputs.local import Local
+from fraim.inputs.status_check import StatusCheck
 
 CHUNKING_METHODS = {
     "syntactic": SyntacticChunker,
@@ -30,15 +29,12 @@ CHUNKING_METHODS = {
 class ProjectInput:
     input: Input
     chunk_size: int
-    chunk_overlap: int
     project_path: str
     repo_name: str
-    chunker: Chunker
     chunking_method: Literal["syntactic", "fixed", "fixed_token", "packed", "file", "project", "original"] = "original"
 
     # TODO: **kwargs?
-    def __init__(self, logger: logging.Logger, kwargs: Any) -> None:
-        self.logger = logger
+    def __init__(self, kwargs: Any) -> None:
         path_or_url = kwargs.location or None
         paths = kwargs.paths
         globs = kwargs.globs
@@ -49,6 +45,7 @@ class ProjectInput:
         self.base = kwargs.base
         self.head = kwargs.head
         self.diff = kwargs.diff
+        self.status_check = getattr(kwargs, "status_check", None)
         self.chunking_method = kwargs.chunking_method
         self.model = kwargs.model
 
@@ -59,7 +56,6 @@ class ProjectInput:
             self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
             # TODO: git diff here?
             self.input = GitRemote(
-                self.logger,
                 url=path_or_url,
                 globs=globs,
                 limit=limit,
@@ -81,9 +77,10 @@ class ProjectInput:
                     limit=limit,
                     exclude_globs=exclude_globs,
                 )
+            elif self.status_check:
+                self.input = StatusCheck(self.project_path)
             else:
                 self.input = Local(
-                    logger=self.logger,
                     root_path=self.project_path,
                     globs=globs,
                     limit=limit,
@@ -99,7 +96,6 @@ class ProjectInput:
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
             model=self.model,
-            logger=self.logger,
         )
 
     def __iter__(self) -> Iterator[Contextual[str]]:

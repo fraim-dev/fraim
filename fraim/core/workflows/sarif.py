@@ -13,10 +13,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Annotated
 
+from fraim import __version__
 from fraim.core.contextuals import CodeChunkFailure
 from fraim.outputs import sarif
 from fraim.outputs.sarif import Result, create_sarif_report
 from fraim.reporting.reporting import Reporting
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -43,14 +46,39 @@ def filter_results_by_confidence(results: list[sarif.Result], confidence_thresho
     return [result for result in results if result.properties.confidence > confidence_threshold]
 
 
+@dataclass
+class ReportPaths:
+    sarif_path: str
+    html_path: str
+
+
 def write_sarif_and_html_report(
-    results: list[Result],
-    repo_name: str,
-    output_dir: str,
-    logger: logging.Logger,
-    failed_chunks: list[CodeChunkFailure],
-) -> None:
-    report = create_sarif_report(results, failed_chunks)
+        results: list[Result],
+        repo_name: str,
+        output_dir: str,
+        failed_chunks: list[CodeChunkFailure],
+) -> ReportPaths:
+    """
+    Write security scan results to both SARIF (JSON) and HTML report files.
+
+    Args:
+        results: List of security scan results to include in the reports
+        repo_name: Name of the repository being scanned, used in filename generation
+        output_dir: Directory path where report files will be written
+        logger: Logger instance for recording operation status and errors
+
+    Returns:
+        ReportPaths object with sarif_path and html_path attributes containing file paths
+
+    Example:
+        >>> results = [Result(...), Result(...)]
+        >>> reports = write_sarif_and_html_report(results, "my-repo", "/output", logger)
+        >>> print(reports.sarif_path)
+        '/output/fraim_report_my_repo_20250917_143022.sarif'
+        >>> print(reports.html_path)
+        '/output/fraim_report_my_repo_20250917_143022.html'
+    """
+    report = create_sarif_report(results, failed_chunks, __version__)
 
     # Create filename with sanitized repo name
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -77,3 +105,5 @@ def write_sarif_and_html_report(
         logger.info(f"Wrote HTML report ({total_results} results) to {html_output_file}")
     except Exception as e:
         logger.error(f"Failed to write HTML report to {html_output_file}: {e!s}")
+
+    return ReportPaths(sarif_path=sarif_output_file, html_path=html_output_file)

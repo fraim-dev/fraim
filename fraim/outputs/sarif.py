@@ -7,11 +7,10 @@ Used for generating standardized vulnerability reports.
 """
 
 from enum import Enum
-from typing import Any, List, Literal
+from typing import List, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
-
 
 class BaseSchema(BaseModel):
     model_config = ConfigDict(
@@ -102,7 +101,9 @@ class ResultProperties(BaseSchema):
 
     type: str = Field(description="Type of vulnerability (e.g., 'SQL Injection', 'XSS', 'Command Injection', etc.)")
     confidence: int = Field(
-        description="Confidence that the result is a true positive from 1 (least confident) to 10 (most confident)"
+        ge=1,
+        le=10,
+        description="Confidence that the result is a true positive from 1 (least confident) to 10 (most confident)",
     )
     exploitable: bool = Field(description="True if the vulnerability is exploitable, false otherwise.")
     explanation: Message = Field(description="Explanation of the exploitability of the vulnerability.")
@@ -210,7 +211,7 @@ class SarifReport(BaseSchema):
 def create_sarif_report(
     results: list[Result],
     failed_chunks: list["CodeChunkFailure"],  # type: ignore[name-defined] # to avoid circular import
-    tool_version: str = "1.0.0",
+    tool_version: str,
 ) -> SarifReport:
     """
     Create a complete SARIF report from a list of results.

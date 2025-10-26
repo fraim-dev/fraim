@@ -4,23 +4,33 @@
 import argparse
 import asyncio
 import dataclasses
+import io
 import logging
 import multiprocessing as mp
 import os
+import sys
+from collections.abc import Generator
+from contextlib import contextmanager
 from dataclasses import is_dataclass
-from importlib.metadata import version
-from pathlib import Path
-from typing import Annotated, Any, Union, get_args, get_origin, get_type_hints
+from types import UnionType
+from typing import Annotated, Any, TextIO, Union, get_args, get_origin, get_type_hints
 
+from rich.console import Console
+from rich.live import Live
+
+from fraim import __version__
 from fraim.core.workflows.discovery import discover_workflows
 from fraim.observability import ObservabilityManager, ObservabilityRegistry
-from fraim.observability.logging import make_logger
+from fraim.observability.logging import setup_logging
+from fraim.util import tty
 from fraim.validate_cli import validate_cli_args
 
+logger = logging.getLogger(__name__)
 
-def setup_observability(logger: logging.Logger, args: argparse.Namespace) -> ObservabilityManager:
+
+def setup_observability(args: argparse.Namespace) -> ObservabilityManager:
     """Setup observability backends based on CLI arguments."""
-    manager = ObservabilityManager(args.observability or [], logger=logger)
+    manager = ObservabilityManager(args.observability or [])
     manager.setup()
     return manager
 
@@ -37,7 +47,7 @@ def build_observability_arg(parser: argparse.ArgumentParser) -> None:
         description = backend_descriptions.get(backend, "No description available")
         observability_help_parts.append(f"{backend}: {description}")
 
-    observability_help = f"Enable LLM observability backends.\n - {'\n - '.join(observability_help_parts)}"
+    observability_help = f"Enable LLM observability backends.\n - {'\n -'.join(observability_help_parts)}"
 
     parser.add_argument("--observability", nargs="+", choices=available_backends, default=[], help=observability_help)
 
@@ -45,12 +55,22 @@ def build_observability_arg(parser: argparse.ArgumentParser) -> None:
 def cli() -> int:
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument(
-        "--version", action="version", version=version("fraim"), help="Show the version number and exit"
-    )
+    parser.add_argument("-v", "--version", action="version", version=f"fraim {__version__}")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
-    parser.add_argument("--show-logs", type=bool, default=True, help="Prints logs to standard error output")
+    parser.add_argument(
+        "--show-logs",
+        action="store_true",
+        help="Force printing of logs. Logs are automatically shown on stderr if rich\n"
+        "display is not enabled or if stderr does not point to the same\n"
+        "destination as stdout.",
+    )
     parser.add_argument("--log-output", type=str, default="fraim_output", help="Output directory for logs")
+    parser.add_argument(
+        "--show-rich-display",
+        action="store_true",
+        help="Force display of the rich workflow progress, instead of showing logs. Rich\n"
+        "display is automatically enabled if standard output is a TTY.",
+    )
 
     build_observability_arg(parser)
 
@@ -87,15 +107,19 @@ def cli() -> int:
     parsed_args = parser.parse_args()
     validate_cli_args(parser, parsed_args)
 
-    # TODO: Set up logger earlier parsing known args, partial arg parse etc.
-    # TODO: Avoid passing logger around, use conventions
-    logger = make_logger(
-        level=logging.DEBUG if parsed_args.debug else logging.INFO,
-        path=os.path.join(parsed_args.log_output, "fraim_scan.log"),
-        show_logs=parsed_args.show_logs,
+    # Determine whether to show rich display (on stdout) and logs (on stderr)
+    show_rich_display = parsed_args.show_rich_display or tty.is_tty(sys.stdout)
+    show_logs = (
+        parsed_args.show_logs or not show_rich_display or not tty.streams_have_same_destination(sys.stdout, sys.stderr)
     )
 
-    setup_observability(logger, parsed_args)
+    setup_logging(
+        level=logging.DEBUG if parsed_args.debug else logging.INFO,
+        path=os.path.join(parsed_args.log_output, "fraim_scan.log"),
+        show_logs=show_logs,
+    )
+
+    setup_observability(parsed_args)
 
     for workflow_name, workflow_class in discovered_workflows.items():
         if workflow_name != parsed_args.workflow:
@@ -122,10 +146,31 @@ def cli() -> int:
                 workflow_class = discovered_workflows[parsed_args.workflow]
                 workflow = workflow_class.from_args(parsed_args)
         """
-        workflow = workflow_class(logger=logger, args=workflow_options(**workflow_kwargs))
+        workflow = workflow_class(args=workflow_options(**workflow_kwargs))
+
         try:
-            logger.info(f"Running workflow: {workflow.name}")
-            asyncio.run(workflow.run())
+            if show_rich_display:
+                # Use rich display instead of logging
+
+                async def run_with_rich_display() -> None:
+                    with buffered_stdout() as original_stdout:
+                        console = Console(file=original_stdout)
+                        layout = workflow.rich_display()
+                        with Live(
+                            layout,
+                            console=console,
+                            screen=True,
+                            redirect_stdout=False,
+                            refresh_per_second=10,
+                            auto_refresh=True,
+                        ) as _live:
+                            await workflow.run()
+
+                asyncio.run(run_with_rich_display())
+            else:
+                # Use traditional logging
+                logger.info(f"Running workflow: {workflow.name}")
+                asyncio.run(workflow.run())
         except KeyboardInterrupt:
             logger.info("Workflow cancelled")
             return 1
@@ -222,6 +267,44 @@ def workflow_options_to_cli_args(options_class: type[Any]) -> dict[str, dict[str
         cli_args[arg_name] = arg_config
 
     return cli_args
+
+
+@contextmanager
+def buffered_stdout() -> Generator[TextIO | Any, None, None]:
+    """
+    Context manager that captures stdout during execution and replays it after exit.
+
+    This is designed to work with Rich's Live display in screen mode. When Live uses
+    screen=True, it switches to an alternate terminal screen, causing any stdout
+    output (like print statements) during the Live display to be lost when returning
+    to the main screen.
+
+    This context manager:
+    1. Redirects sys.stdout to a buffer during the 'with' block
+    2. Yields the original stdout for use by Rich's Live display
+    3. Replays all captured stdout content to the terminal after the 'with' block exits
+
+    Usage:
+        with buffered_stdout() as original_stdout:
+            console = Console(file=original_stdout) # Use the real stdout for the Live display
+            with Live(layout, console=console, screen=True) as live:
+                print("This will be captured and shown after Live exits")
+                # Live display code here
+        # Captured print output appears here
+
+    Returns:
+        The original stdout stream for use by Rich's console
+    """
+    # String buffer to capture stdout while the live display is active
+    buf = io.StringIO()
+
+    old_out = sys.stdout
+    try:
+        sys.stdout = buf
+        yield old_out
+    finally:
+        sys.stdout = old_out
+        sys.stdout.write(buf.getvalue())
 
 
 if __name__ == "__main__":
