@@ -26,7 +26,7 @@ def test_pack_multiple_small_files_into_one_chunk(project_path: str) -> None:
     _input = InMemory(file_1, file_2, root_path=project_path)
 
     # Set chunk_size large enough to hold both files.
-    chunks = list(PackingSyntacticChunker(_input, chunk_size=1000, logger=log).chunks())
+    chunks = list(PackingSyntacticChunker(_input, chunk_size=1000).chunks())
 
     assert len(chunks) == 1
     assert len(chunks[0]) == 8
@@ -42,7 +42,7 @@ def test_pack_files_into_multiple_chunks(project_path: str) -> None:
     _input = InMemory(file_1, file_2, file_3, root_path=project_path)
 
     # Set chunk_size so that first two files fit, but adding the third exceeds it.
-    chunks = list(PackingSyntacticChunker(_input, chunk_size=10, chunk_overlap=0, logger=log).chunks())
+    chunks = list(PackingSyntacticChunker(_input, chunk_size=10, chunk_overlap=0).chunks())
 
     assert len(chunks) == 2
     assert len(chunks[0]) == 10  # First two files
@@ -62,7 +62,7 @@ def test_small_files_are_packed(project_path: str) -> None:
     _input = InMemory(*[chunk] * num_of_small_files, root_path=project_path)
 
     # chunk_size for PackingFixedChunker (bytes) is 500, so packed chunks should be small.
-    chunks = list(PackingSyntacticChunker(_input, chunk_size=chunk_size, logger=log).chunks())
+    chunks = list(PackingSyntacticChunker(_input, chunk_size=chunk_size).chunks())
 
     # PackingFixedChunker with byte chunk_size=500 will receive these two CodeChunk.
     # The first CodeChunk is added. The second one is checked.
@@ -86,7 +86,7 @@ def test_single_large_file_violates_chunk_size(project_path: str) -> None:
     _input = InMemory(chunk, root_path=project_path)
 
     # Set chunk_size for PackingFixedChunker (bytes) smaller than the file content.
-    chunks = list(PackingSyntacticChunker(_input, chunk_size=400, chunk_lines=1000, logger=log).chunks())
+    chunks = list(PackingSyntacticChunker(_input, chunk_size=400, chunk_lines=1000).chunks())
 
     assert len(chunks) == 1
     assert len(chunks[0]) == 125 # Measured in tokens
@@ -95,14 +95,14 @@ def test_single_large_file_violates_chunk_size(project_path: str) -> None:
 
 def test_empty_input(project_path: str) -> None:
     _input = InMemory(root_path=project_path)
-    chunks = list(PackingSyntacticChunker(input=_input, chunk_size=1000, logger=log).chunks())
+    chunks = list(PackingSyntacticChunker(input=_input, chunk_size=1000).chunks())
     assert len(chunks) == 0
 
 
 def test_single_small_file(project_path: str) -> None:
     chunk = CodeChunk("single.py", "print('single')", line_number_start_inclusive=1, line_number_end_inclusive=1)
     _input = InMemory(chunk, root_path=project_path)
-    chunks = list(PackingSyntacticChunker(input=_input, chunk_size=1000, logger=log).chunks())
+    chunks = list(PackingSyntacticChunker(input=_input, chunk_size=1000).chunks())
 
     assert len(chunks) == 1
     assert len(chunks[0]) == 4 # Measured in tokens

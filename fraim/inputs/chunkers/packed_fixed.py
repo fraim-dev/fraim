@@ -35,7 +35,7 @@ class PackingSyntacticChunker(SyntacticChunker):
 
         This is the same as the __iter__ method, but with a more specific return type.
         """
-        yield from packed_chunks(super().chunks(), self.chunk_size, self.logger)
+        yield from packed_chunks(super().chunks(), self.chunk_size)
 
 
 
