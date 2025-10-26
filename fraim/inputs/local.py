@@ -90,19 +90,21 @@ class Local(Input):
                             logger.info(f"Reading file: {path}")
                             # TODO: Avoid reading files that are too large?
                             content = path.read_text(encoding="utf-8")
-                            self._seen.add(path)
-                            yield CodeChunk(
-                                file_path=os.path.relpath(path, self._root_path),
-                                content=content,
-                                line_number_start_inclusive=1,
-                                line_number_end_inclusive=len(content),
-                            )
+                        except UnicodeDecodeError:
+                            logger.warning(f"Skipping file with encoding issues: {path}")
+                            continue
                         except Exception as e:
-                            if isinstance(e, UnicodeDecodeError):
-                                logger.warning(f"Skipping file with encoding issues: {path}")
-                                return
                             logger.error(f"Error reading file: {path} - {e}")
-                            raise e
+                            raise
+
+                        self._seen.add(path)
+                        line_count = content.count("\n") + 1 if content else 0
+                        yield CodeChunk(
+                            file_path=os.path.relpath(path, self._root_path),
+                            content=content,
+                            line_number_start_inclusive=1,
+                            line_number_end_inclusive=line_count,
+                        )
 
     def should_scan_file(self, path: Path) -> bool:
         # Skip file if not a file
