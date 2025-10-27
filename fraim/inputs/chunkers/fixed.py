@@ -2,6 +2,7 @@
 # Copyright (c) 2025 Resourcely Inc.
 import re
 from bisect import bisect_right
+from functools import cached_property
 from typing import Any, Iterator
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter, TextSplitter
@@ -19,8 +20,7 @@ class FixedTokenChunker(Chunker):
         self.input = input
 
     def __iter__(self) -> Iterator[Contextual[str]]:
-        for file in self.chunks():
-            yield from self.split_file(self.splitter, file)
+        yield from self.chunks()
 
     # Chunks is kept separate from iterator so we have a type annotation that returns the concrete class
     def chunks(self) -> Iterator[CodeChunk]:
@@ -30,26 +30,40 @@ class FixedTokenChunker(Chunker):
 
     def split_file(self, splitter: TextSplitter, chunk: CodeChunk) -> Iterator[CodeChunk]:
         line_starts = [0] + [match.start() + 1 for match in re.finditer("\n", chunk.content)]
+        last_start_index = -1
         for doc in splitter.create_documents([chunk.content]):
-            start_index = doc.metadata["start_index"]
-            end_index = start_index + len(doc.page_content)
+            start_index = doc.metadata.get("start_index", -1)
+            if start_index is None or start_index < 0:
+                search_from = last_start_index + 1 if last_start_index >= 0 else 0
+                resolved_index = chunk.content.find(doc.page_content, search_from)
+                if resolved_index == -1:
+                    resolved_index = chunk.content.find(doc.page_content)
+                start_index = resolved_index if resolved_index != -1 else search_from
 
-            start_line = bisect_right(line_starts, start_index)
-            end_line = bisect_right(line_starts, end_index)
+            last_start_index = start_index
+
+            if doc.page_content:
+                start_offset = max(start_index, 0)
+                end_offset = start_offset + len(doc.page_content) - 1
+                start_line = bisect_right(line_starts, start_offset)
+                end_line = bisect_right(line_starts, end_offset)
+            else:
+                start_line = end_line = 0
 
             yield CodeChunk(
                 content=doc.page_content,
                 file_path=str(chunk.file_path),
-                line_number_start_inclusive=start_line,  # Line numbers are already prepended
+                line_number_start_inclusive=start_line,
                 line_number_end_inclusive=end_line,
             )
 
-    @property
+    @cached_property
     def splitter(self) -> RecursiveCharacterTextSplitter:
+        # add_start_index=True currently returns -1 for overlap chunks; disable and recover offsets manually.
         return RecursiveCharacterTextSplitter.from_tiktoken_encoder(
             separators=["\n"],
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
             strip_whitespace=False,
-            add_start_index=True,
+            add_start_index=False,
         )
