@@ -54,3 +54,20 @@ def test_code_chunks() -> None:
     )
 
     assert len(code_chunks) == 14
+
+
+def test_code_chunk_locations() -> None:
+    chunk = CodeChunk(
+        file_path="src/module.py",
+        content="print('hi')",
+        line_number_start_inclusive=5,
+        line_number_end_inclusive=7,
+    )
+
+    locations = chunk.locations
+
+    assert len(locations) == 1
+    loc = locations[0]
+    assert loc.file_path == "src/module.py"
+    assert loc.line_number_start_inclusive == 5
+    assert loc.line_number_end_inclusive == 7
