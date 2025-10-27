@@ -125,43 +125,22 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
             SCANNER_PROMPTS["user"],
             scanner_parser,
         )
-        # Keep triager step as lazy since it depends on project setup
-        self._triager_step: LLMStep[TriagerInput, sarif.Result] | None = None
-        self._triager_lock = threading.Lock()
-
-    @property
-    def file_patterns(self) -> list[str]:
-        """Code file patterns."""
-        return FILE_PATTERNS
-
-    @property
-    def exclude_file_patterns(self) -> list[str]:
-        """Code file patterns."""
-        return [
-            "*.min.js",
-            "*.min.css",
-        ]
-
-    @property
-    def triager_step(self) -> LLMStep[TriagerInput, sarif.Result]:
-        """Lazily initialize the triager step."""
-
-        # No locking required if step already exists
-        step = self._triager_step
-        if step is not None:
-            return step
 
         # Configure the triager step with tools
         triager_tools = FilesystemTools(self.project.project_path)
         triager_llm = self.llm.with_tools(triager_tools)
         triager_parser = PydanticOutputParser(triage_sarif.Result)
-        self._triager_step = LLMStep(
+        self.triager_step: LLMStep[TriagerInput, sarif.Result] = LLMStep(
             triager_llm,
             TRIAGER_PROMPTS["system"],
             TRIAGER_PROMPTS["user"],
             triager_parser,
         )
-        return self._triager_step
+
+    @property
+    def file_patterns(self) -> list[str]:
+        """Code file patterns."""
+        return FILE_PATTERNS
 
     async def _process_single_chunk(
         self, history: History, chunk: CodeChunk, max_concurrent_triagers: int
