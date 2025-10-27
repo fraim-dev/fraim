@@ -43,7 +43,7 @@ class ChunkProcessingOptions(LLMOptions):
 
     # NOTE: There is a bug that causes `exclude_globs` to be interpreted as str if `Annotated[list[str] | None, ...]` used here.
     exclude_globs: Annotated[
-        Optional[list[str]],
+        list[str] | None,
         {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
     ] = None
 
@@ -68,7 +68,7 @@ class ChunkProcessingOptions(LLMOptions):
 
     # NOTE: There is a bug that causes `paths` to be interpreted as str if `Annotated[list[str] | None, ...]` used here.
     paths: Annotated[
-        Optional[list[str]], {"help": "Optionally limit scanning to these paths (relative to `--location`)"}
+        list[str] | None, {"help": "Optionally limit scanning to these paths (relative to `--location`)"}
     ] = None
 
     chunk_overlap: Annotated[
