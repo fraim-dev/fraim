@@ -39,7 +39,7 @@ class PydanticOutputParser(JsonOutputParser, Generic[TBaseModel]):
           Format your response as a JSON object with the following schema. You MUST follow
           the schema exactly. You MUST use valid JSON syntax as defined by RFC 8259.
           <schema>
-           {json.dumps(self.model.model_json_schema())}
+           {json.dumps(self.model.model_json_schema(), sort_keys=True)}
           </schema>
         </output_format>
         """)
