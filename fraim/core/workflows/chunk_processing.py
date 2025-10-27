@@ -217,9 +217,7 @@ class ChunkProcessor(Generic[T]):
 
         for chunk in chunks_list:
             # Create a subhistory for this task
-            task_record = HistoryRecord(
-                description=f"Analyzing {chunk.locations}"
-            )
+            task_record = HistoryRecord(description=f"Analyzing {chunk.locations}")
             history.append_record(task_record)
 
             # Create task for this chunk and add to active tasks

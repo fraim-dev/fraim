@@ -17,7 +17,7 @@ class OriginalChunker(Chunker):
 
     def __iter__(self) -> Iterator[Contextual[str]]:
         for file in self.input:
-            yield from chunk_input(file, self.chunk_size) # type: ignore[arg-type]
+            yield from chunk_input(file, self.chunk_size)  # type: ignore[arg-type]
 
 
 # TODO: move chunking concern out of input
