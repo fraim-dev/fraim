@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from typing import Annotated
 
 from fraim.core.contextuals import CodeChunk
-from fraim.core.history import EventRecord, History, HistoryRecord
+from fraim.core.history import History, HistoryRecord
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
@@ -156,10 +156,6 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
             # 4. Filter the triaged vulnerabilities by confidence
             logger.debug("Filtering the triaged vulnerabilities by confidence")
             high_confidence_triaged_vulns = filter_results_by_confidence(triaged_vulns, self.args.confidence)
-
-            self.history.append_record(
-                EventRecord(description=f"Done. Found {len(high_confidence_triaged_vulns)} results.")
-            )
 
             return high_confidence_triaged_vulns
 
