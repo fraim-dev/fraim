@@ -232,6 +232,31 @@ export LANGFUSE_SECRET_KEY="your_secret_key"
 export LANGFUSE_HOST="your_langfuse_host"
 ```
 
+### LLM Response Caching
+Enable caching of LLM API responses to speed up repeated analyses and reduce API costs:
+
+```bash
+export FRAIM_ENABLE_LLM_CACHE=true
+```
+
+**Benefits:**
+- Faster re-analysis of the same code
+- Reduced API costs for repeated runs
+- Consistent results across runs
+
+**Cache location:**
+By default, cached responses are stored in your system's cache directory:
+- **macOS**: `~/Library/Caches/fraim/llm/`
+- **Linux**: `~/.cache/fraim/llm/`
+- **Windows**: `%LOCALAPPDATA%\fraim\llm\`
+
+You can customize the cache directory:
+```bash
+export FRAIM_CACHE_DIR=/path/to/custom/cache
+```
+
+**Note:** Cache files are versioned and will be automatically invalidated when the caching implementation changes.
+
 ## Advanced Usage Examples
 
 ### Comprehensive Analysis
@@ -271,6 +296,17 @@ fraim --confidence 6 \
       --debug \
       code --location . \
       --globs "src/**/*.py" "api/**/*.py"
+```
+
+### Cached Analysis for Development
+```bash
+# Enable caching for faster repeated analysis during development
+export FRAIM_ENABLE_LLM_CACHE=true
+fraim --confidence 7 \
+      code --location . \
+      --globs "*.py"
+
+# Subsequent runs will use cached LLM responses for unchanged code
 ```
 
 ## Understanding Output
@@ -327,5 +363,6 @@ fraim --debug code --location . --globs "*.py"
 2. **Optimize chunks**: Adjust `--chunk-size` based on your system capabilities
 3. **Balance chunks**: Smaller `--chunk-size` for accuracy, larger for speed
 4. **Filter confidence**: Use higher `--confidence` to reduce processing time
-5. **Monitor resources**: Use system monitoring to optimize settings
+5. **Enable caching**: Set `FRAIM_ENABLE_LLM_CACHE=true` for faster repeated analyses
+6. **Monitor resources**: Use system monitoring to optimize settings
 ---
