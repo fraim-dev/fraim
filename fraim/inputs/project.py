@@ -37,7 +37,9 @@ class ProjectInput:
         if path_or_url.startswith("http://") or path_or_url.startswith("https://") or path_or_url.startswith("git@"):
             self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
             # TODO: git diff here?
-            self.input = GitRemote(url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_")
+            self.input = GitRemote(
+                url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_", chunk_size=self.chunk_size
+            )
             self.project_path = self.input.root_path()
         else:
             # Fully resolve the path to the project
@@ -48,7 +50,7 @@ class ProjectInput:
             elif self.status_check:
                 self.input = StatusCheck(self.project_path)
             else:
-                self.input = Local(self.project_path, globs=globs, limit=limit)
+                self.input = Local(self.project_path, globs=globs, limit=limit, chunk_size=self.chunk_size)
 
     def __iter__(self) -> Iterator[CodeChunk]:
         for chunk in self.input:

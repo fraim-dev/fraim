@@ -193,3 +193,6 @@ fraim/reporting/test/outputs/*.html
 
 # Claude
 .claude/
+
+# VS Code
+.vscode/
