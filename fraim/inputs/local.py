@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class Local(Input):
-    def __init__(self, path: str, globs: list[str] | None = None, limit: int | None = None):
+    def __init__(self, path: str, chunk_size: int, globs: list[str] | None = None, limit: int | None = None):
         self.path = path
         # TODO: remove hardcoded globs
         self.globs = (
@@ -44,6 +44,7 @@ class Local(Input):
             ]
         )
         self.limit = limit
+        self.chunk_size = chunk_size
 
     def root_path(self) -> str:
         return self.path
@@ -77,8 +78,7 @@ class Local(Input):
                     # TODO: Avoid reading files that are too large?
                     file = BufferedFile(os.path.relpath(path, self.root_path()), path.read_text(encoding="utf-8"))
 
-                    # TODO: configure file chunking in the config
-                    for chunk in chunk_input(file, 100):
+                    for chunk in chunk_input(file, self.chunk_size):
                         yield chunk
 
                     # Add file to set of seen files, exit early if maximum reached.
