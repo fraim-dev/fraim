@@ -10,10 +10,11 @@ Analyzes source code for security vulnerabilities using AI-powered scanning.
 import asyncio
 import logging
 import os
+import threading
 from dataclasses import dataclass
 from typing import Annotated
 
-from fraim.core.contextuals import CodeChunk
+from fraim.core.contextuals import CodeChunk, CodeChunkFailure
 from fraim.core.history import EventRecord, History, HistoryRecord
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
@@ -64,6 +65,8 @@ class SASTWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceFilterOp
         int, {"help": "Maximum number of triager requests per chunk to run concurrently"}
     ] = 3
 
+    no_triage: Annotated[bool, {"help": "If set, skip the triage step and only run the scanner step"}] = False
+
 
 @dataclass
 class SASTInput:
@@ -90,12 +93,33 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
     def __init__(self, args: SASTWorkflowOptions) -> None:
         super().__init__(args)
 
+        self.failed_chunks: list[CodeChunkFailure] = []
+        sast_workflow_run_results_class = sarif.create_run_model(
+            allowed_types=[
+                "SQL Injection",
+                "XSS",
+                "CSRF",
+                "Path Traversal",
+                "Command Injection",
+                "Insecure Deserialization",
+                "XXE",
+                "SSRF",
+                "Open Redirect",
+                "IDOR",
+                "Sensitive Data Exposure",
+                "Broken Authentication",
+                "Broken Access Control",
+                "Security Misconfiguration",
+                "Insufficient Logging",
+            ],
+        )
+
         # Configure the project
         self.project = self.setup_project_input(self.args)
 
         # Configure the scanner step
-        scanner_parser = PydanticOutputParser(sarif.RunResults)
-        self.scanner_step: LLMStep[SASTInput, sarif.RunResults] = LLMStep(
+        scanner_parser = PydanticOutputParser(sast_workflow_run_results_class)
+        self.scanner_step: LLMStep[SASTInput, sarif.Run] = LLMStep(
             self.llm,
             SCANNER_PROMPTS["system"],
             SCANNER_PROMPTS["user"],
@@ -131,6 +155,9 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
             logger.debug("Filtering vulnerabilities by confidence")
             high_confidence_vulns = filter_results_by_confidence(potential_vulns.results, self.args.confidence)
 
+            if self.args.no_triage:
+                return high_confidence_vulns
+
             # 3. Triage the high-confidence vulns with limited concurrency.
             logger.debug("Triaging high-confidence vulns with limited concurrency")
 
@@ -164,9 +191,9 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
             return high_confidence_triaged_vulns
 
         except Exception as e:
+            self.failed_chunks.append(CodeChunkFailure(chunk=chunk, reason=str(e)))
             logger.error(
-                f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {e!s}. "
-                "Skipping this chunk and continuing with scan."
+                f"Failed to process chunk {chunk.locations}: {e!s}. Skipping this chunk and continuing with scan."
             )
 
             return []
@@ -191,6 +218,7 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
             results=results,
             repo_name=self.project.repo_name,
             output_dir=self.args.output,
+            failed_chunks=self.failed_chunks,
         )
 
         print(f"Found {len(results)} results.")

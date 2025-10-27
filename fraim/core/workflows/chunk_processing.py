@@ -10,26 +10,26 @@ from abc import abstractmethod
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Annotated, Generic, TypeVar
+from typing import Annotated, Generic, Optional, TypeVar, cast
 
 from rich.layout import Layout
 from rich.progress import Progress, TaskID
 
-from fraim.core.contextuals import CodeChunk
+from fraim.core.contextuals import CodeChunk, Contextual
 from fraim.core.display import ProgressPanel, ResultsPanel
 from fraim.core.history import EventRecord, History, HistoryRecord
-from fraim.inputs.project import ProjectInput
+from fraim.core.workflows.llm_processing import LLMOptions
+from fraim.inputs.project import CHUNKING_METHODS, ProjectInput
 
 # Type variable for generic result types
 T = TypeVar("T")
 
 
 @dataclass
-class ChunkProcessingOptions:
+class ChunkProcessingOptions(LLMOptions):
     """Base input for chunk-based workflows."""
 
     location: Annotated[str, {"help": "Repository URL or path to scan"}] = "."
-    chunk_size: Annotated[int | None, {"help": "Number of lines per chunk"}] = 500
     limit: Annotated[int | None, {"help": "Limit the number of files to scan"}] = None
     diff: Annotated[bool, {"help": "Whether to use git diff input"}] = False
     head: Annotated[str | None, {"help": "Git head commit for diff input, uses HEAD if not provided"}] = None
@@ -39,6 +39,46 @@ class ChunkProcessingOptions:
     globs: Annotated[
         list[str] | None,
         {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
+    ] = None
+
+    # NOTE: There is a bug that causes `exclude_globs` to be interpreted as str if `Annotated[list[str] | None, ...]` used here.
+    exclude_globs: Annotated[
+        list[str] | None,
+        {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
+    ] = None
+
+    chunking_method: Annotated[
+        str,
+        {
+            "type": int,
+            "help": (
+                "Method to use for chunking code files. Only the original chunking method is supported currently. "
+            ),
+            "choices": CHUNKING_METHODS.keys(),
+        },
+    ] = "packed_syntactic"
+    chunk_size: Annotated[
+        int,
+        {
+            "help": (
+                "Number of tokens per chunk. Does not apply when the original, file, or project chunking methods are used."
+            )
+        },
+    ] = 12_000
+
+    # NOTE: There is a bug that causes `paths` to be interpreted as str if `Annotated[list[str] | None, ...]` used here.
+    paths: Annotated[
+        list[str] | None, {"help": "Optionally limit scanning to these paths (relative to `--location`)"}
+    ] = None
+
+    chunk_overlap: Annotated[
+        int | None,  # TODO: Support int | None notation, this value get's set as a string if that is used now.
+        {
+            "help": (
+                "Number of characters of overlap per chunk. Does not apply when the original, file, or project chunking "
+                "methods are used."
+            )
+        },
     ] = None
     max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
 
@@ -57,7 +97,7 @@ class ChunkProcessor(Generic[T]):
     """
 
     def __init__(self, args: ChunkProcessingOptions) -> None:
-        super().__init__(args)  # type: ignore
+        super().__init__(args)  # type: ignore[misc, call-arg]
 
         # Progress tracking attributes
         self._total_chunks = 0
@@ -70,6 +110,15 @@ class ChunkProcessor(Generic[T]):
     @abstractmethod
     def file_patterns(self) -> list[str]:
         """File patterns for this workflow (e.g., ['*.py', '*.js'])."""
+        pass
+
+    @property
+    def exclude_file_patterns(self) -> list[str]:
+        """File patterns for this workflow (e.g., ['*.py', '*.js'])."""
+        return [
+            "*.min.js",
+            "*.min.css",
+        ]
 
     def setup_project_input(self, args: ChunkProcessingOptions) -> ProjectInput:
         """
@@ -82,14 +131,20 @@ class ChunkProcessor(Generic[T]):
             Configured ProjectInput instance
         """
         effective_globs = args.globs if args.globs is not None else self.file_patterns
+        exclude_effective_globs = args.exclude_globs if args.exclude_globs is not None else self.exclude_file_patterns
         kwargs = SimpleNamespace(
             location=args.location,
+            paths=args.paths,
             globs=effective_globs,
+            exclude_globs=exclude_effective_globs,
             limit=args.limit,
             chunk_size=args.chunk_size,
+            chunk_overlap=args.chunk_overlap,
+            chunking_method=args.chunking_method,
             head=args.head,
             base=args.base,
             diff=args.diff,
+            model=args.model,
         )
         return ProjectInput(kwargs=kwargs)
 
@@ -138,7 +193,7 @@ class ChunkProcessor(Generic[T]):
             Combined results from all chunks
         """
         # Initialize progress tracking
-        chunks_list = list(project)
+        chunks_list: list[CodeChunk] = [cast(CodeChunk, chunk) for chunk in project]
         self._total_chunks = len(chunks_list)
         self._processed_chunks = 0
         self._results = []
@@ -162,9 +217,7 @@ class ChunkProcessor(Generic[T]):
 
         for chunk in chunks_list:
             # Create a subhistory for this task
-            task_record = HistoryRecord(
-                description=f"Analyzing {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}"
-            )
+            task_record = HistoryRecord(description=f"Analyzing {chunk.locations}")
             history.append_record(task_record)
 
             # Create task for this chunk and add to active tasks

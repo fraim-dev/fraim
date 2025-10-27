@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
-
+from abc import abstractmethod
 from collections.abc import Iterator
 from typing import ContextManager, Protocol, runtime_checkable
 
@@ -15,4 +15,6 @@ class Input(Protocol, ContextManager):
     #       If there must be root path here, refactor this to return pathlib.Path
 
     # The relative file path of the input, related to the project path.
+    @property
+    @abstractmethod
     def root_path(self) -> str: ...

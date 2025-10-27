@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
 
-from fraim.core.contextuals import CodeChunk
+from fraim.core.contextuals import CodeChunk, CodeChunkFailure
 from fraim.core.history import History
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
@@ -83,6 +83,7 @@ class IaCWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[IaCWorkflowOp
 
     def __init__(self, args: IaCWorkflowOptions) -> None:
         super().__init__(args)
+        self.failed_chunks: list[CodeChunkFailure] = []
         scanner_parser = PydanticOutputParser(sarif.RunResults)
         self.scanner_step: LLMStep[IaCCodeChunkOptions, sarif.RunResults] = LLMStep(
             self.llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser
@@ -97,7 +98,7 @@ class IaCWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[IaCWorkflowOp
         """Process a single chunk with error handling."""
         try:
             # 1. Scan the code for vulnerabilities.
-            logger.info(f"Scanning code for vulnerabilities: {Path(chunk.file_path)}")
+            logger.info(f"Scanning code for vulnerabilities: {str(chunk.locations)}")
             iac_input = IaCCodeChunkOptions(code=chunk)
             vulns = await self.scanner_step.run(history, iac_input)
 
@@ -107,9 +108,9 @@ class IaCWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[IaCWorkflowOp
 
             return high_confidence_vulns
         except Exception as e:
+            self.failed_chunks.append(CodeChunkFailure(chunk=chunk, reason=str(e)))
             logger.error(
-                f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {e!s}. "
-                "Skipping this chunk and continuing with scan."
+                f"Failed to process chunk {str(chunk.locations)}: {e!s}. Skipping this chunk and continuing with scan."
             )
             return []
 
@@ -131,6 +132,7 @@ class IaCWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[IaCWorkflowOp
             results=results,
             repo_name=project.repo_name,
             output_dir=self.args.output,
+            failed_chunks=self.failed_chunks,
         )
 
         print(f"Found {len(results)} results.")

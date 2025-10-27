@@ -18,6 +18,7 @@ class StatusCheck(Input):
     def __init__(self, path: str):
         self.path = path
 
+    @property
     def root_path(self) -> str:
         return str(self.path)
 

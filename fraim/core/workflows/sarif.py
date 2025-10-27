@@ -14,6 +14,7 @@ from datetime import datetime
 from typing import Annotated
 
 from fraim import __version__
+from fraim.core.contextuals import CodeChunkFailure
 from fraim.outputs import sarif
 from fraim.outputs.sarif import Result, create_sarif_report
 from fraim.reporting.reporting import Reporting
@@ -51,7 +52,12 @@ class ReportPaths:
     html_path: str
 
 
-def write_sarif_and_html_report(results: list[Result], repo_name: str, output_dir: str) -> ReportPaths:
+def write_sarif_and_html_report(
+    results: list[Result],
+    repo_name: str,
+    output_dir: str,
+    failed_chunks: list[CodeChunkFailure],
+) -> ReportPaths:
     """
     Write security scan results to both SARIF (JSON) and HTML report files.
 
@@ -72,7 +78,7 @@ def write_sarif_and_html_report(results: list[Result], repo_name: str, output_di
         >>> print(reports.html_path)
         '/output/fraim_report_my_repo_20250917_143022.html'
     """
-    report = create_sarif_report(results, __version__)
+    report = create_sarif_report(results, failed_chunks, __version__)
 
     # Create filename with sanitized repo name
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")

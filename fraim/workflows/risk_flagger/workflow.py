@@ -72,7 +72,7 @@ risk_sarif = merge_models(sarif, risk_sarif_overlay)
 
 
 @dataclass
-class RiskFlaggerWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceFilterOptions, StatusCheckOptions):
+class RiskFlaggerWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceFilterOptions):
     """Input for the Risk Flagger workflow."""
 
     pr_url: Annotated[str, {"help": "URL of the pull request to analyze"}] = field(default="")
@@ -159,7 +159,7 @@ class RiskFlaggerWorkflow(
 
         except Exception as e:
             logger.error(
-                f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {e!s}. "
+                f"Failed to process chunk at {str(chunk.locations)}: {str(e)}. "
                 "Skipping this chunk and continuing with scan."
             )
             return []
