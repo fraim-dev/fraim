@@ -19,7 +19,7 @@ class Workflow(ABC, Generic[Options, Result]):
     name: ClassVar[str]
 
     def __init__(self, args: Options) -> None:
-        super().__init__(args)  # type: ignore
+        super().__init__()  # type: ignore
 
         self.args = args
 

@@ -81,7 +81,7 @@ class TriagerInput:
     code: CodeChunk
 
 
-class SASTWorkflow(Workflow[SASTWorkflowOptions, list[sarif.Result]], ChunkProcessor, LLMMixin):
+class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflowOptions, list[sarif.Result]]):
     """
     Analyzes source code for security vulnerabilities
     """
