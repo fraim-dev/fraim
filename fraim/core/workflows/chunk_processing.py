@@ -218,7 +218,7 @@ class ChunkProcessor(Generic[T]):
         for chunk in chunks_list:
             # Create a subhistory for this task
             task_record = HistoryRecord(
-                description=f"Analyzing {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}"
+                description=f"Analyzing {chunk.locations}"
             )
             history.append_record(task_record)
 
