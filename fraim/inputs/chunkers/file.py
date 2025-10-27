@@ -14,6 +14,7 @@ class FileChunker(FixedTokenChunker):
 
     If it does not fit, it will be split with FixedTokenChunker.
     """
+
     def __init__(self, model: str, chunk_fraction: float = 0.7, **kwargs: Any) -> None:
         max_tokens = get_max_tokens(model)
         if not max_tokens:

@@ -27,5 +27,7 @@ class SyntacticChunker(FixedTokenChunker):
                 if file.language is None:
                     yield from self.split_file(self.splitter, file)
                 else:
-                    splitter = RecursiveCharacterTextSplitter.from_language(Language(file.language), add_start_index=True)
+                    splitter = RecursiveCharacterTextSplitter.from_language(
+                        Language(file.language), add_start_index=True
+                    )
                     yield from self.split_file(splitter, file)

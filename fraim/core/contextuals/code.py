@@ -2,7 +2,7 @@
 # Copyright (c) 2025 Resourcely Inc.
 import dataclasses
 from pathlib import Path
-from typing import Collection, Literal, AbstractSet, Set
+from typing import AbstractSet, Collection, Literal, Set
 
 import tiktoken
 
@@ -130,7 +130,6 @@ class CodeChunks(list[CodeChunk], Contextual[str]):
     def __len__(self) -> int:
         """Return the length of the combined content of all code chunks in tokens."""
         return sum(len(chunk) for chunk in self)
-
 
 
 @dataclasses.dataclass

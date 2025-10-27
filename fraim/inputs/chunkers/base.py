@@ -7,6 +7,7 @@ from fraim.core.contextuals import CodeChunk, Contextual
 
 class Chunker:
     """Base class for chunkers."""
+
     @abstractmethod
     def __init__(self, *args, **kwargs): ...
 

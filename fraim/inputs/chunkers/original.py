@@ -9,9 +9,7 @@ from fraim.inputs.input import Input
 
 
 class OriginalChunker(Chunker):
-    def __init__(
-        self, input: Input, project_path: str, chunk_size: int | None, **kwargs: dict[str, Any]
-    ) -> None:
+    def __init__(self, input: Input, project_path: str, chunk_size: int | None, **kwargs: dict[str, Any]) -> None:
         self.chunk_size = chunk_size if chunk_size else 500
         self.input = input
         self.project_path = project_path

@@ -10,7 +10,7 @@ from abc import abstractmethod
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Annotated, Generic, TypeVar, Optional
+from typing import Annotated, Generic, Optional, TypeVar
 
 from rich.layout import Layout
 from rich.progress import Progress, TaskID
@@ -19,7 +19,7 @@ from fraim.core.contextuals import CodeChunk, Contextual
 from fraim.core.display import ProgressPanel, ResultsPanel
 from fraim.core.history import EventRecord, History, HistoryRecord
 from fraim.core.workflows.llm_processing import LLMOptions
-from fraim.inputs.project import ProjectInput, CHUNKING_METHODS
+from fraim.inputs.project import CHUNKING_METHODS, ProjectInput
 
 # Type variable for generic result types
 T = TypeVar("T")
@@ -72,7 +72,7 @@ class ChunkProcessingOptions(LLMOptions):
     ] = None
 
     chunk_overlap: Annotated[
-        int|None,  # TODO: Support int | None notation, this value get's set as a string if that is used now.
+        int | None,  # TODO: Support int | None notation, this value get's set as a string if that is used now.
         {
             "help": (
                 "Number of characters of overlap per chunk. Does not apply when the original, file, or project chunking "

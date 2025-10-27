@@ -18,12 +18,12 @@ logger = logging.getLogger(__name__)
 
 class Local(Input):
     def __init__(
-            self,
-            root_path: str,
-            paths: list[str] | None = None,
-            globs: list[str] | None = None,
-            limit: int | None = None,
-            exclude_globs: list[str] | None = None,
+        self,
+        root_path: str,
+        paths: list[str] | None = None,
+        globs: list[str] | None = None,
+        limit: int | None = None,
+        exclude_globs: list[str] | None = None,
     ):
         self._root_path = Path(root_path)
 
@@ -135,6 +135,7 @@ class Local(Input):
         self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None
     ) -> None:
         pass
+
 
 def rglob(path: Path, glob_pattern: str):
     """Returns all matching paths or the path itself."""

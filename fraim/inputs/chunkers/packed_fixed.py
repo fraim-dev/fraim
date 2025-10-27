@@ -4,11 +4,12 @@ import logging
 from typing import Iterator
 
 from fraim.core.contextuals import Contextual
-from fraim.core.contextuals.code import CodeChunks, CodeChunk
+from fraim.core.contextuals.code import CodeChunk, CodeChunks
 from fraim.inputs.chunkers.fixed import FixedTokenChunker
 from fraim.inputs.chunkers.syntactic import SyntacticChunker
 
 logger = logging.getLogger(__name__)
+
 
 class PackingSyntacticChunker(SyntacticChunker):
     """
@@ -38,7 +39,6 @@ class PackingSyntacticChunker(SyntacticChunker):
         yield from packed_chunks(super().chunks(), self.chunk_size)
 
 
-
 class PackingFixedTokenChunker(FixedTokenChunker):
     """
     A fixed token chunker that packs multiple whole files into chunks.
@@ -65,6 +65,7 @@ class PackingFixedTokenChunker(FixedTokenChunker):
         This is the same as the __iter__ method, but with a more specific return type.
         """
         yield from packed_chunks(super().chunks(), self.chunk_size)
+
 
 def packed_chunks(chunks: Iterator[CodeChunk], chunk_size: int) -> Iterator[CodeChunks]:
     """

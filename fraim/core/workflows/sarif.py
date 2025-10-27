@@ -53,10 +53,10 @@ class ReportPaths:
 
 
 def write_sarif_and_html_report(
-        results: list[Result],
-        repo_name: str,
-        output_dir: str,
-        failed_chunks: list[CodeChunkFailure],
+    results: list[Result],
+    repo_name: str,
+    output_dir: str,
+    failed_chunks: list[CodeChunkFailure],
 ) -> ReportPaths:
     """
     Write security scan results to both SARIF (JSON) and HTML report files.

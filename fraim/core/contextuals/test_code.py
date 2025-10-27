@@ -49,7 +49,7 @@ def test_code_chunks():
                 content="print('Hello, world!')",
                 line_number_start_inclusive=1,
                 line_number_end_inclusive=1,
-            )
+            ),
         ],
     )
 

@@ -32,7 +32,7 @@ def test_max_content_chunker() -> None:
     )
 
     assert len(chunks) == 1
-    assert len(chunks[0]) == 18 # Measured in tokens
+    assert len(chunks[0]) == 18  # Measured in tokens
     assert chunks[0][0].content == file_1.content
     assert chunks[0][0].file_path == str(file_1.file_path)
     assert chunks[0][0].line_number_start_inclusive == 1

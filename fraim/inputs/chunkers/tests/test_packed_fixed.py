@@ -71,7 +71,7 @@ def test_small_files_are_packed(project_path: str) -> None:
     # So each CodeChunk is well under 500. The two combined should also be under 500.
     # So they should be packed into one CodeChunks.
     assert len(chunks) == 1
-    assert len(chunks[0]) == 117 # Measured in tokens
+    assert len(chunks[0]) == 117  # Measured in tokens
     assert chunks[0][0].file_path == "small_file.py"
     assert chunks[0][1].file_path == "small_file.py"
     assert chunks[0][0].line_number_start_inclusive == 1
@@ -89,7 +89,7 @@ def test_single_large_file_violates_chunk_size(project_path: str) -> None:
     chunks = list(PackingSyntacticChunker(_input, chunk_size=400, chunk_lines=1000).chunks())
 
     assert len(chunks) == 1
-    assert len(chunks[0]) == 125 # Measured in tokens
+    assert len(chunks[0]) == 125  # Measured in tokens
     assert len(str(chunks[0])) > 400
 
 
@@ -105,5 +105,5 @@ def test_single_small_file(project_path: str) -> None:
     chunks = list(PackingSyntacticChunker(input=_input, chunk_size=1000).chunks())
 
     assert len(chunks) == 1
-    assert len(chunks[0]) == 4 # Measured in tokens
+    assert len(chunks[0]) == 4  # Measured in tokens
     assert chunks[0][0].file_path == "single.py"

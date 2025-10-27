@@ -12,6 +12,7 @@ from typing import List, Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
+
 class BaseSchema(BaseModel):
     model_config = ConfigDict(
         alias_generator=to_camel,
