@@ -15,9 +15,9 @@ from fraim.inputs.local import Local
 from fraim.inputs.status_check import StatusCheck
 
 CHUNKING_METHODS = {
-    "syntactic": SyntacticChunker,
+    "syntactic_token": SyntacticChunker,
     "fixed_token": FixedTokenChunker,
-    "packed": PackingSyntacticChunker,
+    "packed_syntactic": PackingSyntacticChunker,
     "packed_fixed": PackingFixedTokenChunker,
     "file": FileChunker,
     "project": MaxContextChunker,

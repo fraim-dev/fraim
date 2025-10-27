@@ -56,15 +56,15 @@ class ChunkProcessingOptions(LLMOptions):
             ),
             "choices": CHUNKING_METHODS.keys(),
         },
-    ] = "original"
+    ] = "packed_syntactic"
     chunk_size: Annotated[
         int,
         {
             "help": (
-                "Number of characters per chunk. Does not apply when the original, file, or project chunking methods are used."
+                "Number of tokens per chunk. Does not apply when the original, file, or project chunking methods are used."
             )
         },
-    ] = 500
+    ] = 12_000
 
     # NOTE: There is a bug that causes `paths` to be interpreted as str if `Annotated[list[str] | None, ...]` used here.
     paths: Annotated[
