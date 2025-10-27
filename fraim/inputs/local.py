@@ -74,7 +74,7 @@ class Local(Input):
     def __iter__(self) -> Iterator[CodeChunk]:
         logger.info(f"Scanning local files: {self.root_path}, with globs: {self.globs}")
 
-        self._seen = set()
+        self._seen: set[Path] = set()
         for subpath in self.paths:
             subpath = Path(subpath)
             logger.info(
@@ -137,7 +137,7 @@ class Local(Input):
         pass
 
 
-def rglob(path: Path, glob_pattern: str):
+def rglob(path: Path, glob_pattern: str) -> Iterator[Path]:
     """Returns all matching paths or the path itself."""
     paths: Iterator[Path]
     if path.is_file():

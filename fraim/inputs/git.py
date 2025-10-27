@@ -33,6 +33,7 @@ class GitRemote(Input):
         self.path = self.tempdir.name
         self.paths = paths
 
+    @property
     def root_path(self) -> str:
         return str(Path(self.path).absolute())
 

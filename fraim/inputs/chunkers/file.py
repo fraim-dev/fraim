@@ -4,7 +4,7 @@ from typing import Any, Iterator
 
 from litellm import get_max_tokens
 
-from fraim.core.contextuals.code import CodeChunk
+from fraim.core.contextuals import Contextual
 from fraim.inputs.chunkers.fixed import FixedTokenChunker
 
 
@@ -25,8 +25,7 @@ class FileChunker(FixedTokenChunker):
         kwargs.pop("chunk_overlap", None)  # Use are own chunk size here
         super().__init__(chunk_size=int(chunk_size), chunk_overlap=0, **kwargs)
 
-    def __iter__(self) -> Iterator[CodeChunk]:
+    def __iter__(self) -> Iterator[Contextual[str]]:
         """Yield each file as a single chunk."""
 
-        for file in self.chunks():
-            yield file
+        yield from self.chunks()

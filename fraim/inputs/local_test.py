@@ -1,25 +1,16 @@
-import logging
 from pathlib import Path
 
 import pytest
 
-from fraim.config import Config
 from fraim.core.contextuals import CodeChunk
 from fraim.inputs.local import Local
 
 TEST_DATA_DIR = Path(__name__).parent / "test_data"
 
-log = logging.getLogger(__name__)
-
 
 @pytest.fixture
 def local() -> Local:
-    return Local(
-        logger=log,
-        root_path=str(TEST_DATA_DIR),
-        globs=["*.py"],
-        exclude_globs=["*.min.js", "*.min.css"],
-    )
+    return Local(root_path=str(TEST_DATA_DIR), globs=["*.py"], exclude_globs=["*.min.js", "*.min.css"])
 
 
 @pytest.fixture

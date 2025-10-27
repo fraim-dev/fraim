@@ -39,6 +39,7 @@ class GitDiff(Input):
     ) -> bool | None:
         return None
 
+    @property
     def root_path(self) -> str:
         return self.path
 

@@ -65,6 +65,8 @@ class SASTWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceFilterOp
         int, {"help": "Maximum number of triager requests per chunk to run concurrently"}
     ] = 3
 
+    no_triage: Annotated[bool, {"help": "If set, skip the triage step and only run the scanner step"}] = False
+
 
 @dataclass
 class SASTInput:
@@ -117,7 +119,7 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
 
         # Configure the scanner step
         scanner_parser = PydanticOutputParser(sast_workflow_run_results_class)
-        self.scanner_step: LLMStep[SASTInput, Run] = LLMStep(
+        self.scanner_step: LLMStep[SASTInput, sarif.Run] = LLMStep(
             self.llm,
             SCANNER_PROMPTS["system"],
             SCANNER_PROMPTS["user"],
@@ -153,17 +155,13 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
         triager_tools = FilesystemTools(self.project.project_path)
         triager_llm = self.llm.with_tools(triager_tools)
         triager_parser = PydanticOutputParser(triage_sarif.Result)
-        self.triager_step: LLMStep[TriagerInput, sarif.Result] = LLMStep(
+        self._triager_step = LLMStep(
             triager_llm,
             TRIAGER_PROMPTS["system"],
             TRIAGER_PROMPTS["user"],
             triager_parser,
         )
-
-    @property
-    def file_patterns(self) -> list[str]:
-        """Code file patterns."""
-        return FILE_PATTERNS
+        return self._triager_step
 
     async def _process_single_chunk(
         self, history: History, chunk: CodeChunk, max_concurrent_triagers: int

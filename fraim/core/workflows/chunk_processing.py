@@ -10,7 +10,7 @@ from abc import abstractmethod
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Annotated, Generic, Optional, TypeVar
+from typing import Annotated, Generic, Optional, TypeVar, cast
 
 from rich.layout import Layout
 from rich.progress import Progress, TaskID
@@ -97,7 +97,7 @@ class ChunkProcessor(Generic[T]):
     """
 
     def __init__(self, args: ChunkProcessingOptions) -> None:
-        super().__init__(args)  # type: ignore
+        super().__init__(args)  # type: ignore[misc, call-arg]
 
         # Progress tracking attributes
         self._total_chunks = 0
@@ -177,7 +177,7 @@ class ChunkProcessor(Generic[T]):
         self,
         history: History,
         project: ProjectInput,
-        chunk_processor: Callable[[History, Contextual[str]], Awaitable[list[T]]],
+        chunk_processor: Callable[[History, CodeChunk], Awaitable[list[T]]],
         max_concurrent_chunks: int = 5,
     ) -> list[T]:
         """
@@ -193,7 +193,7 @@ class ChunkProcessor(Generic[T]):
             Combined results from all chunks
         """
         # Initialize progress tracking
-        chunks_list = list(project)
+        chunks_list: list[CodeChunk] = [cast(CodeChunk, chunk) for chunk in project]
         self._total_chunks = len(chunks_list)
         self._processed_chunks = 0
         self._results = []

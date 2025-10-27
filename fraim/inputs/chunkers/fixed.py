@@ -23,7 +23,7 @@ class FixedTokenChunker(Chunker):
         yield from self.chunks()
 
     # Chunks is kept separate from iterator so we have a type annotation that returns the concrete class
-    def chunks(self) -> Iterator[CodeChunk]:
+    def chunks(self) -> Iterator[Contextual[str]]:
         with self.input as input:
             for file in input:
                 yield from self.split_file(self.splitter, file)

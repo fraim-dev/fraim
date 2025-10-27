@@ -21,7 +21,7 @@ class SyntacticChunker(FixedTokenChunker):
         yield from self.chunks()
 
     # Chunks is kept separate from iterator so we have a type annotation that returns the concrete class
-    def chunks(self) -> Iterator[CodeChunk]:
+    def chunks(self) -> Iterator[Contextual[str]]:
         with self.input as files:
             for file in files:
                 if file.language is None:

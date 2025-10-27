@@ -9,6 +9,7 @@ class InMemory:
         self._files = files
         self._root_path = root_path
 
+    @property
     def root_path(self) -> str:
         return self._root_path
 

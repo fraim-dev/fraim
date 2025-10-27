@@ -4,7 +4,7 @@ from fraim.core.contextuals import CodeChunk
 from fraim.core.contextuals.code import CodeChunks
 
 
-def test_code_chunk():
+def test_code_chunk() -> None:
     code_chunk = CodeChunk(
         file_path="example.py",
         content="print('Hello, world!')",
@@ -35,7 +35,7 @@ def test_code_chunk_language_detection(file_path: str, expected_language: str) -
     assert chunk.language == expected_language
 
 
-def test_code_chunks():
+def test_code_chunks() -> None:
     code_chunks = CodeChunks(
         all_files=[
             CodeChunk(

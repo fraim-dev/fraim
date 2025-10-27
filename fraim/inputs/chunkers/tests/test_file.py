@@ -1,4 +1,5 @@
 import logging
+from typing import cast
 
 from fraim.core.contextuals import CodeChunk
 from fraim.inputs.chunkers.file import FileChunker
@@ -19,7 +20,10 @@ def test_file_chunker() -> None:
         root_path="/project",
     )
 
-    chunks = list(FileChunker(input=_input, model="gemini/gemini-2.5-flash", chunk_size=100, logger=log))
+    chunks = [
+        cast(CodeChunk, chunk)
+        for chunk in FileChunker(input=_input, model="gemini/gemini-2.5-flash", chunk_size=100, logger=log)
+    ]
 
     assert len(chunks) == 1
     assert chunks[0].content == "print('Hello, World!')"

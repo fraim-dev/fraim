@@ -3,6 +3,7 @@
 
 from typing import Any, Iterator
 
+from fraim.core.contextuals import Contextual
 from fraim.core.contextuals.code import CodeChunk
 from fraim.inputs.chunkers.base import Chunker
 from fraim.inputs.input import Input
@@ -14,9 +15,9 @@ class OriginalChunker(Chunker):
         self.input = input
         self.project_path = project_path
 
-    def __iter__(self) -> Iterator[CodeChunk]:
+    def __iter__(self) -> Iterator[Contextual[str]]:
         for file in self.input:
-            yield from chunk_input(file, self.chunk_size)
+            yield from chunk_input(file, self.chunk_size) # type: ignore[arg-type]
 
 
 # TODO: move chunking concern out of input

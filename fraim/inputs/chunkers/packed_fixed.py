@@ -1,9 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 import logging
-from typing import Iterator
+from typing import Iterator, cast
 
-from fraim.core.contextuals import Contextual
 from fraim.core.contextuals.code import CodeChunk, CodeChunks
 from fraim.inputs.chunkers.fixed import FixedTokenChunker
 from fraim.inputs.chunkers.syntactic import SyntacticChunker
@@ -26,17 +25,17 @@ class PackingSyntacticChunker(SyntacticChunker):
        itself in its own chunk, violating the size limit to uphold rule #1.
     """
 
-    def __iter__(self) -> Iterator[Contextual[str]]:
+    def __iter__(self) -> Iterator[CodeChunks]:  # type: ignore[override]
         yield from self.chunks()
 
     # Chunks is kept separate from iterator so we have a type annotation that returns the concrete class
-    def chunks(self) -> Iterator[CodeChunks]:
+    def chunks(self) -> Iterator[CodeChunks]:  # type: ignore[override]
         """
         Represents the packed chunks, each containing multiple files.
 
         This is the same as the __iter__ method, but with a more specific return type.
         """
-        yield from packed_chunks(super().chunks(), self.chunk_size)
+        yield from packed_chunks(cast(Iterator[CodeChunk], super().chunks()), self.chunk_size)
 
 
 class PackingFixedTokenChunker(FixedTokenChunker):
@@ -54,17 +53,17 @@ class PackingFixedTokenChunker(FixedTokenChunker):
        itself in its own chunk, violating the size limit to uphold rule #1.
     """
 
-    def __iter__(self) -> Iterator[Contextual[str]]:
+    def __iter__(self) -> Iterator[CodeChunks]:  # type: ignore[override]
         yield from self.chunks()
 
     # Chunks is kept separate from iterator so we have a type annotation that returns the concrete class
-    def chunks(self) -> Iterator[CodeChunks]:
+    def chunks(self) -> Iterator[CodeChunks]:  # type: ignore[override]
         """
         Represents the packed chunks, each containing multiple files.
 
         This is the same as the __iter__ method, but with a more specific return type.
         """
-        yield from packed_chunks(super().chunks(), self.chunk_size)
+        yield from packed_chunks(cast(Iterator[CodeChunk], super().chunks()), self.chunk_size)
 
 
 def packed_chunks(chunks: Iterator[CodeChunk], chunk_size: int) -> Iterator[CodeChunks]:

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -17,7 +18,7 @@ def sequential_code_chunk() -> CodeChunk:
 def test_fixed_token_chunker_preserves_line_numbers(sequential_code_chunk: CodeChunk, tmp_path: Path) -> None:
     input_source = InMemory(sequential_code_chunk, root_path=str(tmp_path))
     chunker = FixedTokenChunker(input_source, chunk_size=50, chunk_overlap=10)
-    chunks = list(chunker.chunks())
+    chunks = [cast(CodeChunk, chunk) for chunk in chunker.chunks()]
 
     assert len(chunks) >= 3
     assert chunks[0].line_number_start_inclusive == 1

@@ -13,6 +13,7 @@ class StandardInput(Input):
     def __init__(self, body: str):
         self.body = body
 
+    @property
     def root_path(self) -> str:
         return "stdin"
 
