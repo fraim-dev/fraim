@@ -12,10 +12,11 @@ import logging
 import os
 from dataclasses import dataclass
 from typing import Annotated
+from datetime import datetime
 
 from fraim.core.contextuals import CodeChunk
-from fraim.core.history import History, HistoryRecord
-from fraim.core.parsers import PydanticOutputParser
+from fraim.core.history import EventRecord, History, HistoryRecord
+from fraim.core.parsers import PydanticOutputParser, TextOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
 from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor, Workflow
@@ -50,6 +51,7 @@ FILE_PATTERNS = [
 
 SCANNER_PROMPTS = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__file__), "scanner_prompts.yaml"))
 TRIAGER_PROMPTS = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__file__), "triager_prompts.yaml"))
+THREAT_MODEL = PromptTemplate.from_yaml(os.path.join(os.path.dirname(__file__), "threat_model.yaml"))
 
 triage_sarif = merge_models(sarif, triage_sarif_overlay)
 
@@ -78,7 +80,7 @@ class TriagerInput:
 
     vulnerability: str
     code: CodeChunk
-
+    threat_model: str
 
 class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflowOptions, list[sarif.Result]]):
     """
@@ -92,6 +94,18 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
 
         # Configure the project
         self.project = self.setup_project_input(self.args)
+
+        # Configure the threat model step with filesystem tools
+        threat_model_tools = FilesystemTools(self.project.project_path)
+        threat_model_llm = self.llm.with_tools(threat_model_tools)
+        threat_model_parser = TextOutputParser(THREAT_MODEL["output_format"].render({})[0])
+        self.threat_model_step: LLMStep[dict, str] = LLMStep(
+            threat_model_llm,
+            THREAT_MODEL["system"],
+            THREAT_MODEL["user"],
+            threat_model_parser,
+        )
+        self.threat_model = ""
 
         # Configure the scanner step
         scanner_parser = PydanticOutputParser(sarif.RunResults)
@@ -126,7 +140,7 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
             # 1. Scan the code for potential vulnerabilities.
             logger.debug("Scanning the code for potential vulnerabilities")
             potential_vulns = await self.scanner_step.run(history, SASTInput(code=chunk))
-
+            
             # 2. Filter vulnerabilities by confidence.
             logger.debug("Filtering vulnerabilities by confidence")
             high_confidence_vulns = filter_results_by_confidence(potential_vulns.results, self.args.confidence)
@@ -145,7 +159,7 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
 
                 async with triager_semaphore:
                     return await self.triager_step.run(
-                        task_record.history, TriagerInput(vulnerability=str(vuln), code=chunk)
+                        task_record.history, TriagerInput(vulnerability=str(vuln), code=chunk, threat_model=self.threat_model)
                     )
 
             triaged_results = await asyncio.gather(*[triage_with_semaphore(vuln) for vuln in high_confidence_vulns])
@@ -169,6 +183,20 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
 
     async def run(self) -> list[sarif.Result]:
         """Main Code workflow - full control over execution with multi-step processing."""
+
+        # Generate threat model for the entire repository
+        task_record = HistoryRecord(description="Generating threat model for the entire project")
+        self.history.append_record(task_record)
+        self.threat_model = await self.threat_model_step.run(task_record.history, {})
+
+        # Write threat model to file
+        current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_repo_name = "".join(c if c.isalnum() else "_" for c in self.project.repo_name).strip("_")
+        threat_model_filename = f"fraim_threat_model_{safe_repo_name}_{current_time}.md"
+        threat_model_file = os.path.join(self.args.output, threat_model_filename)
+        with open(threat_model_file, "w") as f:
+            f.write(self.threat_model)
+        print(f"Wrote threat model to {threat_model_filename}")
 
         # Create a closure that captures max_concurrent_triagers
         async def chunk_processor(history: History, chunk: CodeChunk) -> list[sarif.Result]:
