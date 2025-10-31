@@ -13,6 +13,7 @@ from litellm.types.utils import ChatCompletionMessageToolCall
 
 from fraim.core.history import EventRecord, History
 from fraim.core.llms.base import BaseLLM
+from fraim.core.llms.cache import LLMCache
 from fraim.core.messages import AssistantMessage, Function, Message, ToolCall
 from fraim.core.tools import BaseTool, execute_tool_calls
 from fraim.core.utils.retry.http import should_retry_request as should_retry_http_request
@@ -88,6 +89,9 @@ class LiteLLM(BaseLLM):
         self.base_delay = base_delay
         self.max_delay = max_delay
 
+        # LLM response caching
+        self.cache = LLMCache()
+
     def with_tools(self, tools: Iterable[BaseTool], max_tool_iterations: int | None = None) -> Self:
         if max_tool_iterations is None:
             max_tool_iterations = self.max_tool_iterations
@@ -114,13 +118,16 @@ class LiteLLM(BaseLLM):
 
         logging.getLogger().debug(f"LLM request: {completion_params}")
 
-        completion = with_retry(
-            acompletion_text,
-            max_retries=self.max_retries,
-            base_delay=self.base_delay,
-            max_delay=self.max_delay,
-            retry_predicate=should_retry_acompletion,
+        completion = self.cache(
+            with_retry(
+                acompletion_text,
+                max_retries=self.max_retries,
+                base_delay=self.base_delay,
+                max_delay=self.max_delay,
+                retry_predicate=should_retry_acompletion,
+            )
         )
+
         history.append_record(EventRecord(description="Thinking..."))
         response = await completion(**completion_params)
         history.pop_record()

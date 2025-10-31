@@ -143,7 +143,7 @@ def _build_cmd(
     Returns:
         List of command arguments for ripgrep
     """
-    args = [ripgrep_bin, "--no-follow", "--color", "never"]
+    args = [ripgrep_bin, "--no-follow", "--color", "never", "--sort", "path"]
 
     # Output mode options
     if output_mode == "files_with_matches":

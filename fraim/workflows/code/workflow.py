@@ -118,8 +118,8 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
         self.project = self.setup_project_input(self.args)
 
         # Configure the scanner step
-        scanner_parser = PydanticOutputParser(sast_workflow_run_results_class)
-        self.scanner_step: LLMStep[SASTInput, sarif.Run] = LLMStep(
+        scanner_parser = PydanticOutputParser(sarif.RunResults)
+        self.scanner_step: LLMStep[SASTInput, sarif.RunResults] = LLMStep(
             self.llm,
             SCANNER_PROMPTS["system"],
             SCANNER_PROMPTS["user"],
@@ -183,10 +183,6 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
             # 4. Filter the triaged vulnerabilities by confidence
             logger.debug("Filtering the triaged vulnerabilities by confidence")
             high_confidence_triaged_vulns = filter_results_by_confidence(triaged_vulns, self.args.confidence)
-
-            self.history.append_record(
-                EventRecord(description=f"Done. Found {len(high_confidence_triaged_vulns)} results.")
-            )
 
             return high_confidence_triaged_vulns
 

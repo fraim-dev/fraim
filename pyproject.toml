@@ -30,6 +30,7 @@ dependencies = [
     "openai==1.99.9",
     "packaging>=21.0",
     "pathspec>=0.12.1",
+    "platformdirs>=4.0.0",
     "pydantic>=2.11.1",
     "PyGithub>=2.2.0",
     "pyyaml>=6.0.2",
