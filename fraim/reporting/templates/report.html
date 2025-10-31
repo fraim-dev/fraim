@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Analysis Report</title>
+    <link rel="icon" type="image/png" href="__FAVICON_DATA__">
+    <style>
+__CSS__
+    </style>
+</head>
+<body>
+    __NAVBAR__
+
+    <div class="layout-container">
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Repository Header -->
+            <div class="content-header">
+                <div class="header-left">
+                    <h2 id="repo-name" class="content-title">Repository</h2>
+                </div>
+                <div class="header-right">
+                    <div class="score-circle" id="score-circle">
+                        <div class="score-value" id="score-value">--</div>
+                        <div class="score-label">Security Score</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Threat Model Section -->
+            <section class="threat-model-section" id="threat-model-section" style="display: none;">
+                <div class="threat-model-header">
+                    <div class="threat-model-title-section">
+                        <h3 class="threat-model-title">
+                            <svg class="threat-model-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Threat Model
+                        </h3>
+                    </div>
+                </div>
+                <div class="threat-model-content" id="threat-model-content">
+                    <div class="threat-model-preview" id="threat-model-preview"></div>
+                    <div class="threat-model-full" id="threat-model-full" style="display: none;"></div>
+                    <div class="threat-model-footer">
+                        <button id="threat-model-toggle-btn" class="threat-model-toggle-btn">
+                            <span class="toggle-text">See More</span>
+                            <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </section>
+            <!-- Score Metrics Section -->
+            <section class="metrics-section">
+                <div class="metrics-header">
+                    <div class="metrics-grid" id="metrics-grid"></div>
+                </div>
+            </section>
+
+            <!-- Alert Banner (shown if critical issues exist) -->
+            <div id="critical-alert" class="critical-alert" style="display: none;">
+                <div class="alert-icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2L1 21h22L12 2zm0 3.83L19.53 19H4.47L12 5.83zM11 16v2h2v-2h-2zm0-6v4h2v-4h-2z"/>
+                    </svg>
+                </div>
+                <div class="alert-content">
+                    <div class="alert-title">Critical Security Issues Detected</div>
+                    <div class="alert-message" id="critical-alert-message"></div>
+                </div>
+            </div>
+
+            <!-- Filters and Controls -->
+            <div class="controls-section">
+                <div class="filter-groups">
+                    <div class="filter-group">
+                        <label for="severity-filter">Severity</label>
+                        <select id="severity-filter" class="select-input">
+                            <option value="">All Severities</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="type-filter">Type</label>
+                        <select id="type-filter" class="select-input">
+                            <option value="">All Types</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="control-buttons">
+                    <button id="toggle-exploitable-btn" class="control-btn secondary">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        Show Non-exploitable
+                    </button>
+                    <button id="expand-all-btn" class="control-btn">Expand All</button>
+                    <button id="collapse-all-btn" class="control-btn">Collapse All</button>
+                </div>
+            </div>
+
+            <!-- Tab Contents / Findings -->
+            <div id="tab-contents" class="findings-container"></div>
+
+            <!-- Footer Metadata -->
+            <footer class="report-footer">
+                <div class="footer-metadata">
+                    <div class="metadata-item">
+                        <div class="metadata-label">Report Generated</div>
+                        <div class="metadata-value" id="footer-timestamp"></div>
+                    </div>
+                    <div class="metadata-item">
+                        <div class="metadata-label">Total Findings</div>
+                        <div class="metadata-value" id="total-findings">0</div>
+                    </div>
+                    <div class="metadata-item">
+                        <div class="metadata-label">Scanner Version</div>
+                        <div class="metadata-value" id="scanner-version">1.0.0</div>
+                    </div>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <script>
+        // Embedded SARIF data (base64 encoded for security)
+        const embeddedSarifData = JSON.parse(atob('__SARIF_DATA__'));
+        // Embedded threat model data (base64 encoded for security, empty string if not present)
+        const embeddedThreatModelData = '__THREAT_MODEL_DATA__';
+    </script>
+    <script>
+__JAVASCRIPT__
+    </script>
+</body>
+</html>

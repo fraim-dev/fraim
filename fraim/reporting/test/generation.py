@@ -20,10 +20,17 @@ def main() -> int:
 Examples:
   python fraim/reporting/test/generation.py path/to/report.sarif
   python fraim/reporting/test/generation.py path/to/report.sarif --repo-name "My Project"
+  python fraim/reporting/test/generation.py path/to/report.sarif --for-security-reports
         """,
     )
     parser.add_argument("sarif_file", help="Path to the SARIF file to process")
     parser.add_argument("--repo-name", default="", help="Repository name", metavar="")
+    parser.add_argument(
+        "--for-security-reports",
+        action="store_true",
+        help="Generate report for security reports (full navbar)",
+        default=False,
+    )
 
     args = parser.parse_args()
 
@@ -69,15 +76,24 @@ Examples:
         print(f"Error loading SARIF file: {e}")
         return 1
 
+    # Check for threat model file
+    threat_model_content = None
+    threat_model_path = os.path.dirname(sarif_file_path) + "/threat_model.md"
+    if os.path.exists(threat_model_path):
+        print(f"Loading threat model file: {threat_model_path}")
+        with open(threat_model_path, encoding="utf-8") as f:
+            threat_model_content = f.read()
+        print(f"Loaded threat model content ({len(threat_model_content)} characters)")
+
     # Generate HTML report
     try:
-        print(f"Generating HTML report: {output_file}")
-
-        Reporting.generate_html_report(sarif_report=sarif_report, repo_name=args.repo_name, output_path=output_file)
-
-        print(f"✅ Successfully generated HTML report: {output_file}")
-        print(f"📁 File size: {os.path.getsize(output_file)} bytes")
-        print(f"🌐 Open in browser: file://{os.path.abspath(output_file)}")
+        Reporting.generate_html_report(
+            sarif_report=sarif_report,
+            repo_name=args.repo_name,
+            output_path=output_file,
+            threat_model_content=threat_model_content,
+            generation_for_security_reports=args.for_security_reports,
+        )
         return 0
 
     except Exception as e:
