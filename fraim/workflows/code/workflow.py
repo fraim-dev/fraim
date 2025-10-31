@@ -11,8 +11,8 @@ import asyncio
 import logging
 import os
 from dataclasses import dataclass
-from typing import Annotated
 from datetime import datetime
+from typing import Annotated, cast
 
 from fraim.core.contextuals import CodeChunk
 from fraim.core.history import EventRecord, History, HistoryRecord
@@ -27,6 +27,7 @@ from fraim.util.pydantic import merge_models
 from ...core.workflows.llm_processing import LLMMixin, LLMOptions
 from ...core.workflows.sarif import ConfidenceFilterOptions, filter_results_by_confidence, write_sarif_and_html_report
 from . import triage_sarif_overlay
+from .triage_sarif_overlay import ResultProperties as TriageResultProperties
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,7 @@ class TriagerInput:
     vulnerability: str
     code: CodeChunk
     threat_model: str
+
 
 class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflowOptions, list[sarif.Result]]):
     """
@@ -140,7 +142,7 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
             # 1. Scan the code for potential vulnerabilities.
             logger.debug("Scanning the code for potential vulnerabilities")
             potential_vulns = await self.scanner_step.run(history, SASTInput(code=chunk))
-            
+
             # 2. Filter vulnerabilities by confidence.
             logger.debug("Filtering vulnerabilities by confidence")
             high_confidence_vulns = filter_results_by_confidence(potential_vulns.results, self.args.confidence)
@@ -158,9 +160,19 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
                 history.append_record(task_record)
 
                 async with triager_semaphore:
-                    return await self.triager_step.run(
-                        task_record.history, TriagerInput(vulnerability=str(vuln), code=chunk, threat_model=self.threat_model)
+                    result = await self.triager_step.run(
+                        task_record.history,
+                        TriagerInput(vulnerability=str(vuln), code=chunk, threat_model=self.threat_model),
                     )
+                    # Cast to overlay type for type checking
+                    category = cast("TriageResultProperties", result.properties).category.value
+                    task_record.history.append_record(EventRecord(description=f"Triage conclusion: {category}."))
+
+                    # Drop misunderstandings
+                    if category == "misunderstanding":
+                        return None
+
+                    return result
 
             triaged_results = await asyncio.gather(*[triage_with_semaphore(vuln) for vuln in high_confidence_vulns])
 
