@@ -62,7 +62,7 @@ class ProjectInput:
                 exclude_globs=exclude_globs,
                 paths=paths,
             )
-            self.project_path = self.input.root_path()
+            self.project_path = self.input.root_path
         else:
             # Fully resolve the path to the project
             self.project_path = os.path.abspath(path_or_url)

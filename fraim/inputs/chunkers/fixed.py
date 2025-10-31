@@ -30,28 +30,27 @@ class FixedTokenChunker(Chunker):
 
     def split_file(self, splitter: TextSplitter, chunk: CodeChunk) -> Iterator[CodeChunk]:
         line_starts = [0] + [match.start() + 1 for match in re.finditer("\n", chunk.content)]
-        last_start_index = -1
+        search_from = 0
         for doc in splitter.create_documents([chunk.content]):
-            start_index = doc.metadata.get("start_index", -1)
-            if start_index is None or start_index < 0:
-                search_from = last_start_index + 1 if last_start_index >= 0 else 0
-                resolved_index = chunk.content.find(doc.page_content, search_from)
-                if resolved_index == -1:
-                    resolved_index = chunk.content.find(doc.page_content)
-                start_index = resolved_index if resolved_index != -1 else search_from
+            raw_content = doc.page_content or ""
+            stripped_content = raw_content.strip("\n")
+            if not stripped_content:
+                continue
 
-            last_start_index = start_index
+            start_index = chunk.content.find(stripped_content, search_from)
+            if start_index == -1:
+                start_index = chunk.content.find(stripped_content)
+            if start_index == -1:
+                start_index = search_from
+            search_from = max(start_index + 1, search_from)
 
-            if doc.page_content:
-                start_offset = max(start_index, 0)
-                end_offset = start_offset + len(doc.page_content) - 1
-                start_line = bisect_right(line_starts, start_offset)
-                end_line = bisect_right(line_starts, end_offset)
-            else:
-                start_line = end_line = 0
+            start_offset = max(start_index, 0)
+            end_offset = start_offset + len(stripped_content) - 1
+            start_line = bisect_right(line_starts, start_offset)
+            end_line = bisect_right(line_starts, end_offset)
 
             yield CodeChunk(
-                content=doc.page_content,
+                content=stripped_content,
                 file_path=str(chunk.file_path),
                 line_number_start_inclusive=start_line,
                 line_number_end_inclusive=end_line,
@@ -64,6 +63,6 @@ class FixedTokenChunker(Chunker):
             separators=["\n"],
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
-            strip_whitespace=False,
+            strip_whitespace=False, # Strip whitespace manually to preserve offsets
             add_start_index=False,
         )
