@@ -44,7 +44,7 @@ class DryRunInput(ChunkProcessingOptions):
     pass
 
 
-class DryRunWorkflow(Workflow[DryRunInput, list[sarif.Result]], ChunkProcessor, LLMMixin):
+class DryRunWorkflow(ChunkProcessor, LLMMixin, Workflow[DryRunInput, list[sarif.Result]]):
     name = "dry_run"
 
     @property
