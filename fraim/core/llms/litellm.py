@@ -128,9 +128,10 @@ class LiteLLM(BaseLLM):
             )
         )
 
-        history.append_record(EventRecord(description="Thinking..."))
+        thought_record = EventRecord(description="Thinking...")
+        history.append_record(thought_record)
         response = await completion(**completion_params)
-        history.pop_record()
+        thought_record.description = f"Thought for {thought_record.elapsed_seconds():.0f} seconds."
 
         message = response.choices[0].message  # type: ignore
         message_content = message.content or ""
