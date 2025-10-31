@@ -29,6 +29,10 @@ class EventRecord:
     description: str
     timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
+    def elapsed_seconds(self) -> float:
+        """Return the time elapsed in seconds since the record was created."""
+        return (datetime.now(UTC) - self.timestamp).total_seconds()
+
 
 @dataclass
 class HistoryRecord:
@@ -59,6 +63,10 @@ class HistoryRecord:
     timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     history: "History" = field(default_factory=lambda: History())
+
+    def elapsed_seconds(self) -> float:
+        """Return the time elapsed in seconds since the record was created."""
+        return (datetime.now(UTC) - self.timestamp).total_seconds()
 
 
 # Type alias for any record type that can be stored in history

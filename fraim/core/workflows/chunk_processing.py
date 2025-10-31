@@ -149,9 +149,15 @@ class ChunkProcessor(Generic[T]):
         async def process_chunk_with_semaphore(history: History, chunk: CodeChunk) -> list[T]:
             """Process a chunk with semaphore to limit concurrency."""
             async with semaphore:
-                chunk_results = await chunk_processor(history, chunk)
+                # Create a subhistory for this task AFTER acquiring the semaphore
+                task_record = HistoryRecord(
+                    description=f"Analyzing {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}"
+                )
+                history.append_record(task_record)
 
-                history.append_record(EventRecord(description=f"Done. Found {len(chunk_results)} results."))
+                chunk_results = await chunk_processor(task_record.history, chunk)
+
+                task_record.history.append_record(EventRecord(description=f"Done. Found {len(chunk_results)} results."))
                 self._results.extend(chunk_results)
                 self._processed_chunks += 1
 
@@ -161,14 +167,9 @@ class ChunkProcessor(Generic[T]):
         active_tasks: set[asyncio.Task] = set()
 
         for chunk in chunks_list:
-            # Create a subhistory for this task
-            task_record = HistoryRecord(
-                description=f"Analyzing {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}"
-            )
-            history.append_record(task_record)
-
             # Create task for this chunk and add to active tasks
-            task = asyncio.create_task(process_chunk_with_semaphore(task_record.history, chunk))
+            # Note: We create the history record INSIDE the task, after acquiring the semaphore
+            task = asyncio.create_task(process_chunk_with_semaphore(history, chunk))
             active_tasks.add(task)
 
             # If we've hit our concurrency limit, wait for some tasks to complete
