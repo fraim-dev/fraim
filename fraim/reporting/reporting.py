@@ -3,309 +3,135 @@
 
 import base64
 import json
-import logging
 import os
-import secrets
-from datetime import datetime
-from enum import Enum
-from typing import Any
 
-from jinja2 import Environment, FileSystemLoader, select_autoescape
-
-from fraim.outputs.sarif import PhysicalLocation, Region, Result, SarifReport
-
-# TODO: Relate to the config logger
-logger = logging.getLogger(__name__)
-
-UNKNOWN = "unknown"
-
-# SARIF severity ordering (most to least severe)
-SEVERITY_ORDER = {"error": 1, "warning": 2, "note": 3, "none": 4, UNKNOWN: 5}
+from fraim.outputs.sarif import SarifReport
 
 
 class Reporting:
     """Generate HTML reports from security scan results."""
 
     def __init__(self) -> None:
-        self.jinja_env = Environment(
-            loader=FileSystemLoader(os.path.join(os.path.dirname(__file__), "templates")),
-            autoescape=select_autoescape(["html", "xml"]),
-            trim_blocks=True,
-            lstrip_blocks=True,
-        )
+        self.templates_dir = os.path.join(os.path.dirname(__file__), "templates")
+        self.html_template = os.path.join(self.templates_dir, "report.html")
+        self.css_template = os.path.join(self.templates_dir, "report.css")
+        self.js_template = os.path.join(self.templates_dir, "report.js")
+        self.navbar_security_reports_template = os.path.join(self.templates_dir, "navbar_security_reports.html")
+        self.navbar_local_template = os.path.join(self.templates_dir, "navbar_local.html")
 
     @classmethod
-    def generate_html_report(cls, sarif_report: SarifReport, repo_name: str, output_path: str) -> None:
+    def generate_html_report(
+        cls,
+        sarif_report: SarifReport,
+        repo_name: str,
+        output_path: str,
+        threat_model_content: str | None = None,
+        generation_for_security_reports: bool = False,
+    ) -> None:
+        """
+        Generate a self-contained HTML report with embedded data and separate files.
+
+        This creates up to three files:
+        - report.html (self-contained HTML with embedded CSS/JS/logo, minimized SARIF data, and threat model)
+        - report.sarif (SARIF JSON data for external use)
+        - report.md (threat model markdown, if provided)
+
+        The HTML file contains all assets embedded for portability, while the separate files
+        allow the data to be used by other tools.
+
+        Args:
+            sarif_report: The SARIF report data
+            repo_name: Name of the repository
+            output_path: Path where the HTML file should be created
+            threat_model_content: Optional threat model content as markdown string
+            generation_for_security_reports: If True, use security reports navbar; if False, use local navbar with docs/GitHub links
+        """
         reporting = cls()
-        html_content = reporting._generate_html_content_from_sarif(sarif_report, repo_name)
+
+        # Determine output directory
+        output_dir = os.path.dirname(output_path) or "."
+
+        # Read template files
+        with open(reporting.html_template, encoding="utf-8") as f:
+            html_content = f.read()
+
+        with open(reporting.css_template, encoding="utf-8") as f:
+            css_content = f.read()
+
+        with open(reporting.js_template, encoding="utf-8") as f:
+            js_content = f.read()
+
+        # Read navbar template based on generation type
+        navbar_template_path = (
+            reporting.navbar_security_reports_template
+            if generation_for_security_reports
+            else reporting.navbar_local_template
+        )
+        with open(navbar_template_path, encoding="utf-8") as f:
+            navbar_content = f.read()
+
+        # Read and encode logo file as base64 data URLs
+        logo_path = os.path.join(reporting.templates_dir, "assets", "fraim-logo.png")
+        with open(logo_path, "rb") as f:
+            logo_data = f.read()
+
+        # Create data URLs for favicon and logo image
+        logo_base64 = base64.b64encode(logo_data).decode("utf-8")
+        favicon_data_url = f"data:image/png;base64,{logo_base64}"
+        logo_data_url = f"data:image/png;base64,{logo_base64}"
+
+        # Check for and embed threat model content if provided
+        threat_model_data = ""
+        if threat_model_content:
+            # Base64 encode the markdown content for secure embedding
+            threat_model_data = base64.b64encode(threat_model_content.encode("utf-8")).decode("utf-8")
+
+        # Prepare minimized SARIF data
+        sarif_dict = sarif_report.model_dump(by_alias=True, exclude_none=True)
+        sarif_dict["repoName"] = repo_name or "Unknown Repository"
+        # TODO: Calculate actual score based on findings, for now hardcode
+        sarif_dict["securityScore"] = 75
+
+        # Minimize SARIF JSON by removing whitespace
+        minimized_sarif = json.dumps(sarif_dict, separators=(",", ":"))
+
+        # Base64 encode the JSON for secure embedding (prevents script injection)
+        minimized_sarif = base64.b64encode(minimized_sarif.encode("utf-8")).decode("utf-8")
+
+        # Replace logo placeholder in navbar
+        navbar_html = navbar_content.replace("__LOGO_DATA__", logo_data_url)
+
+        # Embed CSS, JS, SARIF data, logo data URLs, threat model data, and navbar into HTML
+        html_content = html_content.replace("__CSS__", css_content)
+        html_content = html_content.replace("__JAVASCRIPT__", js_content)
+        html_content = html_content.replace("__SARIF_DATA__", minimized_sarif)
+        html_content = html_content.replace("__FAVICON_DATA__", favicon_data_url)
+        html_content = html_content.replace("__LOGO_DATA__", logo_data_url)
+        html_content = html_content.replace("__THREAT_MODEL_DATA__", threat_model_data)
+        html_content = html_content.replace("__NAVBAR__", navbar_html)
+
+        # Write self-contained HTML file
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(html_content)
 
-    def _generate_html_content_from_sarif(self, sarif_report: SarifReport, repo_name: str) -> str:
-        processed_data = self._process_sarif_data(sarif_report)
-        template_context = {
-            "repo_name": repo_name or "Unknown Repository",
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "script_nonce": self._generate_nonce(),
-            "style_nonce": self._generate_nonce(),
-            "tab_data": processed_data["tab_data"],
-            "detail_contents": processed_data["detail_contents"],
-            "severity_options": processed_data["severity_options"],
-            "type_options": processed_data["type_options"],
-        }
-        template = self.jinja_env.get_template("report_template.html")
-        return template.render(**template_context)
+        # Write SARIF JSON file with same basename as HTML
+        html_basename = os.path.splitext(os.path.basename(output_path))[0]
+        sarif_filename = f"{html_basename}.sarif"
+        sarif_output_path = os.path.join(output_dir, sarif_filename)
 
-    def _process_sarif_data(self, sarif_report: SarifReport) -> dict[str, Any]:
-        runs = sarif_report.runs
-        if not runs:
-            raise ValueError("SARIF report must contain at least one run")
+        with open(sarif_output_path, "w", encoding="utf-8") as f:
+            json.dump(sarif_dict, f, indent=2)
 
-        tab_data = []
-        detail_contents = {}
-        all_severities = set()
-        all_types = set()
+        # Write threat model markdown file if content was provided
+        threat_model_output_path = ""
+        if threat_model_content:
+            threat_model_filename = f"{html_basename}.md"
+            threat_model_output_path = os.path.join(output_dir, threat_model_filename)
 
-        result_index = 0
-        for run in runs:
-            workflow_name = run.tool.driver.name or UNKNOWN
-            results = run.results
+            with open(threat_model_output_path, "w", encoding="utf-8") as f:
+                f.write(threat_model_content)
 
-            # Count severities for this tab
-            severity_counts = {"error": 0, "warning": 0, "note": 0, "none": 0, UNKNOWN: 0}
-            table_rows = []
-
-            for result in results:
-                # Extract basic data directly from SARIF
-                severity = self._normalize_severity(result.level)
-                vuln_type = result.properties.type or UNKNOWN
-                description = result.message.text or "No description available"
-                confidence = result.properties.confidence or UNKNOWN
-                file_path = self._get_file_path(result)
-
-                if isinstance(vuln_type, Enum):
-                    vuln_type = vuln_type.value
-
-                # Build table row
-                table_rows.append(
-                    {
-                        "result_index": result_index,
-                        "type": vuln_type,
-                        "severity": severity,
-                        "description": description,
-                        "file": file_path,
-                        "confidence": confidence,
-                    }
-                )
-
-                # Build detail content for expanded view
-                detail_contents[result_index] = self._build_detail_content(result)
-
-                # Update counts and sets
-                severity_counts[severity] += 1
-                all_severities.add(severity)
-
-                all_types.add(vuln_type)
-
-                result_index += 1
-
-            # Sort table rows by severity (most severe first)
-            table_rows.sort(key=lambda row: SEVERITY_ORDER.get(row["severity"], 999))  # type: ignore[call-overload]
-
-            tab_data.append(
-                {
-                    "name": workflow_name,
-                    "count": len(results),
-                    "results": table_rows,
-                    "severity_counts": severity_counts,
-                }
-            )
-
-        return {
-            "tab_data": tab_data,
-            "detail_contents": detail_contents,
-            "severity_options": self._build_filter_options(all_severities, tab_data, "severity"),
-            "type_options": self._build_filter_options(all_types, tab_data, "type"),
-        }
-
-    def _build_detail_content(self, result: Result) -> dict[str, Any]:
-        description = result.message.text or ""
-        code_lines = self._get_code_lines(result)
-        properties = self._get_additional_properties(result)
-
-        # If we don't have code to show but have line range, add it as a property
-        if not code_lines and result.locations:
-            location = result.locations[0].physicalLocation
-            if location and location.region:
-                start_line = location.region.startLine
-                end_line = location.region.endLine
-                if start_line:
-                    is_range = end_line and end_line != start_line
-                    range_text = f"{start_line}-{end_line}" if is_range else str(start_line)
-                    key_text = "Line Range:" if is_range else "Line:"
-                    properties.insert(
-                        0, {"formatted_key": key_text, "formatted_value": range_text, "is_complex": False}
-                    )
-
-        return {
-            "description": description,
-            "has_description": bool(description.strip()),
-            "has_code": bool(code_lines),
-            "has_properties": bool(properties),
-            "code_lines_with_metadata": code_lines,
-            "formatted_properties": properties,
-        }
-
-    def _get_code_lines(self, result: Result) -> list[dict[str, Any]]:
-        """Extract code lines with metadata from SARIF result."""
-        if not result.locations:
-            return []
-
-        location: PhysicalLocation = result.locations[0].physicalLocation
-        if not location:
-            return []
-
-        # Try contextRegion first, but only if it has a valid snippet
-        region: Region | None = None
-        if location.contextRegion and location.contextRegion.snippet:
-            region = location.contextRegion
-        elif location.region and location.region.snippet:
-            region = location.region
-
-        if not region:
-            return []
-
-        code_text = region.snippet.text if region.snippet and hasattr(region.snippet, "text") else ""
-        if not code_text:
-            return []
-
-        # Get line numbers
-        context_start = region.startLine if hasattr(region, "startLine") and region.startLine else 1
-        vuln_start = location.region.startLine if location.region else None
-        vuln_end = location.region.endLine if location.region else None
-
-        code_lines = []
-        for i, line_text in enumerate(code_text.split("\n")):
-            line_number = context_start + i
-            is_vulnerable = False
-
-            if vuln_start:
-                if vuln_end:
-                    is_vulnerable = vuln_start <= line_number <= vuln_end
-                else:
-                    is_vulnerable = line_number == vuln_start
-
-            code_lines.append({"number": line_number, "text": line_text, "is_vulnerable": is_vulnerable})
-
-        return code_lines
-
-    def _get_additional_properties(self, result: Result) -> list[dict[str, Any]]:
-        if not result.properties:
-            return []
-
-        # Convert properties to dict and filter out core fields
-        props = result.properties.model_dump()
-        excluded = {"type", "confidence"}
-        formatted_props = []
-
-        for key, value in props.items():
-            if key in excluded or not value:
-                continue
-
-            formatted_key = key.replace("_", " ").title() + ":"
-
-            # Handle different value types
-            if isinstance(value, (str, int, float, bool)):
-                formatted_props.append(
-                    {"formatted_key": formatted_key, "formatted_value": str(value), "is_complex": False}
-                )
-            elif isinstance(value, dict):
-                if len(value) == 1 and "text" in value:
-                    # Simple message object
-                    formatted_props.append(
-                        {"formatted_key": formatted_key, "formatted_value": value["text"], "is_complex": False}
-                    )
-                else:
-                    # Complex object - JSON format
-                    formatted_props.append(
-                        {
-                            "formatted_key": formatted_key,
-                            "formatted_value": json.dumps(value, indent=2),
-                            "is_complex": True,
-                        }
-                    )
-            elif isinstance(value, list):
-                # Special handling for attack_vectors - format as bulleted list
-                if key == "attack_vectors":
-                    # Create bulleted list for regular property format
-                    bullet_list = "\n".join([f"• {item}" for item in value if item])
-                    formatted_props.append(
-                        {"formatted_key": formatted_key, "formatted_value": bullet_list, "is_complex": False}
-                    )
-                else:
-                    # Other arrays - JSON format
-                    formatted_props.append(
-                        {
-                            "formatted_key": formatted_key,
-                            "formatted_value": json.dumps(value, indent=2),
-                            "is_complex": True,
-                        }
-                    )
-            else:
-                logger.warning(
-                    f"Unexpected property value type for key '{key}': {type(value).__name__}, value: {value}"
-                )
-
-        return formatted_props
-
-    def _get_file_path(self, result: Result) -> str:
-        """Extract file path from SARIF result."""
-        if not result.locations:
-            return UNKNOWN
-
-        location = result.locations[0].physicalLocation
-        if not location or not location.artifactLocation:
-            return UNKNOWN
-
-        file_uri = location.artifactLocation.uri or UNKNOWN
-
-        # Strip file:// prefix and validate
-        file_uri = file_uri.removeprefix("file://")
-
-        # Basic security check for path traversal
-        if "../" in file_uri or "..\\" in file_uri:
-            return UNKNOWN
-
-        return file_uri.replace("\\", "/").lstrip("/") or UNKNOWN
-
-    def _normalize_severity(self, sarif_level: str) -> str:
-        level = sarif_level.lower()
-        return level if level in ("error", "warning", "note", "none") else UNKNOWN
-
-    def _build_filter_options(self, values: set, tab_data: list[dict], field: str) -> list[dict[str, Any]]:
-        options = []
-
-        if field == "severity":
-            sorted_values = sorted(values, key=lambda x: SEVERITY_ORDER.get(x, 999))
-        else:
-            sorted_values = sorted(values)
-
-        for value in sorted_values:
-            # Find which tabs contain this value
-            applicable_tabs = []
-            for tab in tab_data:
-                if field == "severity":
-                    if tab["severity_counts"].get(value, 0) > 0:
-                        applicable_tabs.append(tab["name"])
-                else:  # type
-                    for result in tab["results"]:
-                        if result["type"] == value:
-                            applicable_tabs.append(tab["name"])
-                            break
-
-            options.append({"value": value, "label": value.capitalize(), "tabs": ",".join(applicable_tabs)})
-
-        return options
-
-    def _generate_nonce(self) -> str:
-        return base64.b64encode(secrets.token_bytes(32)).decode("ascii")
+        print(f"HTML report created: {output_path}")
+        print(f"SARIF file created: {sarif_output_path}")
+        if threat_model_output_path:
+            print(f"Threat model file created: {threat_model_output_path}")

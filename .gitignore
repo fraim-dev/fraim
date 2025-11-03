@@ -196,3 +196,6 @@ fraim/reporting/test/outputs/*.html
 
 # VS Code
 .vscode/
+
+# Fraim Testing
+fraim/reporting/test/outputs/
