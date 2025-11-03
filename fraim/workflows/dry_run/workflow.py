@@ -41,7 +41,6 @@ class DryRunInput(ChunkProcessingOptions):
     """Input for the DryRun workflow."""
 
 
-
 class DryRunWorkflow(ChunkProcessor, LLMMixin, Workflow[DryRunInput, list[sarif.Result]]):
     name = "dry_run"
 

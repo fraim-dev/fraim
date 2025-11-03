@@ -158,8 +158,7 @@ class RiskFlaggerWorkflow(
 
         except Exception as e:
             logger.error(
-                f"Failed to process chunk at {chunk.locations!s}: {e!s}. "
-                "Skipping this chunk and continuing with scan."
+                f"Failed to process chunk at {chunk.locations!s}: {e!s}. Skipping this chunk and continuing with scan."
             )
             return []
 
