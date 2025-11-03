@@ -11,7 +11,6 @@ for security misconfigurations and compliance issues.
 import logging
 import os
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Annotated
 
 from fraim.core.contextuals import CodeChunk, CodeChunkFailure
@@ -98,7 +97,7 @@ class IaCWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[IaCWorkflowOp
         """Process a single chunk with error handling."""
         try:
             # 1. Scan the code for vulnerabilities.
-            logger.info(f"Scanning code for vulnerabilities: {str(chunk.locations)}")
+            logger.info(f"Scanning code for vulnerabilities: {chunk.locations!s}")
             iac_input = IaCCodeChunkOptions(code=chunk)
             vulns = await self.scanner_step.run(history, iac_input)
 
@@ -110,7 +109,7 @@ class IaCWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[IaCWorkflowOp
         except Exception as e:
             self.failed_chunks.append(CodeChunkFailure(chunk=chunk, reason=str(e)))
             logger.error(
-                f"Failed to process chunk {str(chunk.locations)}: {e!s}. Skipping this chunk and continuing with scan."
+                f"Failed to process chunk {chunk.locations!s}: {e!s}. Skipping this chunk and continuing with scan."
             )
             return []
 

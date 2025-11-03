@@ -1,5 +1,6 @@
+from collections.abc import Iterator
 from types import TracebackType
-from typing import Iterator, Optional, Self
+from typing import Self
 
 from fraim.core.contextuals import CodeChunk
 
@@ -21,8 +22,8 @@ class InMemory:
 
     def __exit__(
         self,
-        exc_type: Optional[type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         pass

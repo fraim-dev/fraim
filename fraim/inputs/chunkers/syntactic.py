@@ -1,12 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
-import re
-from typing import Iterator
+from collections.abc import Iterator
 
 from langchain_text_splitters import Language, RecursiveCharacterTextSplitter
 
 from fraim.core.contextuals import Contextual
-from fraim.core.contextuals.code import CodeChunk
 from fraim.inputs.chunkers.fixed import FixedTokenChunker
 
 

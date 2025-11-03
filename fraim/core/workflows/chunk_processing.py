@@ -10,12 +10,12 @@ from abc import abstractmethod
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Annotated, Generic, Optional, TypeVar, cast
+from typing import Annotated, Generic, TypeVar, cast
 
 from rich.layout import Layout
 from rich.progress import Progress, TaskID
 
-from fraim.core.contextuals import CodeChunk, Contextual
+from fraim.core.contextuals import CodeChunk
 from fraim.core.display import ProgressPanel, ResultsPanel
 from fraim.core.history import EventRecord, History, HistoryRecord
 from fraim.core.workflows.llm_processing import LLMOptions
@@ -110,7 +110,6 @@ class ChunkProcessor(Generic[T]):
     @abstractmethod
     def file_patterns(self) -> list[str]:
         """File patterns for this workflow (e.g., ['*.py', '*.js'])."""
-        pass
 
     @property
     def exclude_file_patterns(self) -> list[str]:
@@ -193,7 +192,7 @@ class ChunkProcessor(Generic[T]):
             Combined results from all chunks
         """
         # Initialize progress tracking
-        chunks_list: list[CodeChunk] = [cast(CodeChunk, chunk) for chunk in project]
+        chunks_list: list[CodeChunk] = [cast("CodeChunk", chunk) for chunk in project]
         self._total_chunks = len(chunks_list)
         self._processed_chunks = 0
         self._results = []

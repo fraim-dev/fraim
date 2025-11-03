@@ -2,8 +2,9 @@
 # Copyright (c) 2025 Resourcely Inc.
 import re
 from bisect import bisect_right
+from collections.abc import Iterator
 from functools import cached_property
-from typing import Any, Iterator
+from typing import Any
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter, TextSplitter
 

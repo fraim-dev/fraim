@@ -15,7 +15,7 @@ from rich.markup import escape
 from fraim.core.history import EventRecord, History
 from fraim.core.llms.base import BaseLLM
 from fraim.core.messages import Message, SystemMessage, UserMessage
-from fraim.core.parsers.base import BaseOutputParser, OutputParserError, ParseContext
+from fraim.core.parsers.base import BaseOutputParser, ParseContext
 from fraim.core.parsers.retry import RetryOnErrorOutputParser
 from fraim.core.prompts.template import PromptTemplate, PromptTemplateError
 from fraim.core.steps.base import BaseStep

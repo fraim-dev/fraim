@@ -4,4 +4,4 @@
 from fraim.core.contextuals.code import CodeChunk, CodeChunkFailure
 from fraim.core.contextuals.contextual import Contextual
 
-__all__ = ["CodeChunk", "Contextual", "CodeChunkFailure"]
+__all__ = ["CodeChunk", "CodeChunkFailure", "Contextual"]

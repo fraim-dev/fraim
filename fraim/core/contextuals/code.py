@@ -2,7 +2,6 @@
 # Copyright (c) 2025 Resourcely Inc.
 import dataclasses
 from pathlib import Path
-from typing import AbstractSet, Collection, Literal, Set
 
 import tiktoken
 
@@ -73,7 +72,7 @@ class CodeChunk(Contextual[str]):
         if not sanitized:
             return None
 
-        return LANGUAGE_EXTENSIONS.get(sanitized, None)
+        return LANGUAGE_EXTENSIONS.get(sanitized)
 
     def __str__(self) -> str:
         return f'<code_chunk file_path="{self.file_path}" line_number_start_inclusive="{self.line_number_start_inclusive}" line_number_end_inclusive="{self.line_number_end_inclusive}">\n{self.content}\n</code_chunk>'

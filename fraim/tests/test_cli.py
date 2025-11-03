@@ -2,8 +2,6 @@
 import argparse
 from dataclasses import dataclass
 
-import pytest
-
 from fraim.cli import workflow_options_to_cli_args
 
 

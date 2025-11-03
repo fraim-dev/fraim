@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 import dataclasses
-from abc import abstractmethod, abstractproperty
-from typing import Generic, Protocol, Self, TypeVar
+from abc import abstractmethod
+from typing import Generic, Protocol, TypeVar
 
 from fraim.outputs import sarif
 

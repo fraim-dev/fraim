@@ -21,7 +21,7 @@ def test_file_chunker() -> None:
     )
 
     chunks = [
-        cast(CodeChunk, chunk)
+        cast("CodeChunk", chunk)
         for chunk in FileChunker(input=_input, model="gemini/gemini-2.5-flash", chunk_size=100, logger=log)
     ]
 

@@ -10,12 +10,11 @@ Analyzes source code for security vulnerabilities using AI-powered scanning.
 import asyncio
 import logging
 import os
-import threading
 from dataclasses import dataclass
 from typing import Annotated
 
 from fraim.core.contextuals import CodeChunk, CodeChunkFailure
-from fraim.core.history import EventRecord, History, HistoryRecord
+from fraim.core.history import History, HistoryRecord
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep

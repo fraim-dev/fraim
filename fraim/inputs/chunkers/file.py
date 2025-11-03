@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
-from typing import Any, Iterator
+from collections.abc import Iterator
+from typing import Any
 
 from litellm import get_max_tokens
 

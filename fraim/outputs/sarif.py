@@ -7,7 +7,7 @@ Used for generating standardized vulnerability reports.
 """
 
 from enum import Enum
-from typing import List, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -298,7 +298,7 @@ def create_run_model(allowed_types: list[str] | None = None) -> type[Run]:
 
     # The type annotations here are for pydantic, may take some more digging to get these to work with mypy.
     class RestrictedRun(Run):
-        results: List[RestrictedResultModel] = Field(  # type: ignore[valid-type]
+        results: list[RestrictedResultModel] = Field(  # type: ignore[valid-type]
             description="The set of results contained in a SARIF log."
         )
 

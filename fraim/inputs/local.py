@@ -142,5 +142,4 @@ def rglob(path: Path, glob_pattern: str) -> Iterator[Path]:
     paths: Iterator[Path]
     if path.is_file():
         return iter([path])
-    else:
-        return path.rglob(glob_pattern)
+    return path.rglob(glob_pattern)

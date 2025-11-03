@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 import logging
-from typing import Iterator, cast
+from collections.abc import Iterator
+from typing import cast
 
 from fraim.core.contextuals.code import CodeChunk, CodeChunks
 from fraim.inputs.chunkers.fixed import FixedTokenChunker
@@ -35,7 +36,7 @@ class PackingSyntacticChunker(SyntacticChunker):
 
         This is the same as the __iter__ method, but with a more specific return type.
         """
-        yield from packed_chunks(cast(Iterator[CodeChunk], super().chunks()), self.chunk_size)
+        yield from packed_chunks(cast("Iterator[CodeChunk]", super().chunks()), self.chunk_size)
 
 
 class PackingFixedTokenChunker(FixedTokenChunker):
@@ -63,7 +64,7 @@ class PackingFixedTokenChunker(FixedTokenChunker):
 
         This is the same as the __iter__ method, but with a more specific return type.
         """
-        yield from packed_chunks(cast(Iterator[CodeChunk], super().chunks()), self.chunk_size)
+        yield from packed_chunks(cast("Iterator[CodeChunk]", super().chunks()), self.chunk_size)
 
 
 def packed_chunks(chunks: Iterator[CodeChunk], chunk_size: int) -> Iterator[CodeChunks]:

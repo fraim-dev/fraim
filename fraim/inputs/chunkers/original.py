@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 
-from typing import Any, Iterator
+from collections.abc import Iterator
+from typing import Any
 
 from fraim.core.contextuals import Contextual
 from fraim.core.contextuals.code import CodeChunk

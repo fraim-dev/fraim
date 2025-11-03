@@ -6,7 +6,6 @@ import subprocess
 from collections.abc import Iterator
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Iterator, List, Optional, Type
 
 from fraim.core.contextuals import CodeChunk
 from fraim.inputs.input import Input
@@ -23,7 +22,7 @@ class GitRemote(Input):
         exclude_globs: list[str] | None = None,
         limit: int | None = None,
         prefix: str | None = None,
-        paths: List[str] | None = None,
+        paths: list[str] | None = None,
     ):
         self.url = url
         self.globs = globs

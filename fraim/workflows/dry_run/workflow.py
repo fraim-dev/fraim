@@ -9,7 +9,6 @@ Dummy workflow for testing purposes. It processes code chunks without performing
 
 import logging
 from dataclasses import dataclass
-from typing import List
 
 from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor, Workflow
 from fraim.core.workflows.llm_processing import LLMMixin
@@ -41,18 +40,17 @@ FILE_PATTERNS = [
 class DryRunInput(ChunkProcessingOptions):
     """Input for the DryRun workflow."""
 
-    pass
 
 
 class DryRunWorkflow(ChunkProcessor, LLMMixin, Workflow[DryRunInput, list[sarif.Result]]):
     name = "dry_run"
 
     @property
-    def file_patterns(self) -> List[str]:
+    def file_patterns(self) -> list[str]:
         """Code file patterns."""
         return FILE_PATTERNS
 
-    async def run(self) -> List[sarif.Result]:
+    async def run(self) -> list[sarif.Result]:
         """Main Code workflow - full control over execution with multi-step processing."""
         project = self.setup_project_input(self.args)
 
