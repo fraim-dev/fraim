@@ -63,6 +63,6 @@ class FixedTokenChunker(Chunker):
             separators=["\n"],
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
-            strip_whitespace=False, # Strip whitespace manually to preserve offsets
+            strip_whitespace=False,  # Strip whitespace manually to preserve offsets
             add_start_index=False,
         )

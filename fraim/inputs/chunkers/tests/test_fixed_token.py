@@ -1,10 +1,9 @@
 # SPDX-License-Identifier: MIT
 from pathlib import Path
-from typing import cast, Any
+from typing import Any, cast
 
 import pytest
 from langchain_core.documents import Document
-
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from fraim.core.contextuals import CodeChunk
@@ -33,6 +32,7 @@ def test_fixed_token_chunker_preserves_line_numbers(sequential_code_chunk: CodeC
         assert chunk.line_number_end_inclusive >= chunk.line_number_start_inclusive
         previous_start = chunk.line_number_start_inclusive
 
+
 @pytest.mark.parametrize(
     ("content", "chunk_size", "chunk_overlap", "expected_contents", "expected_lines"),
     [
@@ -58,7 +58,9 @@ def test_fixed_token_chunker_line_numbers_2(
         line_number_end_inclusive=line_count,
     )
 
-    chunker = FixedTokenChunker(InMemory(file, root_path=str(tmp_path)), chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    chunker = FixedTokenChunker(
+        InMemory(file, root_path=str(tmp_path)), chunk_size=chunk_size, chunk_overlap=chunk_overlap
+    )
     splits = list(chunker.split_file(chunker.splitter, file))
 
     assert [s.content for s in splits] == expected_contents
@@ -86,7 +88,7 @@ def test_fixed_token_chunker_line_numbers_with_overlap(tmp_path: Path) -> None:
 
     splits = list(chunker.split_file(chunker.splitter, file))
 
-    assert [s.content for s in splits] == ['a\nb\nc', 'c\nd']
+    assert [s.content for s in splits] == ["a\nb\nc", "c\nd"]
     assert [(s.line_number_start_inclusive, s.line_number_end_inclusive) for s in splits] == [(1, 3), (3, 4)]
 
 
