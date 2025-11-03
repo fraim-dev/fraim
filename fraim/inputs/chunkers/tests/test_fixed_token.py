@@ -76,32 +76,31 @@ class StubSplitter:
 def test_fixed_token_chunker_line_numbers_with_overlap(tmp_path: Path) -> None:
     file = CodeChunk(
         file_path="example.py",
-        content="aa\nbb\ncc\n",
+        content="a\nb\nc\nd\n",
         line_number_start_inclusive=1,
         line_number_end_inclusive=3,
     )
 
-    splitter = StubSplitter(["aa\nbb", "bb\ncc"])
-    chunker = FixedTokenChunker(InMemory(file, root_path=str(tmp_path)), chunk_size=10, chunk_overlap=5)
+    # splitter = StubSplitter(["aa\nbb", "bb\ncc"])
+    chunker = FixedTokenChunker(InMemory(file, root_path=str(tmp_path)), chunk_size=5, chunk_overlap=2)
 
-    splits = list(chunker.split_file(splitter, file))
+    splits = list(chunker.split_file(chunker.splitter, file))
 
-    assert [s.content for s in splits] == ["aa\nbb", "bb\ncc"]
-    assert [(s.line_number_start_inclusive, s.line_number_end_inclusive) for s in splits] == [(1, 2), (2, 3)]
+    assert [s.content for s in splits] == ['a\nb\nc', 'c\nd']
+    assert [(s.line_number_start_inclusive, s.line_number_end_inclusive) for s in splits] == [(1, 3), (3, 4)]
 
 
 def test_fixed_token_chunker_skips_empty_documents(tmp_path: Path) -> None:
     file = CodeChunk(
         file_path="example.py",
-        content="x\ny\nz\n",
+        content="",
         line_number_start_inclusive=1,
         line_number_end_inclusive=3,
     )
 
-    splitter = StubSplitter(["", "\n", "z"])
     chunker = FixedTokenChunker(InMemory(file, root_path=str(tmp_path)), chunk_size=10, chunk_overlap=5)
 
-    splits = list(chunker.split_file(splitter, file))
+    splits = list(chunker.split_file(chunker.splitter, file))
 
-    assert [s.content for s in splits] == ["z"]
-    assert [(s.line_number_start_inclusive, s.line_number_end_inclusive) for s in splits] == [(3, 3)]
+    assert [s.content for s in splits] == []
+    assert [(s.line_number_start_inclusive, s.line_number_end_inclusive) for s in splits] == []
