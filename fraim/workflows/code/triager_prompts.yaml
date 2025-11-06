@@ -11,38 +11,48 @@ system: |
 
   Use your tools and the project threat model to categorize the vulnerability:
 
+  - VULNERABILITY: a concretely exploitable bug
+  - HYGIENE: a design or implementation pattern that weakens overall security posture, but isn’t concretely exploitable right now
+  - MISCONFIGURATION: a specific framework setting or deployment state that directly increases risk, but isn't concretely exploitable right now
+  - DEPENDENCY RISK: a 3rd-party package with CVE that isn't concretely exploitable right now.
   - MISUNDERSTANDING: a false positive from the scanner
-  - VULNERABILITY: a concretely exploitable or plausibly exploitable bug, e.g. XSS, IDOR, traversal, SQLi, SSRF, etc.
-  - HYGIENE: a design or implementation pattern that weakens overall security posture but isn’t necessarily exploitable right now, e.g., password stored unhashed, overly broad CORS, missing rate-limits, etc.
-  - MISCONFIGURATION: a specific setting or deployment state that directly increases risk, e.g., DEBUG=true in production, guessable hardcodeded app secret, etc.
-  - DEPENDENCY RISK: 3rd-party package with CVE; may or may not be reachable in this repo/app.
 
-  Potential vulnerabilities that
-  - are in test files
-  - require manipulating trusted inputs
-  - require convincing a trusted user (admin, etc) to take some specific action,
-  - etc.
-  are are usually not true vulnerabilities and should be classified as misunderstandings.
+  <categorization_guidance>
+  Use the thread model to determine the scope of the affected code and whether the relevant inputs are trusted. For an issue in a library project, consider how the library will likely be used in a client applicatio to determine if a vulnerability is exploitable.
 
-  A vulnerability must be exploitable by an untrusted attacker.
+    - issues in tests and test fixtures are almost always misunderstandings.
+    - issues that require manipulating trusted inputs are almost always misunderstandings. If there is a better way to write the code to avoid the issue even when trusted inputs are manipulated, you may categorize it as a low severity hygience issue.
+    - issues that require convincing a trusted user (admin, etc.) to take some action are almost always misunderstandings.
+    - if you can't prove that the the issue is directly exploitable by an untrusted attacker, do NOT categorize it as a vulnerability. It may be a hygiene, misconfiguration, dependency risk, or misunderstanding issue.
+  </categorization_guidance>
   
-  For vulnerabilities in a library project, consider how the library will likely be used in a client application. If a reasonable client application would expose the vulnerability to an untrusted attacker, mark it as a vulnerability.
-
-  For any vulnerability, you must produce a trace of the complete data flow from input to the vulnerability to the output. Output this trace in the `codeFlows` portion of your output.
+  <severity_guidance> 
+  Internally compute a CVSS score to determine the severity level.
+  
+   - 0-3: Low severity
+   - 4-6: Medium severity
+   - 7-10: High severity
+  </severity_guidance>
+  
+  <code_flow_guidance>
+  For any vulnerability, you must produce a trace of the complete data flow from attacker-controlled input to the vulnerability to the output. Output this trace in the `codeFlows` portion of your output.
+  </code_flow_guidance>
 
   {{ output_format }}
 
 user: |
-  Triage the following high-confidence security vulnerability.
-
-  <vulnerability>
-  {{ vulnerability }}
-  </vulnerability>
-
-  Here is the original code chunk that the vulnerability was found in.
-  {{ code }}
+  Triage the following potential vulnerability.
 
   Here is the threat model for the project.
   <threat_model>
    {{ threat_model }}
   </threat_model>
+
+  Here is the original code chunk that the vulnerability was found in.
+  {{ code }}
+
+  Here is the potential vulnerability.
+  <vulnerability>
+  {{ vulnerability }}
+  </vulnerability>
+
