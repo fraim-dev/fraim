@@ -62,7 +62,7 @@ class BaseTool(BaseModel, ABC):
 
     async def run(self, *args: Any, **kwargs: Any) -> Any:
         """Run the tool with optional validation."""
-        logging.getLogger().debug(f"Running tool {self.name} with args: {args}")
+        logging.getLogger().debug(f"Running tool {self.name} with args: {args} and kwargs: {kwargs}")
         if self.args_schema:
             validated_kwargs = self._validate_args(**kwargs)
             return await self._run(*args, **validated_kwargs)
