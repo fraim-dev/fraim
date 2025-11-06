@@ -67,7 +67,7 @@ class LiteLLM(BaseLLM):
         self,
         model: str,
         additional_model_params: dict[str, Any] | None = None,
-        max_tool_iterations: int = 10,
+        max_tool_iterations: int = 25,
         tools: Iterable[BaseTool] | None = None,
         max_retries: int = 5,
         base_delay: float = 1.0,
