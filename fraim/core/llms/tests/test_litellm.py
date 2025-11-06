@@ -58,7 +58,7 @@ class TestLiteLLMInit:
 
         assert llm.model == "gpt-3.5-turbo"
         assert llm.additional_model_params == {}
-        assert llm.max_tool_iterations == 10
+        assert llm.max_tool_iterations == 25
         assert llm.tools == []
         assert llm.tools_dict == {}
         assert llm.tools_schema == []
@@ -162,7 +162,13 @@ class TestLiteLLMPrepareCompletionParams:
 
         # Messages should be converted to dictionaries
         expected_messages = [msg.model_dump() for msg in messages]
-        expected_params = {"model": "gpt-3.5-turbo", "messages": expected_messages, "temperature": 0.7}
+        expected_params = {
+            "model": "gpt-3.5-turbo",
+            "messages": expected_messages,
+            "temperature": 0.7,
+            "tool_choice": "none",
+            "tools": [],
+        }
         assert params == expected_params
 
     def test_prepare_params_with_tools(self) -> None:
@@ -207,7 +213,8 @@ class TestLiteLLMPrepareCompletionParams:
         # Messages should be converted to dictionaries
         expected_messages = [msg.model_dump() for msg in messages]
         assert params["messages"] == expected_messages
-        assert "tools" not in params  # Should not include tools when use_tools=False
+        assert "tools" not in params or params["tools"] == []
+        assert params["tool_choice"] == "none"
 
 
 class TestLiteLLMRunOnce:
@@ -359,7 +366,8 @@ class TestLiteLLMRun:
 
             # Check that the final call doesn't include tools
             final_call_args = mock_completion.call_args_list[-1]
-            assert "tools" not in final_call_args[1]
+            assert "tools" not in final_call_args[1] or final_call_args[1]["tools"] == []
+            assert final_call_args[1]["tool_choice"] == "none"
 
     @pytest.mark.asyncio
     async def test_run_with_zero_max_iterations(self) -> None:
@@ -376,7 +384,8 @@ class TestLiteLLMRun:
             mock_completion.assert_called_once()
             # Should not include tools in the call
             call_args = mock_completion.call_args
-            assert "tools" not in call_args[1]
+            assert "tools" not in call_args[1] or call_args[1]["tools"] == []
+            assert call_args[1]["tool_choice"] == "none"
 
     @pytest.mark.asyncio
     async def test_run_preserves_original_messages(self) -> None:

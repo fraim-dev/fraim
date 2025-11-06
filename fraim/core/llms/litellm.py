@@ -67,7 +67,7 @@ class LiteLLM(BaseLLM):
         self,
         model: str,
         additional_model_params: dict[str, Any] | None = None,
-        max_tool_iterations: int = 10,
+        max_tool_iterations: int = 25,
         tools: Iterable[BaseTool] | None = None,
         max_retries: int = 5,
         base_delay: float = 1.0,
@@ -169,9 +169,16 @@ class LiteLLM(BaseLLM):
 
             if not tools_executed:
                 return response
-
-        # This should never be reached due to the loop logic, so raise an exception if we get here
-        raise Exception("reached an unreachable code path")
+        # In theory, we would never get here... But Gemini 2.5 doesn't always respect `use_tools = False` on
+        # the final iteration. Our intent is to force a final answer, but sometimes it returns another tool call.
+        # So let's loop a few more times --- still with use_tools = False` --- to give a chance for a final answer.
+        EXTRA_ITERATIONS = 3
+        for _ in range(EXTRA_ITERATIONS):
+            response, current_messages, tools_executed = await self._run_once(history, current_messages, False)
+            if not tools_executed:
+                return response
+        # Still no final answer, so give up with an error.
+        raise Exception(f"LLM failed to return a final answer after {EXTRA_ITERATIONS} extra attempts")
 
     def _prepare_completion_params(self, messages: list[Message], use_tools: bool) -> dict[str, Any]:
         """Prepare parameters for litellm.acompletion call."""
@@ -183,6 +190,9 @@ class LiteLLM(BaseLLM):
 
         if use_tools:
             params["tools"] = self.tools_schema
+        else:
+            params["tools"] = []
+            params["tool_choice"] = "none"
 
         return params
 
