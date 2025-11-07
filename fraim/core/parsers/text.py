@@ -26,9 +26,9 @@ class TextOutputParser(BaseOutputParser[str]):
         self.instructions = instructions
 
     def output_prompt_instructions(self) -> str:
-        return dedent("""
+        return dedent(f"""
         <output_format>
-          { self.instructions }
+          {self.instructions}
         </output_format>
         """)
 
