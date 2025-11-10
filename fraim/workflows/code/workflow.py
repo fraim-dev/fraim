@@ -17,7 +17,6 @@ from typing import Annotated, cast
 from fraim.core.contextuals import CodeChunk, CodeChunkFailure
 from fraim.core.history import EventRecord, History, HistoryRecord
 from fraim.core.parsers import PydanticOutputParser, TextOutputParser
-
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
 from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor, Workflow
