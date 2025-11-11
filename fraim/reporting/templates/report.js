@@ -191,8 +191,10 @@ function renderReport(data) {
     document.getElementById('repo-name').textContent = 
         sarifData.repoName || 'Security Analysis';
     
-    // Render security score
-    renderSecurityScore(sarifData.securityScore || 0);
+    // Render security score if provided
+    if (sarifData.securityScore !== undefined && sarifData.securityScore !== null) {
+        renderSecurityScore(sarifData.securityScore);
+    }
     
     const timestamp = new Date().toLocaleString();
     document.getElementById('footer-timestamp').textContent = timestamp;
@@ -215,6 +217,9 @@ function renderReport(data) {
 function renderSecurityScore(score) {
     const scoreCircle = document.getElementById('score-circle');
     const scoreValue = document.getElementById('score-value');
+    
+    // Show the score circle
+    scoreCircle.style.display = 'flex';
     
     scoreValue.textContent = score;
     
