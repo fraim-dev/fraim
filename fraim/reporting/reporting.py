@@ -130,5 +130,4 @@ class Reporting:
 
         print(f"HTML report created: {output_path}")
         print(f"SARIF file created: {sarif_output_path}")
-        if threat_model_output_path:
-            print(f"Threat model file created: {threat_model_output_path}")
+        print(f"Threat model file created: {threat_model_output_path}") if threat_model_output_path else None

@@ -227,6 +227,7 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
             results=results,
             repo_name=self.project.repo_name,
             output_dir=self.args.output,
+            threat_model_content=self.threat_model,
         )
 
         print(f"Found {len(results)} results.")
