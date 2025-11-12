@@ -151,12 +151,19 @@ class RunResults(BaseSchema):
     results: list[Result] = Field(description="The set of results contained in a SARIF log.")
 
 
+class RunProperties(BaseSchema):
+    """Properties of a run."""
+
+    repo_name: str = Field(description="Name of the repository where the results were found.")
+
+
 class Run(RunResults):
     """Describes a single run of an analysis tool, and contains the reported output of that run."""
 
     tool: Tool = Field(
         description="Information about the tool or tool pipeline that generated the results in this run. A run can only contain results produced by a single tool or tool pipeline. A run can aggregate the results from multiple log files, as long as the context around the tool run (tool command-line arguments and the like) is indentical for all aggregated files."
     )
+    properties: RunProperties = Field(description="Properties of the run.")
 
 
 class SarifReport(BaseSchema):
@@ -171,7 +178,7 @@ class SarifReport(BaseSchema):
     runs: list[Run] = Field(description="The set of runs contained in a SARIF log.")
 
 
-def create_sarif_report(results: list[Result], tool_version: str) -> SarifReport:
+def create_sarif_report(results: list[Result], tool_version: str, repo_name: str) -> SarifReport:
     """
     Create a complete SARIF report from a list of results.
 
@@ -182,4 +189,12 @@ def create_sarif_report(results: list[Result], tool_version: str) -> SarifReport
     Returns:
         Complete SARIF report
     """
-    return SarifReport(runs=[Run(tool=Tool(driver=ToolComponent(name="fraim", version=tool_version)), results=results)])
+    return SarifReport(
+        runs=[
+            Run(
+                tool=Tool(driver=ToolComponent(name="fraim", version=tool_version)),
+                results=results,
+                properties=RunProperties(repo_name=repo_name),
+            )
+        ]
+    )
