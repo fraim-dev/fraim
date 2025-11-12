@@ -1,3 +1,7 @@
+<div align="left">
+  <img src="assets/fraim-logo.png" alt="Fraim Logo" width="200" />
+</div>
+
 # Fraim - A Security Engineer's AI Toolkit
 [![PyPI - Version](https://img.shields.io/pypi/v/fraim?style=flat&logo=python&logoColor=whitesmoke)](https://pypi.org/project/fraim/)
 [![GitHub Action - Version](https://img.shields.io/github/v/release/fraim-dev/fraim-action?style=flat&logo=githubactions&logoColor=whitesmoke&label=github%20action)](https://github.com/marketplace/actions/fraim-security)
@@ -93,7 +97,7 @@ jobs:
 
     steps:
       - name: Run Fraim Security Scan
-        uses: fraim-dev/fraim-action@v0
+        uses: fraim-dev/fraim-action@8d763963b80e2551c7ec3f5bdbd77bad6ce7658c
         with:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           workflows: "code"

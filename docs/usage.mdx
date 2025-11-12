@@ -7,7 +7,7 @@ The Fraim CLI is your primary interface for running AI-powered security analysis
 ## Basic Syntax
 
 ```bash
-fraim [GLOBAL_OPTIONS] WORKFLOW [WORKFLOW_OPTIONS]
+fraim [GLOBAL_OPTIONS] run WORKFLOW [WORKFLOW_OPTIONS]
 ```
 
 ## Quick Start Examples
@@ -15,13 +15,13 @@ fraim [GLOBAL_OPTIONS] WORKFLOW [WORKFLOW_OPTIONS]
 ### Analyze a Git Repository
 ```bash
 # Analyze with specific workflows
-fraim code --location https://github.com/username/repository-name
+fraim run code --location https://github.com/username/repository-name
 ```
 
 ### Analyze Local Directory
 ```bash
 # Analyze specific directory
-fraim code --location /path/to/your/project
+fraim run code --location /path/to/your/project
 ```
 
 ## Workflows
@@ -29,12 +29,16 @@ Specify which security analysis workflows to run.
 
 **Available workflows:**
 - `code` - Source code security analysis
-- `iac` - Infrastructure as Code analysis (in development)
+- `iac` - Infrastructure as Code analysis
+- `risk_flagger` - Risk analysis for security team investigation
+- `system_analysis` - System purpose and business context analysis
 
 **Examples:**
 ```bash
-fraim code --location .           # Run code analysis on the path
-fraim iac --location .            # Run IaC analysis on the path
+fraim run code --location .                # Run code analysis on the path
+fraim run iac --location .                 # Run IaC analysis on the path
+fraim run risk_flagger --location .        # Run risk flagging analysis
+fraim run system_analysis --location .     # Run system analysis
 ```
 
 ## Command-Line Options
@@ -46,8 +50,8 @@ Specify a Git repository URL to clone and analyze. Fraim will automatically clon
 
 **Examples:**
 ```bash
-fraim code --location https://github.com/microsoft/typescript
-fraim code --location git@github.com:company/private-repo.git
+fraim run code --location https://github.com/microsoft/typescript
+fraim run code --location git@github.com:company/private-repo.git
 ```
 
 #### `--location <DIRECTORY>`
@@ -55,9 +59,9 @@ Analyze a local directory or file path. This is useful for analyzing code that's
 
 **Examples:**
 ```bash
-fraim code --location .                    # Current directory
-fraim code --location /Users/dev/myproject # Absolute path
-fraim code --location ../sibling-project   # Relative path
+fraim run code --location .                    # Current directory
+fraim run code --location /Users/dev/myproject # Absolute path
+fraim run code --location ../sibling-project   # Relative path
 ```
 
 ### File Filtering
@@ -68,25 +72,27 @@ Specify custom file patterns to include in the analysis. If not provided, Fraim 
 **Examples:**
 ```bash
 # Only analyze Python files
-fraim code --location . --globs "*.py"
+fraim run code --location . --globs "*.py"
 
 # Analyze multiple file types
-fraim code --location . --globs "*.py" "*.js" "*.ts"
+fraim run code --location . --globs "*.py" "*.js" "*.ts"
 
 # Include files in specific directories
-fraim code --location . --globs "src/**/*.py" "tests/**/*.py"
+fraim run code --location . --globs "src/**/*.py" "tests/**/*.py"
 ```
 
 **Default patterns by workflow:**
-- **Code workflow**: `*.py`, `*.js`, `*.ts`, `*.java`, `*.cpp`, `*.c`, `*.go`, `*.rb`, `*.php`, `*.swift`, `*.rs`, `*.kt`, `*.scala`
-- **IAC workflow**: `*.tf`, `*.yml`, `*.yaml`, `*.json` (Terraform, Kubernetes, etc.)
+- **Code workflow**: `*.py`, `*.c`, `*.cpp`, `*.h`, `*.go`, `*.ts`, `*.js`, `*.java`, `*.rb`, `*.php`, `*.swift`, `*.rs`, `*.kt`, `*.scala`, `*.tsx`, `*.jsx`
+- **IAC workflow**: `*.tf`, `*.tfvars`, `*.tfstate`, `*.yaml`, `*.yml`, `*.json`, `Dockerfile`, `.dockerfile`, `docker-compose.yml`, `docker-compose.yaml`, and various Kubernetes/Ansible files
+- **Risk Flagger workflow**: Uses the same patterns as the Code workflow
+- **System Analysis workflow**: Documentation files (`*.md`, `*.rst`, `*.txt`), configuration files (`package.json`, `setup.py`, etc.), and application entry points
 
 #### `--limit <NUMBER>`
 Limit the number of files to analyze. Useful for testing or when working with very large repositories.
 
 **Examples:**
 ```bash
-fraim code --location . --limit 50        # Analyze only first 50 matching files
+fraim run code --location . --limit 50        # Analyze only first 50 matching files
 ```
 
 ### AI Model Configuration
@@ -94,21 +100,38 @@ fraim code --location . --limit 50        # Analyze only first 50 matching files
 #### `--model <MODEL_NAME>`
 Specify the AI model to use for analysis. Fraim supports multiple model providers through [LiteLLM](https://docs.litellm.ai/docs/providers).
 
-**Default:** `gemini/gemini-2.5-flash`
+**Default:** `anthropic/claude-sonnet-4-20250514`
 
 **Examples:**
 ```bash
-# Use Google Gemini (default)
-fraim --model gemini/gemini-2.5-flash code --location .
+# Use Claude Sonnet 4.0 (default)
+fraim run code --location . --model anthropic/claude-sonnet-4-20250514
 
 # Use OpenAI GPT-4
-fraim --model gpt-4 code --location .
+fraim run code --location . --model gpt-4
 
 # Use OpenAI GPT-3.5 Turbo
-fraim --model gpt-3.5-turbo code --location .
+fraim run code --location . --model gpt-3.5-turbo
 
-# Use Claude
-fraim --model claude-3-sonnet-20240229 code --location .
+# Use Google Gemini
+fraim run code --location . --model gemini/gemini-2.5-flash
+```
+
+#### `--temperature <NUMBER>`
+Set the temperature setting for the model (0.0-1.0). Lower values make the model more deterministic, higher values make it more creative.
+
+**Default:** `0`
+
+**Examples:**
+```bash
+# Use default temperature (deterministic)
+fraim run code --location . --temperature 0
+
+# Use slightly more creative responses
+fraim run code --location . --temperature 0.3
+
+# Use more creative responses
+fraim run code --location . --temperature 0.7
 ```
 
 ### Performance Configuration
@@ -120,8 +143,8 @@ Set the number of lines per chunk when processing large files. Smaller chunks pr
 
 **Examples:**
 ```bash
-fraim code --location . --chunk-size 250   # Smaller chunks, more detailed analysis
-fraim code --location . --chunk-size 1000  # Larger chunks, faster processing
+fraim run code --location . --chunk-size 250   # Smaller chunks, more detailed analysis
+fraim run code --location . --chunk-size 1000  # Larger chunks, faster processing
 ```
 
 **Guidelines:**
@@ -129,15 +152,26 @@ fraim code --location . --chunk-size 1000  # Larger chunks, faster processing
 - **Balanced**: 400-600 lines (default)
 - **Performance**: 800-1200 lines
 
-#### `--max-iterations <NUMBER>`
-Set the maximum number of tool calling iterations for vulnerability analysis. Higher values allow for more thorough analysis of complex issues.
+#### `--max-concurrent-chunks <NUMBER>`
+Set the maximum number of chunks to process concurrently. Higher values can speed up analysis but use more system resources.
 
-**Default:** `50`
+**Default:** `5`
 
 **Examples:**
 ```bash
-fraim --max-iterations 25 code --location .   # Faster, less thorough
-fraim --max-iterations 100 code --location .  # Slower, more thorough
+fraim run code --location . --max-concurrent-chunks 3   # Conservative resource usage
+fraim run code --location . --max-concurrent-chunks 10  # Faster processing, more resources
+```
+
+#### `--max-concurrent-triagers <NUMBER>` (Code workflow only)
+Set the maximum number of triager requests per chunk to run concurrently. This controls how many vulnerability assessments happen in parallel.
+
+**Default:** `3`
+
+**Examples:**
+```bash
+fraim run code --location . --max-concurrent-triagers 2   # Conservative triaging
+fraim run code --location . --max-concurrent-triagers 5   # Faster triaging
 ```
 
 ### Quality Control
@@ -149,8 +183,8 @@ Set the minimum confidence threshold (1-10) for filtering findings. Higher value
 
 **Examples:**
 ```bash
-fraim --confidence 5 code --location .    # Include more potential issues
-fraim --confidence 9 code --location .    # Only high-confidence findings
+fraim run code --location . --confidence 5    # Include more potential issues
+fraim run code --location . --confidence 9    # Only high-confidence findings
 ```
 
 **Guidelines:**
@@ -158,6 +192,35 @@ fraim --confidence 9 code --location .    # Only high-confidence findings
 - **4-6**: Include likely findings (moderate false positive rate)
 - **7-8**: Include probable findings (balanced - default range)
 - **9-10**: Include only very confident findings (low false positive rate)
+
+### Git Diff Analysis
+
+#### `--diff`
+Enable git diff analysis mode. This analyzes only the changes in a git repository rather than the entire codebase.
+
+**Examples:**
+```bash
+fraim run code --location . --diff                    # Analyze changes from empty tree to HEAD
+fraim run risk_flagger --location . --diff            # Risk analysis on git changes (required for risk_flagger)
+```
+
+#### `--head <COMMIT>`
+Specify the head commit for diff analysis. Uses HEAD if not provided.
+
+**Examples:**
+```bash
+fraim run code --location . --diff --head main        # Compare to main branch
+fraim run code --location . --diff --head abc123      # Compare to specific commit
+```
+
+#### `--base <COMMIT>`
+Specify the base commit for diff analysis. Uses empty tree if not provided.
+
+**Examples:**
+```bash
+fraim run code --location . --diff --base origin/main --head HEAD    # Compare current changes to origin/main
+fraim run code --location . --diff --base HEAD~5 --head HEAD         # Compare last 5 commits
+```
 
 ### Output Configuration
 
@@ -168,13 +231,45 @@ Specify a custom path for output files. If not provided, Fraim uses a default ou
 
 **Examples:**
 ```bash
-fraim --output /tmp/fraim-results/ code --location .
-fraim --output ./security-reports/ code --location .
+fraim run code --location . --output /tmp/fraim-results/
+fraim run code --location . --output ./security-reports/
 ```
 
 **Output files:**
 - `fraim_report_[repo]_[timestamp].sarif` - SARIF JSON report
 - `fraim_report_[repo]_[timestamp].html` - HTML report
+
+### Global Options
+
+#### `--debug`
+Enable debug logging for troubleshooting and development. This provides detailed information about the analysis process.
+
+**Example:**
+```bash
+fraim --debug run code --location .
+```
+
+#### `--show-logs <BOOLEAN>`
+Control whether logs are printed to standard error output.
+
+**Default:** `true`
+
+**Examples:**
+```bash
+fraim --show-logs false run code --location .    # Suppress log output
+fraim --show-logs true run code --location .     # Show log output (default)
+```
+
+#### `--log-output <PATH>`
+Specify the output directory for log files.
+
+**Default:** `fraim_output`
+
+**Examples:**
+```bash
+fraim --log-output /tmp/logs run code --location .
+fraim --log-output ./logs run code --location .
+```
 
 ### Observability
 
@@ -186,7 +281,7 @@ Enable LLM observability backends for monitoring and analyzing AI model usage.
 
 **Examples:**
 ```bash
-fraim --observability langfuse code --location .
+fraim --observability langfuse run code --location .
 ```
 
 **Requirements:**
@@ -195,34 +290,89 @@ fraim --observability langfuse code --location .
 **Instructions:**
 📖 For detailed setup instructions, see the [Observability Guide](observability.md).
 
-### Debugging
+### Workflow-Specific Options
 
-#### `--debug`
-Enable debug logging for troubleshooting and development. This provides detailed information about the analysis process.
+#### Risk Flagger Workflow Options
+
+The `risk_flagger` workflow has additional options for customizing risk analysis and GitHub integration:
+
+##### `--pr-url <URL>`
+URL of the pull request to analyze. Used for GitHub integration.
 
 **Example:**
 ```bash
-fraim --debug code --location .
+fraim run risk_flagger --location . --diff --pr-url https://github.com/owner/repo/pull/123
 ```
 
-**Debug output includes:**
-- File discovery and filtering
-- Chunk processing progress
-- AI model interactions
-- Error details and stack traces
+##### `--approver <USERNAME>`
+GitHub username or group to notify for approval when risks are found.
+
+**Example:**
+```bash
+fraim run risk_flagger --location . --diff --approver security-team
+```
+
+##### `--custom-risk-list-action <append|replace>`
+Whether to append to or replace the default risks list with custom risks.
+
+**Default:** `append`
+
+##### `--custom-risk-list-filepath <PATH>`
+Path to JSON/YAML file containing additional risks to consider.
+
+**Example:**
+```bash
+fraim run risk_flagger --location . --diff --custom-risk-list-filepath ./custom-risks.yaml
+```
+
+##### `--custom-risk-list-json <JSON>`
+JSON string containing additional risks to consider.
+
+##### `--custom-false-positive-considerations <LIST>`
+List of additional considerations to help reduce false positives.
+
+**Example:**
+```bash
+fraim run risk_flagger --location . --diff --custom-false-positive-considerations "Consider test files" "Ignore demo code"
+```
+
+#### System Analysis Workflow Options
+
+The `system_analysis` workflow has options for understanding system context:
+
+##### `--business-context <TEXT>`
+Additional business context to consider during analysis.
+
+**Example:**
+```bash
+fraim run system_analysis --location . --business-context "E-commerce platform for small businesses"
+```
+
+##### `--focus-areas <AREAS>`
+Specific areas to focus on during analysis.
+
+**Example:**
+```bash
+fraim run system_analysis --location . --focus-areas "authentication,data_processing,api_endpoints"
+```
 
 ## Environment Variables
 
 Fraim requires API keys for AI model providers. Set these in your environment or `.env` file:
 
-### Google Gemini
+### Anthropic Claude
 ```bash
-export GEMINI_API_KEY="your_api_key_here"
+export ANTHROPIC_API_KEY="your_api_key_here"
 ```
 
 ### OpenAI
 ```bash
 export OPENAI_API_KEY="your_api_key_here"
+```
+
+### Google Gemini
+```bash
+export GEMINI_API_KEY="your_api_key_here"
 ```
 
 ### Langfuse Observability
@@ -262,39 +412,42 @@ export FRAIM_CACHE_DIR=/path/to/custom/cache
 ### Comprehensive Analysis
 ```bash
 # Code analysis with custom settings
-fraim --model gemini/gemini-2.5-flash \
-      --confidence 6 \
-      --max-iterations 75 \
+fraim --model anthropic/claude-sonnet-4-20250514 \
       --observability langfuse \
       --debug \
-      code --location https://github.com/company/app \
-      --chunk-size 600
+      run code --location https://github.com/company/app \
+      --confidence 6 \
+      --chunk-size 600 \
+      --max-concurrent-triagers 5
 ```
 
 ### CI/CD Integration
 ```bash
 # Optimized for CI/CD pipelines
-fraim --confidence 8 \
+fraim --show-logs false \
       --output ./security-reports/ \
-      code --location . \
-      --limit 500
+      run code --location . \
+      --confidence 8 \
+      --limit 500 \
+      --max-concurrent-chunks 3
 ```
 
 ### Large Codebase Analysis
 ```bash
 # Settings for analyzing large repositories
-fraim --confidence 7 \
-      --max-iterations 30 \
-      code --location https://github.com/large/project \
-      --chunk-size 1000
+fraim run code --location https://github.com/large/project \
+      --confidence 7 \
+      --chunk-size 1000 \
+      --max-concurrent-chunks 8 \
+      --max-concurrent-triagers 2
 ```
 
 ### Specific File Analysis
 ```bash
 # Focus on specific file types and directories
-fraim --confidence 6 \
-      --debug \
-      code --location . \
+fraim --debug \
+      run code --location . \
+      --confidence 6 \
       --globs "src/**/*.py" "api/**/*.py"
 ```
 
@@ -332,29 +485,38 @@ Fraim generates two types of reports:
 **"No input specified" error:**
 ```bash
 # ❌ Missing input
-fraim code
+fraim run code
 
 # ✅ Correct usage
-fraim code --location .
+fraim run code --location .
 ```
 
 **"API key not found" error:**
 ```bash
-# Set your API key
-export GEMINI_API_KEY="your_key_here"
-fraim code --location .
+# Set your API key (for default model)
+export ANTHROPIC_API_KEY="your_key_here"
+fraim run code --location .
 ```
 
 **Out of memory errors:**
 ```bash
-# Reduce chunk size
-fraim code --location . --chunk-size 200
+# Reduce chunk size and concurrency
+fraim run code --location . --chunk-size 200 --max-concurrent-chunks 2
 ```
 
 **No files found:**
 ```bash
 # Check file patterns
-fraim --debug code --location . --globs "*.py"
+fraim --debug run code --location . --globs "*.py"
+```
+
+**Risk flagger requires diff mode:**
+```bash
+# ❌ Missing --diff flag
+fraim run risk_flagger --location .
+
+# ✅ Correct usage
+fraim run risk_flagger --location . --diff
 ```
 
 ### Performance Tips

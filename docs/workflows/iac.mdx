@@ -1,0 +1,246 @@
+---
+title: "IaC"
+sidebarTitle: "IaC"
+---
+
+# Infrastructure as Code (IaC) Security Analysis
+
+The **IaC Security Analysis** workflow examines infrastructure configuration files for security misconfigurations and compliance violations. This workflow helps identify security issues in your infrastructure definitions before they're deployed.
+
+## Overview
+
+- **Workflow ID**: `iac`
+- **Primary Use Case**: Security analysis of infrastructure configuration files
+- **Output**: SARIF and HTML security reports
+
+## Common Use Cases
+
+### 1. Pre-Deployment Validation
+
+<Tabs>
+  <Tab title="CLI">
+    ```bash
+    # Validate infrastructure before deployment
+    fraim run iac --location ./terraform/ --confidence 8
+    ```
+  </Tab>
+  <Tab title="GitHub Actions">
+    ```yaml
+    name: Pre-Deployment IaC Validation
+    on:
+      pull_request:
+        paths:
+          - 'terraform/**'
+
+    jobs:
+      validate:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v3
+
+          - name: Validate Infrastructure
+            uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
+            with:
+              anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+              workflow: iac
+    ```
+  </Tab>
+</Tabs>
+
+### 2. CI/CD Pipeline Integration
+
+<Tabs>
+  <Tab title="CLI">
+    ```bash
+    # Automated IaC security scanning
+    fraim --show-logs false \
+      run iac --location . \
+      --confidence 8 \
+      --output ./iac-security-reports/
+    ```
+  </Tab>
+  <Tab title="GitHub Actions">
+    ```yaml
+    name: IaC Security Pipeline
+    on:
+      push:
+        branches: [main]
+      pull_request:
+        branches: [main]
+    
+    jobs:
+      iac-security:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v3
+          
+          - name: Run IaC Security Scan
+            uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
+            with:
+              anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+              workflow: iac
+    ```
+  </Tab>
+</Tabs>
+
+### 3. Terraform Security Review
+
+<Tabs>
+  <Tab title="CLI">
+    ```bash
+    # Comprehensive Terraform analysis
+    fraim run iac --location . \
+      --globs "*.tf" "*.tfvars" \
+      --confidence 6
+    ```
+  </Tab>
+  <Tab title="GitHub Actions">
+    ```yaml
+    name: Terraform Security Review
+    on:
+      pull_request:
+        paths:
+          - '**.tf'
+          - '**.tfvars'
+    
+    jobs:
+      terraform-security:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v3
+          
+          - name: Terraform Security Analysis
+            uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
+            with:
+              anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+              workflow: iac
+              workflow_args: |
+                {
+                  "globs": ["*.tf", "*.tfvars"]
+                }
+    ```
+  </Tab>
+</Tabs>
+
+### 4. Kubernetes Manifest Analysis
+
+<Tabs>
+  <Tab title="CLI">
+    ```bash
+    # Kubernetes security analysis
+    fraim run iac --location ./k8s/ \
+      --globs "*.yaml" "*.yml" \
+      --confidence 7
+    ```
+  </Tab>
+  <Tab title="GitHub Actions">
+    ```yaml
+    name: Kubernetes Security Analysis
+    on:
+      pull_request:
+        paths:
+          - 'k8s/**/*.yaml'
+          - 'k8s/**/*.yml'
+    
+    jobs:
+      k8s-security:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v3
+          
+          - name: Kubernetes Manifest Security Scan
+            uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
+            with:
+              anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+              workflow: iac
+              workflow_args: |
+                {
+                  "globs": ["*.yaml", "*.yml"]
+                }
+    ```
+  </Tab>
+</Tabs>
+
+### 5. Docker Security Analysis
+
+<Tabs>
+  <Tab title="CLI">
+    ```bash
+    # Container configuration analysis
+    fraim run iac --location . \
+      --globs "Dockerfile" "docker-compose.yml" \
+      --confidence 7
+    ```
+  </Tab>
+  <Tab title="GitHub Actions">
+    ```yaml
+    name: Docker Security Analysis
+    on:
+      pull_request:
+        paths:
+          - '**/Dockerfile'
+          - '**/docker-compose.yml'
+          - '**/docker-compose.yaml'
+    
+    jobs:
+      docker-security:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v3
+          
+          - name: Docker Configuration Security Scan
+            uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
+            with:
+              anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+              workflow: iac
+              location: .
+              workflow_args: |
+                {
+                  "confidence": 7,
+                  "globs": ["Dockerfile", "docker-compose.yml"]
+                }
+    ```
+  </Tab>
+</Tabs>
+
+## GitHub Actions Integration
+
+Use the official Fraim GitHub Action:
+
+```yaml
+name: IaC Security
+on:
+  pull_request:
+    paths:
+      - '**.tf'
+      - '**.yaml'
+      - '**.yml'
+
+jobs:
+  iac-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run Fraim IaC Security Scan
+        uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          workflow: iac
+          workflow_args: |
+            {
+              "confidence": 8,
+              "chunk-size": 400,
+              "max-concurrent-chunks": 5
+            }
+```
+
+#### Available workflow_args
+
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `confidence` | integer (1-10) | `7` | Minimum confidence threshold for filtering findings |
+| `chunk-size` | integer | `500` | Number of lines per chunk |
+| `limit` | integer | `null` | Limit the number of files to scan |
+| `globs` | array of strings | `null` | File patterns to include (uses workflow defaults if not provided) |
+| `max-concurrent-chunks` | integer | `5` | Maximum number of chunks to process concurrently |

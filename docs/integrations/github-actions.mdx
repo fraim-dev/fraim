@@ -1,0 +1,74 @@
+---
+title: "GitHub Actions"
+description: "Integrate Fraim security scanning into your CI/CD pipeline with GitHub Actions"
+---
+
+# GitHub Actions Integration
+
+Fraim provides seamless integration with GitHub Actions through our official GitHub Action. This allows you to automatically run security workflows on pull requests, scheduled builds, or manual triggers directly within your GitHub workflows.
+
+## Basic Example
+
+Here's a simple example that runs code security analysis on every pull request:
+
+```yaml
+name: Security Scan
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run Fraim Security Scan
+        uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          workflow: code
+```
+
+## Required Setup
+
+### 1. API Key Configuration
+
+Add your LLM API key to your repository secrets:
+
+1. Go to your repository **Settings** → **Secrets and variables** → **Actions**
+2. Click **New repository secret**
+3. Name: `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` or `GEMINI_API_KEY`
+4. Value: Your LLM Provider API key
+
+### 2. Quick Setup Tool
+
+Use this tool to quickly navigate to your repository's secrets page:
+
+import { GitHubSecretsSetup } from "/snippets/github-secrets-setup.jsx"
+
+<GitHubSecretsSetup />
+
+## Workflow-Specific GitHub Actions
+
+Each Fraim workflow has its own GitHub Actions implementation with specific configurations:
+
+### Risk Flagger
+Automatically assess and flag high-risk pull requests for security review.
+
+[**View Risk Flagger GitHub Actions Setup →**](/workflows/risk_flagger#github-actions-integration)
+
+### Code Security Analysis
+Scan your codebase for security vulnerabilities and code quality issues.
+
+[**View Code Workflow GitHub Actions Setup →**](/workflows/code#github-actions-integration)
+
+### Infrastructure as Code (IaC) Security
+Analyze Terraform, Kubernetes, and other IaC files for security misconfigurations.
+
+[**View IaC Workflow GitHub Actions Setup →**](/workflows/iac#github-actions-integration)
+
+### System Analysis
+Perform comprehensive security analysis of your entire system architecture.
+
+[**View System Analysis GitHub Actions Setup →**](/workflows/system_analysis#github-actions-integration)
