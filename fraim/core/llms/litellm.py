@@ -3,6 +3,7 @@
 
 """A wrapper around litellm"""
 
+import asyncio
 import logging
 from collections.abc import Iterable
 from typing import Any, Protocol, Self, cast
@@ -92,6 +93,10 @@ class LiteLLM(BaseLLM):
         # LLM response caching
         self.cache = LLMCache()
 
+        # Cost tracking (with lock for thread-safe updates)
+        self.total_cost = 0.0
+        self._cost_lock = asyncio.Lock()
+
     def with_tools(self, tools: Iterable[BaseTool], max_tool_iterations: int | None = None) -> Self:
         if max_tool_iterations is None:
             max_tool_iterations = self.max_tool_iterations
@@ -132,6 +137,16 @@ class LiteLLM(BaseLLM):
         history.append_record(thought_record)
         response = await completion(**completion_params)
         thought_record.description = f"Thought for {thought_record.elapsed_seconds():.0f} seconds."
+
+        # Calculate and track cost for this completion
+        try:
+            cost = litellm.completion_cost(completion_response=response)  # type: ignore
+            async with self._cost_lock:
+                self.total_cost += cost
+            await history.add_cost(cost)
+            logging.getLogger().debug(f"LLM cost: ${cost:.6f}, Total cost so far: ${self.total_cost:.6f}")
+        except Exception as e:
+            logging.getLogger().warning(f"Failed to calculate completion cost: {e!s}")
 
         message = response.choices[0].message  # type: ignore
         message_content = message.content or ""
