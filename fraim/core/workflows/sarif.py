@@ -51,7 +51,9 @@ class ReportPaths:
     html_path: str
 
 
-def write_sarif_and_html_report(results: list[Result], repo_name: str, output_dir: str) -> ReportPaths:
+def write_sarif_and_html_report(
+    results: list[Result], repo_name: str, output_dir: str, threat_model_content: str | None = None
+) -> ReportPaths:
     """
     Write security scan results to both SARIF (JSON) and HTML report files.
 
@@ -95,7 +97,12 @@ def write_sarif_and_html_report(results: list[Result], repo_name: str, output_di
         logger.error(f"Failed to write SARIF report to {sarif_output_file}: {e!s}")
     # Write HTML report file (independent of SARIF write)
     try:
-        Reporting.generate_html_report(sarif_report=report, repo_name=repo_name, output_path=html_output_file)
+        Reporting.generate_html_report(
+            sarif_report=report,
+            repo_name=repo_name,
+            output_path=html_output_file,
+            threat_model_content=threat_model_content,
+        )
         logger.info(f"Wrote HTML report ({total_results} results) to {html_output_file}")
     except Exception as e:
         logger.error(f"Failed to write HTML report to {html_output_file}: {e!s}")
