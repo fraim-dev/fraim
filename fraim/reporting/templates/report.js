@@ -187,9 +187,9 @@ function getFilePath(result) {
 
 // Render the report
 function renderReport(data) {
-    // Update content header with repo name
-    document.getElementById('repo-name').textContent = 
-        sarifData.repoName || 'Security Analysis';
+    // Update content header with repo name (read from first run's properties)
+    const repoName = sarifData.runs?.[0]?.properties?.repoName || 'Security Analysis';
+    document.getElementById('repo-name').textContent = repoName;
     
     // Render security score if provided
     if (sarifData.securityScore !== undefined && sarifData.securityScore !== null) {
