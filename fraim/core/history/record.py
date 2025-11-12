@@ -2,6 +2,7 @@
 # Copyright (c) 2025 Resourcely Inc.
 
 
+import asyncio
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
@@ -85,6 +86,7 @@ class History:
     Attributes:
         records (list[Record]): A chronological list of records (events or sub-histories)
                               that have occurred during workflow execution.
+        total_cost (float): The cumulative cost of all LLM operations in this history.
 
     Example:
         >>> history = History()
@@ -101,6 +103,9 @@ class History:
         """
         # Chronological list of records
         self.records: list[Record] = []
+        # Cost tracking (with lock for thread-safe updates)
+        self.total_cost: float = 0.0
+        self._cost_lock = asyncio.Lock()
 
     def append_record(self, record: Record) -> None:
         """
@@ -168,3 +173,72 @@ class History:
             2
         """
         return self.records
+
+    async def add_cost(self, cost: float) -> None:
+        """
+        Add a cost to the total cost for this history.
+
+        This method is async and thread-safe to support concurrent cost updates.
+
+        Args:
+            cost (float): The cost to add to the total cost.
+
+        Example:
+            >>> history = History()
+            >>> await history.add_cost(0.001)
+            >>> await history.add_cost(0.002)
+            >>> history.get_total_cost()
+            0.003
+        """
+        async with self._cost_lock:
+            self.total_cost += cost
+
+    async def get_total_cost(self) -> float:
+        """
+        Get the total cost for this history, including all nested histories.
+
+        This method is async and thread-safe to support concurrent cost reads.
+
+        Returns:
+            float: The total cost accumulated in this history and all nested histories.
+
+        Example:
+            >>> history = History()
+            >>> await history.add_cost(0.001)
+            >>> sub_record = HistoryRecord("Sub task")
+            >>> await sub_record.history.add_cost(0.002)
+            >>> history.append_record(sub_record)
+            >>> await history.get_total_cost()
+            0.003
+        """
+        # Acquire lock for thread-safe reading
+        async with self._cost_lock:
+            # Sum up cost from this history and all nested histories
+            nested_costs = [
+                await record.history.get_total_cost() for record in self.records if isinstance(record, HistoryRecord)
+            ]
+            nested_cost = sum(nested_costs)
+            return self.total_cost + nested_cost
+
+    def get_total_cost_sync(self) -> float:
+        """
+        Get the total cost for this history, including all nested histories (synchronous version).
+
+        This method is synchronous and does not acquire locks. It should only be used
+        in contexts where thread-safety is not critical, such as display/rendering.
+        For thread-safe operations, use get_total_cost() instead.
+
+        Returns:
+            float: The total cost accumulated in this history and all nested histories.
+
+        Example:
+            >>> history = History()
+            >>> # ... async operations ...
+            >>> # For display purposes only:
+            >>> cost = history.get_total_cost_sync()
+        """
+        # Sum up cost from this history and all nested histories (without lock)
+        nested_cost = sum(
+            record.history.get_total_cost_sync() for record in self.records if isinstance(record, HistoryRecord)
+        )
+        return self.total_cost + nested_cost

@@ -52,7 +52,11 @@ class ReportPaths:
 
 
 def write_sarif_and_html_report(
-    results: list[Result], repo_name: str, output_dir: str, threat_model_content: str | None = None
+    results: list[Result],
+    repo_name: str,
+    output_dir: str,
+    threat_model_content: str | None = None,
+    total_cost: float | None = None,
 ) -> ReportPaths:
     """
     Write security scan results to both SARIF (JSON) and HTML report files.
@@ -61,7 +65,8 @@ def write_sarif_and_html_report(
         results: List of security scan results to include in the reports
         repo_name: Name of the repository being scanned, used in filename generation
         output_dir: Directory path where report files will be written
-        logger: Logger instance for recording operation status and errors
+        threat_model_content: Optional threat model content to include in HTML report
+        total_cost: Optional total cost in USD for all LLM operations in this run
 
     Returns:
         ReportPaths object with sarif_path and html_path attributes containing file paths
@@ -74,7 +79,7 @@ def write_sarif_and_html_report(
         >>> print(reports.html_path)
         '/output/fraim_report_my_repo_20250917_143022.html'
     """
-    report = create_sarif_report(results, __version__, repo_name)
+    report = create_sarif_report(results, __version__, repo_name, total_cost)
 
     # Create filename with sanitized repo name
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")

@@ -155,6 +155,7 @@ class RunProperties(BaseSchema):
     """Properties of a run."""
 
     repo_name: str = Field(description="Name of the repository where the results were found.")
+    total_cost: float | None = Field(default=None, description="Total cost in USD for all LLM operations in this run")
 
 
 class Run(RunResults):
@@ -178,13 +179,16 @@ class SarifReport(BaseSchema):
     runs: list[Run] = Field(description="The set of runs contained in a SARIF log.")
 
 
-def create_sarif_report(results: list[Result], tool_version: str, repo_name: str) -> SarifReport:
+def create_sarif_report(
+    results: list[Result], tool_version: str, repo_name: str, total_cost: float | None = None
+) -> SarifReport:
     """
     Create a complete SARIF report from a list of results.
 
     Args:
         results: List of SARIF Result objects
         tool_version: Version of the scanning tool
+        total_cost: Optional total cost in USD for all LLM operations in this run
 
     Returns:
         Complete SARIF report
@@ -194,7 +198,7 @@ def create_sarif_report(results: list[Result], tool_version: str, repo_name: str
             Run(
                 tool=Tool(driver=ToolComponent(name="fraim", version=tool_version)),
                 results=results,
-                properties=RunProperties(repo_name=repo_name),
+                properties=RunProperties(repo_name=repo_name, total_cost=total_cost),
             )
         ]
     )

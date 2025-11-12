@@ -33,8 +33,8 @@ class HistoryView:
         # Calculate available height for the tree using options.height
         console_height = options.height or console.size.height
 
-        # Reserve space for panel borders (2 lines)
-        max_lines = console_height - 2
+        # Reserve space for panel borders (2 lines) and cost display (1 line)
+        max_lines = console_height - 3
 
         # Flatten all records to determine total count and get most recent ones
         all_records = self._flatten_records(self.history.records)
@@ -48,7 +48,11 @@ class HistoryView:
         else:
             recent_records = all_records
 
-        tree = Tree(self.title, style="bold blue")
+        # Get total cost for display (using sync version since Rich rendering is synchronous)
+        total_cost = self.history.get_total_cost_sync()
+        cost_text = f"Total Cost: ${total_cost:.6f}" if total_cost > 0 else "Total Cost: $0.00"
+
+        tree = Tree(f"{self.title} | {cost_text}", style="bold blue")
 
         # Calculate available width for truncation
         # Account for panel padding (4 chars), timestamp (10 chars), and some buffer
