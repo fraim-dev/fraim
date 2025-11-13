@@ -24,6 +24,7 @@ classifiers = [
 ]
 dependencies = [
     "gitpython>=3.1,<4.0",
+    "langchain-text-splitters>=1.0.0",
     "litellm>=1.72.7",
     "mcp-server-tree-sitter>=0.5.1",
     "openai==1.99.9",
@@ -42,8 +43,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "mypy>=1.0.0",
     "pytest>=7.0.0",
+    "mypy>=1.0.0",
     {include-group = "lint"},
     {include-group = "test"},
 ]

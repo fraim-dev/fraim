@@ -18,18 +18,21 @@ class GitRemote(Input):
     def __init__(
         self,
         url: str,
-        chunk_size: int,
         globs: list[str] | None = None,
+        exclude_globs: list[str] | None = None,
         limit: int | None = None,
         prefix: str | None = None,
+        paths: list[str] | None = None,
     ):
         self.url = url
         self.globs = globs
+        self.exclude_globs = exclude_globs
         self.limit = limit
-        self.chunk_size = chunk_size
         self.tempdir = TemporaryDirectory(prefix=prefix)
         self.path = self.tempdir.name
+        self.paths = paths
 
+    @property
     def root_path(self) -> str:
         return str(Path(self.path).absolute())
 
@@ -46,8 +49,13 @@ class GitRemote(Input):
 
         # Clone remote repository to a local directory, delegate to file iterator.
         self._clone_to_path()
-        for chunk in Local(path=self.path, chunk_size=self.chunk_size, globs=self.globs, limit=self.limit):
-            yield chunk
+        yield from Local(
+            root_path=self.path,
+            paths=self.paths,
+            globs=self.globs,
+            limit=self.limit,
+            exclude_globs=self.exclude_globs,
+        )
 
     def _clone_to_path(self) -> None:
         if not _is_directory_empty(self.path):

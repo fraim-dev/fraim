@@ -16,7 +16,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 
 from fraim.actions import add_comment, add_reviewer, send_message
-from fraim.core.contextuals import CodeChunk
+from fraim.core.contextuals import Contextual
 from fraim.core.history import History
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
@@ -32,7 +32,6 @@ from ...core.workflows.format_pr_comment import format_pr_comment
 from ...core.workflows.format_slack_message import format_slack_message
 from ...core.workflows.llm_processing import LLMMixin, LLMOptions
 from ...core.workflows.sarif import ConfidenceFilterOptions, filter_results_by_confidence
-from ...core.workflows.status_checks import StatusCheckOptions
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +71,7 @@ risk_sarif = merge_models(sarif, risk_sarif_overlay)
 
 
 @dataclass
-class RiskFlaggerWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceFilterOptions, StatusCheckOptions):
+class RiskFlaggerWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceFilterOptions):
     """Input for the Risk Flagger workflow."""
 
     pr_url: Annotated[str, {"help": "URL of the pull request to analyze"}] = field(default="")
@@ -95,7 +94,7 @@ class RiskFlaggerWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceF
 class RiskFlaggerInput:
     """Input for the Risk Flagger step."""
 
-    code: CodeChunk
+    code: Contextual[str]
 
 
 class RiskFlaggerOutput(sarif.BaseSchema):
@@ -139,7 +138,7 @@ class RiskFlaggerWorkflow(
             },
         )
 
-    async def _process_single_chunk(self, history: History, chunk: CodeChunk) -> list[sarif.Result]:
+    async def _process_single_chunk(self, history: History, chunk: Contextual[str]) -> list[sarif.Result]:
         """Process a single chunk with multi-step processing and error handling."""
         try:
             # 1. Scan the code for potential risks.
@@ -159,8 +158,7 @@ class RiskFlaggerWorkflow(
 
         except Exception as e:
             logger.error(
-                f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {e!s}. "
-                "Skipping this chunk and continuing with scan."
+                f"Failed to process chunk at {chunk.locations!s}: {e!s}. Skipping this chunk and continuing with scan."
             )
             return []
 
@@ -185,7 +183,7 @@ class RiskFlaggerWorkflow(
             )
 
         # 2. Create a closure that captures max_concurrent_chunks
-        async def chunk_processor(history: History, chunk: CodeChunk) -> list[sarif.Result]:
+        async def chunk_processor(history: History, chunk: Contextual[str]) -> list[sarif.Result]:
             return await self._process_single_chunk(history, chunk)
 
         # 3. Process chunks concurrently using utility

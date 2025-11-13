@@ -2,19 +2,33 @@
 # Copyright (c) 2025 Resourcely Inc.
 
 from collections.abc import Iterator
+from typing import Any
 
+from fraim.core.contextuals import Contextual
 from fraim.core.contextuals.code import CodeChunk
-from fraim.inputs.file import BufferedFile
+from fraim.inputs.chunkers.base import Chunker
+from fraim.inputs.input import Input
+
+
+class OriginalChunker(Chunker):
+    def __init__(self, input: Input, project_path: str, chunk_size: int | None, **kwargs: dict[str, Any]) -> None:
+        self.chunk_size = chunk_size if chunk_size else 500
+        self.input = input
+        self.project_path = project_path
+
+    def __iter__(self) -> Iterator[Contextual[str]]:
+        for file in self.input:
+            yield from chunk_input(file, self.chunk_size)  # type: ignore[arg-type]
 
 
 # TODO: move chunking concern out of input
-def chunk_input(file: BufferedFile, chunk_size: int) -> Iterator[CodeChunk]:
+def chunk_input(file: CodeChunk, chunk_size: int) -> Iterator[CodeChunk]:
     """Split file content into chunks with line numbers."""
-    lines = file.body.split("\n")
+    lines = file.content.split("\n")
 
     # If file is small enough, just process it as a single chunk
     if len(lines) <= chunk_size:
-        yield CodeChunk(file.path, file.body, 1, len(lines) - 1)
+        yield CodeChunk(file.file_path, file.content, 1, len(lines) - 1)
         return
 
     # Create chunks at logical boundaries
@@ -56,7 +70,7 @@ def chunk_input(file: BufferedFile, chunk_size: int) -> Iterator[CodeChunk]:
 
         chunk_content = "\n".join(lines[chunk_start:chunk_end])
         numbered_content = prepend_line_numbers_to_snippet(chunk_content)
-        yield CodeChunk(file.path, numbered_content, chunk_start, chunk_end)
+        yield CodeChunk(file.file_path, numbered_content, chunk_start, chunk_end)
 
 
 def prepend_line_numbers_to_snippet(snippet: str) -> str:

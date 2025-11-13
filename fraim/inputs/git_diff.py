@@ -18,6 +18,7 @@ class GitDiff(Input):
         head: str | None,
         base: str | None,
         globs: list[str] | None = None,
+        exclude_globs: list[str] | None = None,
         limit: int | None = None,
     ):
         self.globs = globs
@@ -25,6 +26,7 @@ class GitDiff(Input):
         self.path = path
         self.head = head
         self.base = base
+        self.exclude_globs = exclude_globs  # TODO: Implement globs and excluded_globs for GitDiff
 
     def __enter__(self) -> "GitDiff":
         return self
@@ -37,6 +39,7 @@ class GitDiff(Input):
     ) -> bool | None:
         return None
 
+    @property
     def root_path(self) -> str:
         return self.path
 

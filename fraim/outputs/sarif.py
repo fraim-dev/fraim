@@ -6,6 +6,7 @@ SARIF (Static Analysis Results Interchange Format) Pydantic models.
 Used for generating standardized vulnerability reports.
 """
 
+from enum import Enum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -145,6 +146,39 @@ class Tool(BaseSchema):
     driver: ToolComponent = Field(description="The analysis tool that was run.")
 
 
+# A reference to a rule or notification descriptor
+class ReportingDescriptorReference(BaseSchema):
+    """Information about how to locate a relevant reporting descriptor."""
+
+    id: str | None = Field(None, description="The id of the descriptor.")
+
+
+# The main Notification object schema
+class Notification(BaseSchema):
+    """Describes a condition relevant to the tool itself, as opposed to being relevant to the analysis target."""
+
+    level: ResultLevelEnum = Field(description="A value specifying the severity level of the notification.")
+    descriptor: ReportingDescriptorReference | None = Field(
+        default=None,
+        description="A reference to the descriptor for this notification.",
+    )
+    message: Message = Field(..., description="A message that describes the condition.")
+    locations: list[Location] = Field(default_factory=list, description="The locations relevant to this notification.")
+
+
+class Invocation(BaseSchema):
+    """The runtime environment of a single invocation of an analysis tool."""
+
+    execution_successful: bool = Field(
+        ...,
+        description="A value indicating whether the tool's execution completed successfully.",
+    )
+
+    toolExecutionNotifications: list[Notification] = Field(
+        description="A list of notifications raised during tool execution.",
+    )
+
+
 class RunResults(BaseSchema):
     """Describes just the results of a single run of an analysis tool."""
 
@@ -166,6 +200,10 @@ class Run(RunResults):
     )
     properties: RunProperties = Field(description="Properties of the run.")
 
+    invocations: list[Invocation] = Field(
+        description="Describes the invocation of the analysis tool that will be merged with a separate run.",
+    )
+
 
 class SarifReport(BaseSchema):
     """A SARIF log file."""
@@ -180,13 +218,18 @@ class SarifReport(BaseSchema):
 
 
 def create_sarif_report(
-    results: list[Result], tool_version: str, repo_name: str, total_cost: float | None = None
+    results: list[Result],
+    tool_version: str,
+    repo_name: str,
+    failed_chunks: list["CodeChunkFailure"],  # type: ignore[name-defined] # to avoid circular import
+    total_cost: float | None = None,
 ) -> SarifReport:
     """
     Create a complete SARIF report from a list of results.
 
     Args:
         results: List of SARIF Result objects
+        failed_chunks: List of CodeChunkFailure objects representing chunks that failed to be analyzed
         tool_version: Version of the scanning tool
         total_cost: Optional total cost in USD for all LLM operations in this run
 
@@ -199,6 +242,76 @@ def create_sarif_report(
                 tool=Tool(driver=ToolComponent(name="fraim", version=tool_version)),
                 results=results,
                 properties=RunProperties(repo_name=repo_name, total_cost=total_cost),
+                invocations=[
+                    Invocation(
+                        execution_successful=True,
+                        toolExecutionNotifications=[
+                            Notification(
+                                level="error",
+                                descriptor=ReportingDescriptorReference(id="PARSING_ERROR"),
+                                message=Message(
+                                    text=f"Code chunk could not be analyzed due to a parsing error: {failure.reason}"
+                                ),
+                                locations=failure.chunk.locations.to_sarif(),
+                            )
+                            for failure in failed_chunks
+                        ],
+                    )
+                ],
             )
         ]
     )
+
+
+def create_result_model(allowed_types: list[str] | None = None) -> type[Result]:
+    """
+    Factory function to create a Result model with a restricted set of vulnerability types.
+
+    Args:
+        allowed_types: A list of strings representing the allowed vulnerability types.
+                       If None or empty, the default Result model with a string type is returned.
+
+    Returns:
+        A Pydantic model class for Result, with ResultProperties.type restricted to an enum
+        if allowed_types is provided.
+    """
+    if not allowed_types:
+        return Result
+
+    # The type annotations here are for pydantic, may take some more digging to get these to work with mypy.
+    VulnTypeEnum = Enum("VulnTypeEnum", {t: t for t in allowed_types})  # type: ignore[misc]
+
+    class RestrictedResultProperties(ResultProperties):
+        type: VulnTypeEnum = Field(  # type: ignore[valid-type,assignment]
+            description="Type of vulnerability (e.g., 'SQL Injection', 'XSS', 'Command Injection', etc.)"
+        )
+
+    class RestrictedResult(Result):
+        properties: RestrictedResultProperties = Field(
+            description="Key/value pairs that provide additional information about the result."
+        )
+
+    return RestrictedResult
+
+
+def create_run_model(allowed_types: list[str] | None = None) -> type[Run]:
+    """
+    Factory function to create a Run model with a restricted set of vulnerability types.
+
+    Args:
+        allowed_types: A list of strings representing the allowed vulnerability types.
+                       If None or empty, the default Run model with a string type is returned.
+
+    Returns:
+        A Pydantic model class for Run, with ResultProperties.type restricted to an enum
+        if allowed_types is provided.
+    """
+    RestrictedResultModel = create_result_model(allowed_types)
+
+    # The type annotations here are for pydantic, may take some more digging to get these to work with mypy.
+    class RestrictedRun(Run):
+        results: list[RestrictedResultModel] = Field(  # type: ignore[valid-type]
+            description="The set of results contained in a SARIF log."
+        )
+
+    return RestrictedRun

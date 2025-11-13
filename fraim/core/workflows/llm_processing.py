@@ -23,7 +23,7 @@ class LLMOptions:
 
 class LLMMixin:
     def __init__(self, args: LLMOptions):
-        super().__init__(args)  # type: ignore
+        super().__init__(args)  # type: ignore[misc, call-arg]
 
         # Workaround for GPT-5 models, which don't support temperature
         if "gpt-5" in args.model:

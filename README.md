@@ -331,3 +331,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ---
 
 _Fraim is built by security teams, for security teams. Help us make AI-powered security accessible to everyone._
+
