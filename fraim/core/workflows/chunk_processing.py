@@ -10,7 +10,7 @@ from abc import abstractmethod
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Annotated, Generic, TypeVar, cast
+from typing import Annotated, Generic, TypeVar
 
 from rich.layout import Layout
 from rich.progress import Progress, TaskID

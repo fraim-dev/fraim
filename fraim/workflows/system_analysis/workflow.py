@@ -11,7 +11,6 @@ This workflow addresses the Project Overview section of threat assessment questi
 import logging
 import os
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Annotated, Any
 
 from pydantic import BaseModel

@@ -13,7 +13,7 @@ import os
 from dataclasses import dataclass
 from typing import Annotated
 
-from fraim.core.contextuals import CodeChunk, CodeChunkFailure, Contextual
+from fraim.core.contextuals import CodeChunkFailure, Contextual
 from fraim.core.history import History
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate

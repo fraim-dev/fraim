@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Annotated, cast
 
-from fraim.core.contextuals import CodeChunk, CodeChunkFailure, Contextual
+from fraim.core.contextuals import CodeChunkFailure, Contextual
 from fraim.core.history import EventRecord, History, HistoryRecord
 from fraim.core.parsers import PydanticOutputParser, TextOutputParser
 from fraim.core.prompts.template import PromptTemplate
