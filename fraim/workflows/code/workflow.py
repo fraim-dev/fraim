@@ -248,16 +248,22 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
             max_concurrent_chunks=self.args.max_concurrent_chunks,
         )
 
+        # Get total cost from history
+        total_cost = await self.history.get_total_cost()
+
         # Generate reports
         report_paths = write_sarif_and_html_report(
             results=results,
             repo_name=self.project.repo_name,
             output_dir=self.args.output,
+            threat_model_content=self.threat_model,
+            total_cost=total_cost,
             failed_chunks=self.failed_chunks,
         )
 
         print(f"Found {len(results)} results.")
         print(f"Wrote SARIF report to {report_paths.sarif_path}")
         print(f"Wrote HTML report to {report_paths.html_path}")
+        print(f"Total cost: ${total_cost:.6f}")
 
         return results

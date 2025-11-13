@@ -424,6 +424,10 @@ class SystemAnalysisWorkflow(
             f"Confidence: {final_result['confidence_score']:.2f}"
         )
 
+        # Get and display total cost from history
+        total_cost = await self.history.get_total_cost()
+        print(f"Total cost: ${total_cost:.6f}")
+
         # 5. Write output file if output_dir is configured
         output_dir = getattr(self.args, "output_dir", None)
         if output_dir:

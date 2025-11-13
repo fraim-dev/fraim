@@ -1,0 +1,479 @@
+---
+title: "Risk Flagger"
+sidebarTitle: "Risk Flagger"
+tag: "NEW"
+---
+
+import { GitHubAppInstaller } from "/snippets/github-app-installer.jsx"
+
+# Risk Flagger Workflow
+
+The **Risk Flagger** workflow analyzes code changes for security risks that require security team investigation. Unlike traditional vulnerability scanners, this workflow focuses on identifying changes that could introduce security risks, making it ideal for pull request analysis and change management.
+
+<img
+  src="/assets/risk-flagger-preview.png"
+  alt="Risk Flagger Preview"
+/>
+
+## Overview
+
+- **Workflow ID**: `risk_flagger`
+- **Primary Use Case**: Risk assessment of code changes and pull requests
+- **Output**: Risk findings and optional GitHub notifications
+- **Required Mode**: Must use `--diff` mode
+
+## Common Use Cases
+
+### 1. Pull Request Security Gate
+
+<Tabs>
+<Tab title="CLI">
+```bash
+# Automated PR analysis with team notification
+fraim run risk_flagger --location . --diff --base main --head HEAD \
+  --pr-url https://github.com/owner/repo/pull/123 \
+  --approver security-team \
+  --custom-risk-list-json '{"Example Rule": "Flag this rule on every diff, it is an example to show how the workflow works."}' \
+  --custom-risk-list-action replace
+```
+</Tab>
+<Tab title="GitHub Actions">
+```yaml
+name: PR Security Gate
+on:
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
+jobs:
+  security-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Run Risk Flagger
+        uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          workflow: risk_flagger
+          workflow_args: |
+            {
+              "approver": "security-team",
+              "should-block-pull-request": true,
+              "confidence": 7,
+              "slack-webhook-url": "${{ secrets.SLACK_WEBHOOK_URL }}"
+            }
+          github-token: ${{ secrets.GH_TOKEN }}
+```
+</Tab>
+</Tabs>
+
+### 2. Custom Risk Categories
+
+<Tabs>
+<Tab title="CLI">
+```bash
+# Organization-specific risk assessment
+fraim run risk_flagger --location . --diff \
+  --custom-risk-list-filepath ./org-risks.yaml \
+  --custom-false-positive-considerations \
+    "Ignore test files in /tests/" \
+    "Skip demo applications"
+```
+</Tab>
+<Tab title="GitHub Actions">
+```yaml
+name: Custom Risk Assessment
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
+jobs:
+  custom-risk-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Custom Risk Analysis
+        uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          workflow: risk_flagger
+          workflow_args: |
+            {
+              "custom-risk-list-filepath": "./org-risks.yaml",
+              "custom-false-positive-considerations": [
+                "Ignore test files in /tests/",
+                "Skip demo applications"
+              ],
+              "slack-webhook-url": "${{ secrets.SLACK_WEBHOOK_URL }}",
+              "no-gh-comment": true
+            }
+          github-token: ${{ secrets.GH_TOKEN }}
+```
+</Tab>
+</Tabs>
+
+### 3. Release Branch Analysis
+
+<Tabs>
+<Tab title="CLI">
+```bash
+# Analyze changes between releases
+fraim run risk_flagger --location . --diff \
+  --base v1.0.0 \
+  --head v1.1.0 \
+  --confidence 6
+```
+</Tab>
+<Tab title="GitHub Actions">
+```yaml
+name: Release Risk Analysis
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
+jobs:
+  release-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Analyze Release Changes
+        uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          workflow: risk_flagger
+          workflow_args: |
+            {
+              "base": "${{ github.event.before }}",
+              "head": "${{ github.sha }}",
+              "confidence": 6
+            }
+```
+</Tab>
+</Tabs>
+
+### 4. Pre-Commit Risk Assessment
+
+<Tabs>
+<Tab title="CLI">
+```bash
+# Local risk check before committing
+fraim run risk_flagger --location . --diff \
+  --confidence 8
+```
+</Tab>
+</Tabs>
+
+## Workflow-Specific Options
+
+### Required Options
+
+#### `--diff`
+**Required**: The risk flagger workflow must run in diff mode.
+
+```bash
+fraim run risk_flagger --location . --diff
+```
+
+### GitHub Integration Options
+
+#### `--pr-url <URL>`
+URL of the pull request to analyze for GitHub integration.
+
+```bash
+fraim run risk_flagger --location . --diff \
+  --pr-url https://github.com/owner/repo/pull/123
+```
+
+#### `--approver <USERNAME>`
+GitHub username or team to notify when risks are found.
+
+```bash
+fraim run risk_flagger --location . --diff \
+  --pr-url https://github.com/owner/repo/pull/123 \
+  --approver security-team
+```
+
+#### `--no-gh-comment <BOOLEAN>`
+Set to `true` to disable GitHub comments for risk findings. Useful when you want to use only Slack notifications or other notification methods.
+
+**Default**: `false`
+
+```bash
+fraim run risk_flagger --location . --diff \
+  --no-gh-comment true
+```
+
+#### `--should-block-pull-request <BOOLEAN>` (GitHub Action only)
+Whether to block the pull request until security review is complete. Available only when using the GitHub Action.
+
+**Default**: `false`
+
+```yaml
+# In GitHub Action workflow_args
+"should-block-pull-request": true
+```
+
+#### `--slack-webhook-url <URL>`
+Provide a Slack webhook URL to send risk notifications to your team's Slack channel.
+
+```bash
+fraim run risk_flagger --location . --diff \
+  --slack-webhook-url https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+```
+
+```yaml
+# In GitHub Action workflow_args
+"slack-webhook-url": "${{ secrets.SLACK_WEBHOOK_URL }}"
+```
+
+### Customization Options
+
+#### `--custom-risk-list-action <append|replace>`
+How to handle custom risk lists.
+
+**Default**: `append`
+
+```bash
+# Add custom risks to default list
+fraim run risk_flagger --location . --diff \
+  --custom-risk-list-action append
+
+# Replace default risks with custom ones
+fraim run risk_flagger --location . --diff \
+  --custom-risk-list-action replace
+```
+
+#### `--custom-risk-list-filepath <PATH>`
+Path to JSON/YAML file containing additional risks.
+
+```bash
+fraim run risk_flagger --location . --diff \
+  --custom-risk-list-filepath ./custom-risks.yaml
+```
+
+**Example custom-risks.yaml:**
+```yaml
+"API Endpoint Changes": "Changes to API endpoints that handle sensitive data should be reviewed by the security team"
+"Payment Processing": "Any changes to payment processing logic require security review"
+"User Data Handling": "Modifications to user data processing need privacy team approval"
+```
+
+#### `--custom-risk-list-json <JSON>`
+JSON string containing additional risks.
+
+```bash
+fraim run risk_flagger --location . --diff \
+  --custom-risk-list-json '{"Custom Risk": "Description of the risk"}'
+```
+
+#### `--custom-false-positive-considerations <LIST>`
+Additional considerations to reduce false positives.
+
+```bash
+fraim run risk_flagger --location . --diff \
+  --custom-false-positive-considerations \
+    "Ignore test files" \
+    "Consider demo code as low risk" \
+    "Skip configuration templates"
+```
+
+## GitHub Actions Integration
+
+<Tabs>
+<Tab title="Easy Setup">
+**Simple setup with no GitHub token required**
+
+**What this does**: 
+- ✅ Adds risk assessment comments to pull requests
+- ❌ No team notifications or reviewer requests
+- ❌ No status checks or PR blocking
+
+```yaml
+name: Risk Assessment
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
+jobs:
+  risk-assessment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Run Fraim Risk Flagger Scan
+        uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
+        with:
+          workflow: risk_flagger
+          workflow_args: |
+            {
+              "approver": "fraim-dev/security",
+              "custom-risk-list-json": {
+                "Example Risk": "Never flag this risk, it is just an example."
+              },
+              "custom-risk-list-action": "append"
+            }
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+</Tab>
+
+<Tab title="GitHub App">
+**Advanced setup with GitHub App for team notifications**
+
+**What this does**: 
+- ✅ Adds risk assessment comments to pull requests
+- ✅ Requests review from specified team/user when risks are found
+- ❌ No PR blocking (PRs can still be merged)
+
+<Note>
+**Prerequisites**: You need to create and install a GitHub App with the appropriate permissions. Use the tool below to set up your GitHub App.
+</Note>
+
+<GitHubAppInstaller />
+
+```yaml
+name: Risk Assessment
+on:
+  pull_request:
+    branches: [main]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
+jobs:
+  risk-assessment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Run Fraim Risk Flagger Scan
+        uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
+        with:
+          workflow: risk_flagger
+          workflow_args: |
+            {
+              "approver": "fraim-dev/security",
+              "custom-risk-list-json": {
+                "Example Risk": "Never flag this risk, it is just an example."
+              },
+              "custom-risk-list-action": "append"
+            }
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github-app-id: ${{ secrets.GH_APP_ID }}
+          github-app-private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+```
+</Tab>
+
+<Tab title="Block Pull Request">
+**Full security gate with PR blocking**
+
+**What this does**: 
+- ✅ Adds risk assessment comments to pull requests
+- ✅ Requests review from specified team/user when risks are found
+- ✅ Creates a status check that blocks PR merging until team approves
+
+<Note>
+**Prerequisites**: You need to create and install a GitHub App with the appropriate permissions. Use the tool below to set up your GitHub App.
+</Note>
+
+<GitHubAppInstaller />
+
+```yaml
+name: Risk Assessment
+on:
+  pull_request:
+    branches: [main]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
+jobs:
+  risk-assessment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Run Fraim Risk Flagger Scan
+        uses: fraim-dev/fraim-action@423d9d6b3c80923557887930d80eec4ca22a5c24
+        with:
+          workflow: risk_flagger
+          workflow_args: |
+            {
+              "approver": "fraim-dev/security",
+              "should-block-pull-request": true,
+              "custom-risk-list-json": {
+                "Example Risk": "Never flag this risk, it is just an example."
+              },
+              "custom-risk-list-action": "append"
+            }
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github-app-id: ${{ secrets.GH_APP_ID }}
+          github-app-private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+```
+
+<Warning>
+**Branch Protection Required**: To fully block PR merging, ensure your repository has branch protection rules that require status checks to pass before merging.
+</Warning>
+</Tab>
+</Tabs>
+
+#### Available workflow_args
+
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `approver` | string | `""` | GitHub username or group to notify for approval |
+| `should-block-pull-request` | boolean | `false` | Whether to block the pull request until security review is complete |
+| `custom-risk-list-action` | string | `"append"` | Whether to `"append"` to or `"replace"` the default risks list |
+| `custom-risk-list-filepath` | string | `null` | Path to JSON/YAML file containing additional risks |
+| `custom-risk-list-json` | object | `null` | JSON object containing additional risks to consider |
+| `custom-false-positive-considerations` | array of strings | `[]` | List of additional considerations to help reduce false positives |
+| `slack-webhook-url` | string | `null` | Provide a Slack webhook URL to send notifications |
+| `no-gh-comment` | boolean | `false` | Set to `true` to disable GitHub comments for risk findings |
+| `confidence` | integer (1-10) | `7` | Minimum confidence threshold for filtering findings |
+| `chunk-size` | integer | `500` | Number of lines per chunk |
+| `limit` | integer | `null` | Limit the number of files to scan |
+| `globs` | array of strings | `null` | File patterns to include (uses workflow defaults if not provided) |
+| `max-concurrent-chunks` | integer | `5` | Maximum number of chunks to process concurrently |
+| `github-app-id` | string | No | GitHub App ID for enhanced GitHub integration (enables team notifications and PR blocking) |
+| `github-app-private-key` | string | No | GitHub App private key for enhanced GitHub integration (enables team notifications and PR blocking) |

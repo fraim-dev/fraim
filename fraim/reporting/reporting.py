@@ -88,9 +88,6 @@ class Reporting:
 
         # Prepare minimized SARIF data
         sarif_dict = sarif_report.model_dump(by_alias=True, exclude_none=True)
-        sarif_dict["repoName"] = repo_name or "Unknown Repository"
-        # TODO: Calculate actual score based on findings, for now hardcode
-        sarif_dict["securityScore"] = 75
 
         # Minimize SARIF JSON by removing whitespace
         minimized_sarif = json.dumps(sarif_dict, separators=(",", ":"))
@@ -133,5 +130,4 @@ class Reporting:
 
         print(f"HTML report created: {output_path}")
         print(f"SARIF file created: {sarif_output_path}")
-        if threat_model_output_path:
-            print(f"Threat model file created: {threat_model_output_path}")
+        print(f"Threat model file created: {threat_model_output_path}") if threat_model_output_path else None

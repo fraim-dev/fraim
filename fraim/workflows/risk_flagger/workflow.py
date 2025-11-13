@@ -196,6 +196,10 @@ class RiskFlaggerWorkflow(
 
         logger.info(f"Found {len(results)} results")
 
+        # Get and display total cost from history
+        total_cost = await self.history.get_total_cost()
+        print(f"Total cost: ${total_cost:.6f}")
+
         if len(results) > 0:
             pr_comment = format_pr_comment(results)
 

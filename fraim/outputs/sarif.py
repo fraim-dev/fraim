@@ -185,12 +185,20 @@ class RunResults(BaseSchema):
     results: list[Result] = Field(description="The set of results contained in a SARIF log.")
 
 
+class RunProperties(BaseSchema):
+    """Properties of a run."""
+
+    repo_name: str = Field(description="Name of the repository where the results were found.")
+    total_cost: float | None = Field(default=None, description="Total cost in USD for all LLM operations in this run")
+
+
 class Run(RunResults):
     """Describes a single run of an analysis tool, and contains the reported output of that run."""
 
     tool: Tool = Field(
         description="Information about the tool or tool pipeline that generated the results in this run. A run can only contain results produced by a single tool or tool pipeline. A run can aggregate the results from multiple log files, as long as the context around the tool run (tool command-line arguments and the like) is indentical for all aggregated files."
     )
+    properties: RunProperties = Field(description="Properties of the run.")
 
     invocations: list[Invocation] = Field(
         description="Describes the invocation of the analysis tool that will be merged with a separate run.",
@@ -211,8 +219,10 @@ class SarifReport(BaseSchema):
 
 def create_sarif_report(
     results: list[Result],
-    failed_chunks: list["CodeChunkFailure"],  # type: ignore[name-defined] # to avoid circular import
     tool_version: str,
+    repo_name: str,
+    failed_chunks: list["CodeChunkFailure"],  # type: ignore[name-defined] # to avoid circular import
+    total_cost: float | None = None,
 ) -> SarifReport:
     """
     Create a complete SARIF report from a list of results.
@@ -221,6 +231,7 @@ def create_sarif_report(
         results: List of SARIF Result objects
         failed_chunks: List of CodeChunkFailure objects representing chunks that failed to be analyzed
         tool_version: Version of the scanning tool
+        total_cost: Optional total cost in USD for all LLM operations in this run
 
     Returns:
         Complete SARIF report
@@ -230,6 +241,7 @@ def create_sarif_report(
             Run(
                 tool=Tool(driver=ToolComponent(name="fraim", version=tool_version)),
                 results=results,
+                properties=RunProperties(repo_name=repo_name, total_cost=total_cost),
                 invocations=[
                     Invocation(
                         execution_successful=True,
@@ -246,8 +258,8 @@ def create_sarif_report(
                         ],
                     )
                 ],
-            ),
-        ],
+            )
+        ]
     )
 
 

@@ -57,6 +57,8 @@ def write_sarif_and_html_report(
     repo_name: str,
     output_dir: str,
     failed_chunks: list[CodeChunkFailure],
+    threat_model_content: str | None = None,
+    total_cost: float | None = None,
 ) -> ReportPaths:
     """
     Write security scan results to both SARIF (JSON) and HTML report files.
@@ -65,7 +67,9 @@ def write_sarif_and_html_report(
         results: List of security scan results to include in the reports
         repo_name: Name of the repository being scanned, used in filename generation
         output_dir: Directory path where report files will be written
-        logger: Logger instance for recording operation status and errors
+        failed_chunks: Failed code chunk details.
+        threat_model_content: Optional threat model content to include in HTML report
+        total_cost: Optional total cost in USD for all LLM operations in this run
 
     Returns:
         ReportPaths object with sarif_path and html_path attributes containing file paths
@@ -78,7 +82,7 @@ def write_sarif_and_html_report(
         >>> print(reports.html_path)
         '/output/fraim_report_my_repo_20250917_143022.html'
     """
-    report = create_sarif_report(results, failed_chunks, __version__)
+    report = create_sarif_report(results, failed_chunks, __version__, repo_name, total_cost)
 
     # Create filename with sanitized repo name
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -101,7 +105,12 @@ def write_sarif_and_html_report(
         logger.error(f"Failed to write SARIF report to {sarif_output_file}: {e!s}")
     # Write HTML report file (independent of SARIF write)
     try:
-        Reporting.generate_html_report(sarif_report=report, repo_name=repo_name, output_path=html_output_file)
+        Reporting.generate_html_report(
+            sarif_report=report,
+            repo_name=repo_name,
+            output_path=html_output_file,
+            threat_model_content=threat_model_content,
+        )
         logger.info(f"Wrote HTML report ({total_results} results) to {html_output_file}")
     except Exception as e:
         logger.error(f"Failed to write HTML report to {html_output_file}: {e!s}")
