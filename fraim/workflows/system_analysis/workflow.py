@@ -16,7 +16,7 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel
 
-from fraim.core.contextuals import CodeChunk
+from fraim.core.contextuals import Contextual
 from fraim.core.history import History
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
@@ -150,7 +150,7 @@ class FinalAnalysisResult(BaseModel):
 class SystemAnalysisChunkOptions:
     """Input for analyzing a single chunk."""
 
-    code: CodeChunk
+    code: Contextual[str]
     business_context: str = ""
     focus_areas: list[str] | None = None
     previous_findings: dict[str, list[str]] | None = None
@@ -207,11 +207,11 @@ class SystemAnalysisWorkflow(
         return FILE_PATTERNS
 
     async def _process_single_chunk(
-        self, history: History, chunk: CodeChunk, business_context: str = "", focus_areas: list[str] | None = None
+        self, history: History, chunk: Contextual[str], business_context: str = "", focus_areas: list[str] | None = None
     ) -> list[SystemAnalysisResult]:
         """Process a single chunk using two-step analysis: assessment then analysis."""
         try:
-            logger.debug(f"Processing chunk: {Path(chunk.file_path)}")
+            logger.debug(f"Processing chunk: {chunk.locations!s}")
 
             chunk_input = SystemAnalysisChunkOptions(
                 code=chunk,
@@ -224,7 +224,7 @@ class SystemAnalysisWorkflow(
             assessment = await self.assessment_step.run(history, chunk_input)
 
             logger.debug(
-                f"Assessment for {chunk.file_path}: confidence={assessment.confidence_score:.2f}, "
+                f"Assessment for {chunk.locations!s}: confidence={assessment.confidence_score:.2f}, "
                 f"type='{assessment.document_type}', reasoning='{assessment.reasoning[:100]}...'"
             )
 
@@ -232,20 +232,18 @@ class SystemAnalysisWorkflow(
             # Lowered threshold to 0.5 and made document type matching case-insensitive
             if assessment.confidence_score < 0.5 or "SYSTEM" not in assessment.document_type.upper():
                 logger.debug(
-                    f"Skipping chunk {chunk.file_path} - confidence: {assessment.confidence_score:.2f}, "
+                    f"Skipping chunk {chunk.locations!s} - confidence: {assessment.confidence_score:.2f}, "
                     f"type: '{assessment.document_type}'"
                 )
                 return []
 
             # Step 2: System analysis and deduplication
-            logger.debug(f"Analyzing chunk: {Path(chunk.file_path)}")
+            logger.debug(f"Analyzing chunk: {chunk.locations!s}")
             result = await self.analysis_step.run(history, chunk_input)
             return [result]
 
         except Exception as e:
-            logger.error(
-                f"Failed to process chunk {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}: {e!s}"
-            )
+            logger.error(f"Failed to process chunk {chunk.locations!s}: {e!s}")
             return []
 
     async def _aggregate_results(self, history: History, chunk_results: list[SystemAnalysisResult]) -> dict[str, Any]:
@@ -405,7 +403,7 @@ class SystemAnalysisWorkflow(
         project = self.setup_project_input(self.args)
 
         # 2. Create a closure that captures business_context and focus_areas
-        async def chunk_processor(history: History, chunk: CodeChunk) -> list[SystemAnalysisResult]:
+        async def chunk_processor(history: History, chunk: Contextual[str]) -> list[SystemAnalysisResult]:
             return await self._process_single_chunk(history, chunk, self.args.business_context, self.args.focus_areas)
 
         # 3. Process chunks concurrently using mixin utility

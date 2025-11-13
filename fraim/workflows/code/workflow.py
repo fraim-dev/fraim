@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Annotated, cast
 
-from fraim.core.contextuals import CodeChunk, CodeChunkFailure
+from fraim.core.contextuals import CodeChunk, CodeChunkFailure, Contextual
 from fraim.core.history import EventRecord, History, HistoryRecord
 from fraim.core.parsers import PydanticOutputParser, TextOutputParser
 from fraim.core.prompts.template import PromptTemplate
@@ -74,7 +74,7 @@ class SASTWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceFilterOp
 class SASTInput:
     """Input for the SAST scanner step."""
 
-    code: CodeChunk
+    code: Contextual[str]
 
 
 @dataclass
@@ -82,7 +82,7 @@ class TriagerInput:
     """Input for the triage step."""
 
     vulnerability: str
-    code: CodeChunk
+    code: Contextual[str]
     threat_model: str
 
 
@@ -158,7 +158,7 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
         return FILE_PATTERNS
 
     async def _process_single_chunk(
-        self, history: History, chunk: CodeChunk, max_concurrent_triagers: int
+        self, history: History, chunk: Contextual[str], max_concurrent_triagers: int
     ) -> list[sarif.Result]:
         """Process a single chunk with multi-step processing and error handling."""
         try:
@@ -237,7 +237,7 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
         print(f"Wrote threat model to {threat_model_filename}")
 
         # Create a closure that captures max_concurrent_triagers
-        async def chunk_processor(history: History, chunk: CodeChunk) -> list[sarif.Result]:
+        async def chunk_processor(history: History, chunk: Contextual[str]) -> list[sarif.Result]:
             return await self._process_single_chunk(history, chunk, self.args.max_concurrent_triagers)
 
         # Process chunks concurrently using utility

@@ -13,7 +13,7 @@ import os
 from dataclasses import dataclass
 from typing import Annotated
 
-from fraim.core.contextuals import CodeChunk, CodeChunkFailure
+from fraim.core.contextuals import CodeChunk, CodeChunkFailure, Contextual
 from fraim.core.history import History
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
@@ -72,7 +72,7 @@ class IaCWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceFilterOpt
 class IaCCodeChunkOptions:
     """Options to process a single IaC chunk."""
 
-    code: CodeChunk
+    code: Contextual[str]
 
 
 class IaCWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[IaCWorkflowOptions, list[sarif.Result]]):
@@ -93,7 +93,7 @@ class IaCWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[IaCWorkflowOp
         """IaC file patterns."""
         return FILE_PATTERNS
 
-    async def _process_single_chunk(self, history: History, chunk: CodeChunk) -> list[sarif.Result]:
+    async def _process_single_chunk(self, history: History, chunk: Contextual[str]) -> list[sarif.Result]:
         """Process a single chunk with error handling."""
         try:
             # 1. Scan the code for vulnerabilities.

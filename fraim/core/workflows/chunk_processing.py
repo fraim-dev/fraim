@@ -15,7 +15,7 @@ from typing import Annotated, Generic, TypeVar, cast
 from rich.layout import Layout
 from rich.progress import Progress, TaskID
 
-from fraim.core.contextuals import CodeChunk
+from fraim.core.contextuals import Contextual
 from fraim.core.display import ProgressPanel, ResultsPanel
 from fraim.core.history import EventRecord, History, HistoryRecord
 from fraim.core.workflows.llm_processing import LLMOptions
@@ -176,7 +176,7 @@ class ChunkProcessor(Generic[T]):
         self,
         history: History,
         project: ProjectInput,
-        chunk_processor: Callable[[History, CodeChunk], Awaitable[list[T]]],
+        chunk_processor: Callable[[History, Contextual[str]], Awaitable[list[T]]],
         max_concurrent_chunks: int = 5,
     ) -> list[T]:
         """
@@ -192,7 +192,7 @@ class ChunkProcessor(Generic[T]):
             Combined results from all chunks
         """
         # Initialize progress tracking
-        chunks_list: list[CodeChunk] = [cast("CodeChunk", chunk) for chunk in project]
+        chunks_list = list(project)
         self._total_chunks = len(chunks_list)
         self._processed_chunks = 0
         self._results = []
@@ -200,13 +200,11 @@ class ChunkProcessor(Generic[T]):
         # Create semaphore to limit concurrent chunk processing
         semaphore = asyncio.Semaphore(max_concurrent_chunks)
 
-        async def process_chunk_with_semaphore(history: History, chunk: CodeChunk) -> list[T]:
+        async def process_chunk_with_semaphore(history: History, chunk: Contextual[str]) -> list[T]:
             """Process a chunk with semaphore to limit concurrency."""
             async with semaphore:
                 # Create a subhistory for this task AFTER acquiring the semaphore
-                task_record = HistoryRecord(
-                    description=f"Analyzing {chunk.file_path}:{chunk.line_number_start_inclusive}-{chunk.line_number_end_inclusive}"
-                )
+                task_record = HistoryRecord(description=f"Analyzing {chunk.locations!s}")
                 history.append_record(task_record)
 
                 chunk_results = await chunk_processor(task_record.history, chunk)

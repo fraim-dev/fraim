@@ -16,7 +16,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 
 from fraim.actions import add_comment, add_reviewer, send_message
-from fraim.core.contextuals import CodeChunk
+from fraim.core.contextuals import Contextual
 from fraim.core.history import History
 from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
@@ -94,7 +94,7 @@ class RiskFlaggerWorkflowOptions(ChunkProcessingOptions, LLMOptions, ConfidenceF
 class RiskFlaggerInput:
     """Input for the Risk Flagger step."""
 
-    code: CodeChunk
+    code: Contextual[str]
 
 
 class RiskFlaggerOutput(sarif.BaseSchema):
@@ -138,7 +138,7 @@ class RiskFlaggerWorkflow(
             },
         )
 
-    async def _process_single_chunk(self, history: History, chunk: CodeChunk) -> list[sarif.Result]:
+    async def _process_single_chunk(self, history: History, chunk: Contextual[str]) -> list[sarif.Result]:
         """Process a single chunk with multi-step processing and error handling."""
         try:
             # 1. Scan the code for potential risks.
@@ -183,7 +183,7 @@ class RiskFlaggerWorkflow(
             )
 
         # 2. Create a closure that captures max_concurrent_chunks
-        async def chunk_processor(history: History, chunk: CodeChunk) -> list[sarif.Result]:
+        async def chunk_processor(history: History, chunk: Contextual[str]) -> list[sarif.Result]:
             return await self._process_single_chunk(history, chunk)
 
         # 3. Process chunks concurrently using utility
