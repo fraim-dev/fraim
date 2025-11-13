@@ -82,7 +82,13 @@ def write_sarif_and_html_report(
         >>> print(reports.html_path)
         '/output/fraim_report_my_repo_20250917_143022.html'
     """
-    report = create_sarif_report(results, failed_chunks, __version__, repo_name, total_cost)
+    report = create_sarif_report(
+        results=results,
+        tool_version=__version__,
+        repo_name=repo_name,
+        failed_chunks=failed_chunks,
+        total_cost=total_cost,
+    )
 
     # Create filename with sanitized repo name
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
