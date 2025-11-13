@@ -42,6 +42,8 @@ class DryRunInput(ChunkProcessingOptions):
 
 
 class DryRunWorkflow(ChunkProcessor, LLMMixin, Workflow[DryRunInput, list[sarif.Result]]):
+    """Used for testing. Chunks the codebase but does not scan it."""
+
     name = "dry_run"
 
     @property
