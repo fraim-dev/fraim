@@ -196,6 +196,8 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
     async def run(self) -> list[sarif.Result]:
         """Main Code workflow - full control over execution with multi-step processing."""
 
+        print(f"Scanning {self.project.repo_name} for security vulnerabilities...")
+
         # Generate threat model for the entire repository
         task_record = HistoryRecord(description="Generating threat model for the entire project")
         self.history.append_record(task_record)
@@ -214,29 +216,48 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
         async def chunk_processor(history: History, chunk: CodeChunk) -> list[sarif.Result]:
             return await self._process_single_chunk(history, chunk, self.args.max_concurrent_triagers)
 
-        # Process chunks concurrently using utility
-        results = await self.process_chunks_concurrently(
-            history=self.history,
-            project=self.project,
-            chunk_processor=chunk_processor,
-            max_concurrent_chunks=self.args.max_concurrent_chunks,
-        )
+        async def on_results(
+            history: History, new_results: list[sarif.Result], all_results: list[sarif.Result]
+        ) -> None:
+            logger.info(f"Writing {len(new_results)} additional results to SARIF and HTML reports")
+            total_cost = await self.history.get_total_cost()
+            write_sarif_and_html_report(
+                results=all_results,
+                repo_name=self.project.repo_name,
+                output_dir=self.args.output,
+                threat_model_content=self.threat_model,
+                total_cost=total_cost,
+            )
 
-        # Get total cost from history
-        total_cost = await self.history.get_total_cost()
+        results: list[sarif.Result] = []
+        try:
+            # Process chunks concurrently using utility
+            results = await self.process_chunks_concurrently(
+                history=self.history,
+                project=self.project,
+                chunk_processor=chunk_processor,
+                on_result=on_results,
+                max_concurrent_chunks=self.args.max_concurrent_chunks,
+            )
+            print("Finished.")
+        except Exception as e:
+            print(f"Stopping due to error: {e!s}")
+        finally:
+            print(f"Found {len(results)} results.")
 
-        # Generate reports
-        report_paths = write_sarif_and_html_report(
-            results=results,
-            repo_name=self.project.repo_name,
-            output_dir=self.args.output,
-            threat_model_content=self.threat_model,
-            total_cost=total_cost,
-        )
+            # Get total cost from history
+            total_cost = await self.history.get_total_cost()
+            print(f"Total cost: ${total_cost:.6f}")
 
-        print(f"Found {len(results)} results.")
-        print(f"Wrote SARIF report to {report_paths.sarif_path}")
-        print(f"Wrote HTML report to {report_paths.html_path}")
-        print(f"Total cost: ${total_cost:.6f}")
+            # Generate reports
+            report_paths = write_sarif_and_html_report(
+                results=results,
+                repo_name=self.project.repo_name,
+                output_dir=self.args.output,
+                threat_model_content=self.threat_model,
+                total_cost=total_cost,
+            )
+            print(f"Wrote HTML report to {report_paths.html_path}")
+            print(f"Wrote SARIF report to {report_paths.sarif_path}")
 
         return results

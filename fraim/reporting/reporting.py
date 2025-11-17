@@ -3,9 +3,12 @@
 
 import base64
 import json
+import logging
 import os
 
 from fraim.outputs.sarif import SarifReport
+
+logger = logging.getLogger(__name__)
 
 
 class Reporting:
@@ -128,6 +131,6 @@ class Reporting:
             with open(threat_model_output_path, "w", encoding="utf-8") as f:
                 f.write(threat_model_content)
 
-        print(f"HTML report created: {output_path}")
-        print(f"SARIF file created: {sarif_output_path}")
-        print(f"Threat model file created: {threat_model_output_path}") if threat_model_output_path else None
+        logger.info(f"HTML report created: {output_path}")
+        logger.info(f"SARIF file created: {sarif_output_path}")
+        logger.info(f"Threat model file created: {threat_model_output_path}") if threat_model_output_path else None
