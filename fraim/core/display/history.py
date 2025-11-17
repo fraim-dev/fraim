@@ -36,17 +36,34 @@ class HistoryView:
         # Reserve space for panel borders (2 lines) and cost display (1 line)
         max_lines = console_height - 3
 
-        # Flatten all records to determine total count and get most recent ones
+        # Calculate available width for truncation
+        # Account for panel padding (4 chars), timestamp (10 chars), and some buffer
+        console_width = options.max_width or console.size.width
+        available_width = console_width - 25  # Conservative buffer for padding and formatting
+
+        panel = self._build_history_panel(max_lines=max_lines, available_width=available_width)
+        yield panel
+
+    def _build_history_tree(self, max_lines: int | None = None, available_width: int = 200) -> Tree:
+        """
+        Build a history tree with the execution records.
+
+        Args:
+            max_lines: Maximum number of records to display. If None, shows all records.
+            available_width: Available width for description text before truncation.
+
+        Returns:
+            A Rich Tree containing the history
+        """
+        # Flatten all records
         all_records = self._flatten_records(self.history.records)
 
-        # If we have more records than can fit, truncate to show most recent
-        # Each record consumes at least one line, so limit the records we try to render
-        truncated = len(all_records) > max_lines
-        if truncated:
+        # If max_lines specified, truncate to show most recent records
+        if max_lines is not None and len(all_records) > max_lines:
             # Take the most recent records that fit
-            recent_records = all_records[-max_lines:]
+            records_to_display = all_records[-max_lines:]
         else:
-            recent_records = all_records
+            records_to_display = all_records
 
         # Get total cost for display (using sync version since Rich rendering is synchronous)
         total_cost = self.history.get_total_cost_sync()
@@ -54,15 +71,24 @@ class HistoryView:
 
         tree = Tree(f"{self.title}{cost_text}", style="bold blue")
 
-        # Calculate available width for truncation
-        # Account for panel padding (4 chars), timestamp (10 chars), and some buffer
-        console_width = options.max_width or console.size.width
-        available_width = console_width - 25  # Conservative buffer for padding and formatting
+        # Add the records to tree
+        self._add_flattened_records_to_tree(records_to_display, tree, available_width)
 
-        # Add the recent records to tree
-        self._add_flattened_records_to_tree(recent_records, tree, available_width)
+        return tree
 
-        yield Panel(tree, title="Execution History", border_style="blue", padding=(1, 2))
+    def _build_history_panel(self, max_lines: int | None = None, available_width: int = 200) -> Panel:
+        """
+        Build a history panel with the execution tree.
+
+        Args:
+            max_lines: Maximum number of records to display. If None, shows all records.
+            available_width: Available width for description text before truncation.
+
+        Returns:
+            A Rich Panel containing the history tree
+        """
+        tree = self._build_history_tree(max_lines=max_lines, available_width=available_width)
+        return Panel(tree, title="Execution History", border_style="blue", padding=(1, 2))
 
     def _flatten_records(self, records: list, depth: int = 0) -> list[tuple]:
         """
@@ -135,11 +161,28 @@ class HistoryView:
                     cost_str = f"[dim](${record_cost:.2f})[/dim] "
                 else:
                     cost_str = ""
-                
+
                 truncated_desc = self._truncate_description(record.description, available_width, depth)
-                
+
                 node_text = f"[dim]{timestamp_str}[/dim] {cost_str}[bold]{truncated_desc}[/bold]"
                 parent_node = depth_nodes.get(depth, tree)
                 sub_node = parent_node.add(Text.from_markup(node_text))
                 # Store this node for potential children
                 depth_nodes[depth + 1] = sub_node
+
+    def print_full_history(self, console: Console) -> None:
+        """
+        Print the complete history to the console without truncation.
+
+        This is intended to be called after the live display closes so that
+        users have the full execution history available in their terminal scrollback.
+
+        Args:
+            console: The Rich console instance to print to
+        """
+        if not self.history.records:
+            return
+
+        # Build tree with no line limit and wide width for minimal truncation
+        tree = self._build_history_tree(max_lines=None, available_width=200)
+        console.print(tree)
