@@ -50,14 +50,14 @@ class HistoryView:
 
         # Get total cost for display (using sync version since Rich rendering is synchronous)
         total_cost = self.history.get_total_cost_sync()
-        cost_text = f"Total Cost: ${total_cost:.6f}" if total_cost > 0 else "Total Cost: $0.00"
+        cost_text = f"[dim] | Total Cost: ${total_cost:0.2f}[/dim]" if total_cost > 0 else ""
 
-        tree = Tree(f"{self.title} | {cost_text}", style="bold blue")
+        tree = Tree(f"{self.title}{cost_text}", style="bold blue")
 
         # Calculate available width for truncation
         # Account for panel padding (4 chars), timestamp (10 chars), and some buffer
         console_width = options.max_width or console.size.width
-        available_width = console_width - 20  # Conservative buffer for padding and formatting
+        available_width = console_width - 25  # Conservative buffer for padding and formatting
 
         # Add the recent records to tree
         self._add_flattened_records_to_tree(recent_records, tree, available_width)
@@ -130,8 +130,15 @@ class HistoryView:
                 parent_node = depth_nodes.get(depth, tree)
                 parent_node.add(Text.from_markup(node_text))
             elif isinstance(record, HistoryRecord):
+                record_cost = record.history.get_total_cost_sync()
+                if record_cost > 0:
+                    cost_str = f"[dim](${record_cost:.2f})[/dim] "
+                else:
+                    cost_str = ""
+                
                 truncated_desc = self._truncate_description(record.description, available_width, depth)
-                node_text = f"[dim]{timestamp_str}[/dim] [bold]{truncated_desc}[/bold]"
+                
+                node_text = f"[dim]{timestamp_str}[/dim] {cost_str}[bold]{truncated_desc}[/bold]"
                 parent_node = depth_nodes.get(depth, tree)
                 sub_node = parent_node.add(Text.from_markup(node_text))
                 # Store this node for potential children
