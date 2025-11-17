@@ -1,0 +1,31 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Reflected XSS in User Input",
+      "description_of_vuln": "Reflected XSS vulnerability in the /xss32 endpoint where user input is unsafely embedded into a script tag",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-010-24/src/app.py",
+          "start_line": 75,
+          "end_line": 75
+        }
+      ],
+      "semantic_details": {
+        "description": "The application directly embeds user input into a JavaScript string within a script tag without proper encoding or sanitization",
+        "impact": [
+          "Cross-site scripting",
+          "Client-side code execution",
+          "Session hijacking",
+          "Data theft"
+        ],
+        "scenario": [
+          "Attacker submits malicious JavaScript payload",
+          "Input bypasses limited blacklist filter",
+          "Payload is embedded in script tag and executes",
+          "Malicious code runs in victim's browser context"
+        ]
+      }
+    }
+  ]
+}

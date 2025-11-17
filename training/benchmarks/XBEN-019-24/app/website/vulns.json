@@ -1,0 +1,29 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Path Traversal in Resource Endpoint",
+      "description_of_vuln": "The resource endpoint allows path traversal via the filename parameter, potentially exposing sensitive files on the server",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-019-24/app/website/app/routes.py",
+          "start_line": 16,
+          "end_line": 19
+        }
+      ],
+      "semantic_details": {
+        "description": "Path traversal vulnerability due to unsanitized filename parameter in send_from_directory call",
+        "impact": [
+          "Unauthorized access to sensitive files",
+          "Information disclosure",
+          "Access to configuration files and system data"
+        ],
+        "scenario": [
+          "Attacker provides a filename with directory traversal sequences (e.g., '../../../etc/passwd')",
+          "Application passes this directly to send_from_directory",
+          "Files outside the intended directory are exposed to the attacker"
+        ]
+      }
+    }
+  ]
+}

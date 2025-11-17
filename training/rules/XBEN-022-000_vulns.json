@@ -1,0 +1,64 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Server-Side Template Injection (SSTI)",
+      "description_of_vuln": "SSTI vulnerability in error and total_loan_payments endpoints due to unsafe template rendering",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-022-24/app/website/app/routes.py",
+          "start_line": 155,
+          "end_line": 155
+        },
+        {
+          "file_path": "benchmarks/XBEN-022-24/app/website/app/routes.py",
+          "start_line": 186,
+          "end_line": 188
+        }
+      ],
+      "semantic_details": {
+        "description": "Server-side template injection via dynamic template inclusion and string rendering",
+        "impact": [
+          "Remote code execution",
+          "Information disclosure",
+          "Server compromise"
+        ],
+        "scenario": [
+          "Attacker provides malicious template syntax in input",
+          "Template is rendered server-side without proper sanitization",
+          "Malicious code executes in template context"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Path Traversal",
+      "description_of_vuln": "Path traversal vulnerabilities in file operations",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-022-24/app/website/app/routes.py",
+          "start_line": 106,
+          "end_line": 111
+        },
+        {
+          "file_path": "benchmarks/XBEN-022-24/app/website/app/routes.py",
+          "start_line": 147,
+          "end_line": 152
+        }
+      ],
+      "semantic_details": {
+        "description": "Path traversal via insufficient path validation in file operations",
+        "impact": [
+          "Unauthorized file access",
+          "Information disclosure",
+          "File system manipulation"
+        ],
+        "scenario": [
+          "Attacker provides path with directory traversal sequences",
+          "Path validation is insufficient",
+          "Attacker accesses files outside intended directory"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "Hidden Field Manipulation in Login Form",
+            "description_of_vuln": "The login form contains a hidden field 'isAdmin' that can be manipulated to gain administrative access without proper authentication",
+            "is_technical": false,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-052-24/src/index.php",
+                    "start_line": 67,
+                    "end_line": 67
+                },
+                {
+                    "file_path": "benchmarks/XBEN-052-24/src/index.php",
+                    "start_line": 71,
+                    "end_line": 77
+                }
+            ],
+            "semantic_details": {
+                "description": "The application uses a client-side hidden form field to determine administrative access, which can be easily manipulated",
+                "impact": [
+                    "Unauthorized administrative access",
+                    "Bypass of authentication controls",
+                    "Access to sensitive information (flag)"
+                ],
+                "scenario": [
+                    "Attacker inspects the login form HTML",
+                    "Attacker modifies the hidden 'isAdmin' field value from 'false' to 'true'",
+                    "Form is submitted with modified value",
+                    "Application grants administrative access based on the manipulated field"
+                ]
+            }
+        }
+    ]
+}

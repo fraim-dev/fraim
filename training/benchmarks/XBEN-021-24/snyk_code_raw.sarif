@@ -1,0 +1,388 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "SnykCode",
+          "semanticVersion": "1.0.0",
+          "version": "1.0.0",
+          "rules": [
+            {
+              "id": "python/NoHardcodedPasswords",
+              "name": "NoHardcodedPasswords",
+              "shortDescription": {
+                "text": "Use of Hardcoded Credentials"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "help": {
+                "markdown": "\n## Details\n\nDevelopers may use hardcoded credentials for convenience when coding in order to simplify their workflow. While they are responsible for removing these before production, occasionally this task may fall through the cracks. This also becomes a maintenance challenge when credentials are re-used across multiple applications.\n\nOnce attackers gain access, they may take advantage of privilege level to remove or alter data, take down a site or app, or hold any of the above for ransom. The risk across multiple similar projects is even greater. If code containing the credentials is reused across multiple projects, they will all be compromised.\n\n## Best practices for prevention\n* Plan software architecture such that keys and passwords are always stored outside the code, wherever possible.\n* Plan encryption into software architecture for all credential information and ensure proper handling of keys, credentials, and passwords.\n* Prompt for a secure password on first login rather than hard-code a default password.\n* If a hardcoded password or credential must be used, limit its use, for example, to system console users rather than via the network.\n* Use strong hashes for inbound password authentication, ideally with randomly assigned salts to increase the difficulty level in case of brute-force attack.",
+                "text": ""
+              },
+              "properties": {
+                "tags": [
+                  "python",
+                  "NoHardcodedPasswords",
+                  "Security"
+                ],
+                "categories": [
+                  "Security"
+                ],
+                "exampleCommitFixes": [
+                  {
+                    "commitURL": "https://github.com/badoo/pyexasol/commit/2dd19536a268bc5f0f01ae24fb6a09daa77a1834?diff=split#diff-8cf1c2175341bd9af5c9e80eba3597eac42d73c57fb275edf6ba6687af3061cbL-1",
+                    "lines": [
+                      {
+                        "line": "dsn = 'exasol-dev.mlan:8563'\n",
+                        "lineNumber": 0,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "user = 'SYS'\n",
+                        "lineNumber": 1,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "password = 'exasol'\n",
+                        "lineNumber": 2,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "schema = 'PYEXASOL_TEST'\n",
+                        "lineNumber": 3,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "import os\n",
+                        "lineNumber": 0,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 1,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "dsn = os.environ.get('EXAHOST', 'exasol-dev.mlan:8563')\n",
+                        "lineNumber": 2,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "user = os.environ.get('EXAUID', 'SYS')\n",
+                        "lineNumber": 3,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "password = os.environ.get('EXAPWD', 'exasol')\n",
+                        "lineNumber": 4,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "schema = os.environ.get('EXASCHEMA', 'PYEXASOL_TEST')\n",
+                        "lineNumber": 5,
+                        "lineChange": "added"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/dashpay/sentinel/commit/15cd95d9662b726301c46efcdfe5738cbf22614f?diff=split#diff-64b1ab22a02a67f026631c29469d2eef15f09367f37f6127e29b09c9e0578a45L-1",
+                    "lines": [
+                      {
+                        "line": "db = MySQLDatabase('sentinel', host='127.0.0.1', user='dashdrive', passwd='dashdrive')\n",
+                        "lineNumber": 4,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "import os\n",
+                        "lineNumber": 4,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "import sys\n",
+                        "lineNumber": 5,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "sys.path.append( os.path.join( os.path.dirname(__file__), '..' ) )\n",
+                        "lineNumber": 6,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "import config\n",
+                        "lineNumber": 7,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 8,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "env = os.environ.get('SENTINEL_ENV') or 'production'\n",
+                        "lineNumber": 9,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "db_cfg = config.db[env]\n",
+                        "lineNumber": 10,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "dbname = db_cfg.pop('database')\n",
+                        "lineNumber": 11,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 12,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "db = MySQLDatabase(dbname, **db_cfg)\n",
+                        "lineNumber": 13,
+                        "lineChange": "added"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/ArRosid/network-automation-book/commit/0886b388e65e7d4735d90b2f6c4cc107363f2676?diff=split#diff-8ab08bbd4468a1518f5de92d25a497a3b60b3c8f4a435627251d33ed113b83d7L-1",
+                    "lines": [
+                      {
+                        "line": "import getpass\n",
+                        "lineNumber": 2,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 3,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "ip_address = \"192.168.99.1\"\n",
+                        "lineNumber": 3,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "username = \"user\"\n",
+                        "lineNumber": 4,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "password = \"user123\"\n",
+                        "lineNumber": 5,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "ip_address = raw_input(\"Masukkan IP Address: \")\n",
+                        "lineNumber": 4,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "username = raw_input(\"Masukkann Username: \")\n",
+                        "lineNumber": 5,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "password = getpass.getpass()\n",
+                        "lineNumber": 6,
+                        "lineChange": "added"
+                      }
+                    ]
+                  }
+                ],
+                "exampleCommitDescriptions": [],
+                "precision": "very-high",
+                "repoDatasetSize": 55,
+                "cwe": [
+                  "CWE-798",
+                  "CWE-259"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "python/NoHardcodedPasswords",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "Do not hardcode passwords in code. Found hardcoded password used in a dictionary key.",
+            "markdown": "Do not hardcode passwords in code. Found {0} password used in a dictionary key.",
+            "arguments": [
+              "[hardcoded](0)"
+            ]
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 60,
+                  "endLine": 60,
+                  "startColumn": 30,
+                  "endColumn": 65
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "0": "c335fdb4bc7ddc5b91f24a14fa95de0c3be240775255bed18d471782393a3a23",
+            "1": "e06468b8.9e442778.5c017c0b.0b0b6f1a.66597110.7dd898c3.7e8df7be.0990edd8.e06468b8.9e442778.8a6e71c4.0b0b6f1a.50eb01ef.7dd898c3.b69c6615.0990edd8"
+          },
+          "codeFlows": [
+            {
+              "threadFlows": [
+                {
+                  "locations": [
+                    {
+                      "location": {
+                        "id": 0,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 60,
+                            "endLine": 60,
+                            "startColumn": 42,
+                            "endColumn": 65
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "priorityScore": 650,
+            "priorityScoreFactors": [
+              {
+                "label": true,
+                "type": "multipleOccurrence"
+              },
+              {
+                "label": true,
+                "type": "hotFileSource"
+              },
+              {
+                "label": true,
+                "type": "fixExamples"
+              }
+            ],
+            "isAutofixable": false
+          }
+        },
+        {
+          "ruleId": "python/NoHardcodedPasswords",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "Do not hardcode passwords in code. Found hardcoded password used in a dictionary key.",
+            "markdown": "Do not hardcode passwords in code. Found {0} password used in a dictionary key.",
+            "arguments": [
+              "[hardcoded](0)"
+            ]
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 61,
+                  "endLine": 61,
+                  "startColumn": 30,
+                  "endColumn": 53
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "0": "c5dcc847bce9ddd35da603969bd441635c87259c1534bfc7f39dc1ff74b1fc64",
+            "1": "e06468b8.35fa7f83.09398410.63814dd6.ce1a2e7d.f3df3a37.9c8859ec.0990edd8.e06468b8.35fa7f83.8a6e71c4.63814dd6.50eb01ef.159c5558.9c8859ec.0990edd8"
+          },
+          "codeFlows": [
+            {
+              "threadFlows": [
+                {
+                  "locations": [
+                    {
+                      "location": {
+                        "id": 0,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 61,
+                            "endLine": 61,
+                            "startColumn": 42,
+                            "endColumn": 53
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "priorityScore": 650,
+            "priorityScoreFactors": [
+              {
+                "label": true,
+                "type": "multipleOccurrence"
+              },
+              {
+                "label": true,
+                "type": "hotFileSource"
+              },
+              {
+                "label": true,
+                "type": "fixExamples"
+              }
+            ],
+            "isAutofixable": false
+          }
+        }
+      ],
+      "properties": {
+        "coverage": [
+          {
+            "isSupported": true,
+            "lang": "HTML",
+            "files": 1,
+            "type": "SUPPORTED"
+          },
+          {
+            "isSupported": true,
+            "lang": "Python",
+            "files": 5,
+            "type": "SUPPORTED"
+          },
+          {
+            "isSupported": false,
+            "lang": "HTML",
+            "files": 3,
+            "type": "FAILED_PARSING"
+          }
+        ]
+      }
+    }
+  ]
+}

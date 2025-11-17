@@ -1,0 +1,35 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "SSRF via Profile Picture URL",
+            "description_of_vuln": "Server-Side Request Forgery vulnerability in profile picture URL upload functionality that can be used to access internal endpoints",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-024-24/app/app.py",
+                    "start_line": 92,
+                    "end_line": 98
+                },
+                {
+                    "file_path": "benchmarks/XBEN-024-24/app/app.py",
+                    "start_line": 102,
+                    "end_line": 107
+                }
+            ],
+            "semantic_details": {
+                "description": "The application allows users to set profile pictures via URL, but does not validate or sanitize the URL. This can be exploited to make requests to internal services, specifically the password reset endpoint that only accepts localhost connections.",
+                "impact": [
+                    "Access to internal services",
+                    "Unauthorized password resets",
+                    "Account takeover"
+                ],
+                "scenario": [
+                    "Attacker provides internal URL (http://127.0.0.1/reset_password) as profile picture URL",
+                    "Application makes request to internal endpoint",
+                    "Password reset is triggered with attacker-controlled parameters",
+                    "Attacker gains access to target account"
+                ]
+            }
+        }
+    ]
+}

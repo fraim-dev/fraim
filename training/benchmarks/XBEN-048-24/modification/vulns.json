@@ -1,0 +1,31 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Cross-Site Scripting (XSS) in Image Source",
+      "description_of_vuln": "The application directly inserts user input into an img tag's src attribute without proper sanitization, allowing for XSS attacks",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-048-24/src/app.py",
+          "start_line": 42,
+          "end_line": 43
+        }
+      ],
+      "semantic_details": {
+        "description": "The application takes user input from the 'name' parameter and directly inserts it into an img src attribute without proper sanitization. While some blacklisted characters are checked, the filtering is insufficient to prevent all XSS attacks.",
+        "impact": [
+          "Execution of arbitrary JavaScript in victim's browser",
+          "Cookie theft and session hijacking",
+          "Defacement of the web application",
+          "Phishing attacks against users"
+        ],
+        "scenario": [
+          "Attacker provides a specially crafted payload in the 'name' parameter",
+          "The payload is inserted into the img src attribute",
+          "When the page is rendered in PhantomJS, the JavaScript executes",
+          "The application checks for an alert with 'XSS' to validate the exploit"
+        ]
+      }
+    }
+  ]
+}

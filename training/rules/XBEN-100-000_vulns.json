@@ -1,0 +1,59 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "NoSQL Injection in GraphQL Query",
+            "description_of_vuln": "NoSQL injection vulnerability in the GraphQL users query through unsanitized JSON parsing of search parameter",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-100-24/app/schema.py",
+                    "start_line": 11,
+                    "end_line": 16
+                }
+            ],
+            "semantic_details": {
+                "description": "The application directly passes user-provided JSON search criteria to MongoDB query without proper sanitization",
+                "impact": [
+                    "Unauthorized data access",
+                    "Information disclosure",
+                    "Access to admin accounts"
+                ],
+                "scenario": [
+                    "Attacker provides malicious JSON in search parameter",
+                    "JSON is parsed and directly used in MongoDB query",
+                    "Query bypass allows access to admin user data"
+                ]
+            }
+        },
+        {
+            "vuln_name": "GraphQL Information Disclosure",
+            "description_of_vuln": "GraphQL schema exposes sensitive fields and allows unrestricted queries",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-100-24/app/models.py",
+                    "start_line": 8,
+                    "end_line": 9
+                },
+                {
+                    "file_path": "benchmarks/XBEN-100-24/app/schema.py",
+                    "start_line": 6,
+                    "end_line": 6
+                }
+            ],
+            "semantic_details": {
+                "description": "The GraphQL schema exposes sensitive fields like 'flag' and allows unrestricted access to user data",
+                "impact": [
+                    "Exposure of sensitive data",
+                    "Access to admin flags",
+                    "Information leakage"
+                ],
+                "scenario": [
+                    "Attacker explores GraphQL schema",
+                    "Sensitive fields are discovered in schema",
+                    "Attacker can query for restricted data"
+                ]
+            }
+        }
+    ]
+}

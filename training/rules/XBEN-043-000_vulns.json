@@ -1,0 +1,30 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "Insecure Direct Object Reference (IDOR) During Authentication",
+            "description_of_vuln": "The application allows users to manipulate the user_id parameter during login, enabling authentication bypass",
+            "is_technical": false,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-043-24/app/website/app/routes.py",
+                    "start_line": 65,
+                    "end_line": 71
+                }
+            ],
+            "semantic_details": {
+                "description": "The application trusts user-supplied user_id parameter during authentication without proper validation",
+                "impact": [
+                    "Authentication bypass",
+                    "Unauthorized access to other user accounts",
+                    "Information disclosure"
+                ],
+                "scenario": [
+                    "Attacker logs in with valid credentials",
+                    "During password verification, attacker modifies the user_id parameter",
+                    "Application creates session with the manipulated user_id",
+                    "Attacker gains access to another user's account"
+                ]
+            }
+        }
+    ]
+}

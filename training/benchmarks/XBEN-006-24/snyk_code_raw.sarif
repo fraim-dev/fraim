@@ -1,0 +1,908 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "SnykCode",
+          "semanticVersion": "1.0.0",
+          "version": "1.0.0",
+          "rules": [
+            {
+              "id": "python/Sqli",
+              "name": "Sqli",
+              "shortDescription": {
+                "text": "SQL Injection"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "help": {
+                "markdown": "## Details\n\nIn an SQL injection attack, the user can submit an SQL query directly to the database, gaining access without providing appropriate credentials. Attackers can then view, export, modify, and delete confidential information; change passwords and other authentication information; and possibly gain access to other systems within the network. This is one of the most commonly exploited categories of vulnerability, but can largely be avoided through good coding practices.\n\n## Best practices for prevention\n* Avoid passing user-entered parameters directly to the SQL server.\n* Avoid using string concatenation to build SQL queries from user-entered parameters.\n* When coding, define SQL code first, then pass in parameters. Use prepared statements with parameterized queries. Examples include `SqlCommand()` in .NET and `bindParam()` in PHP.\n* Use strong typing for all parameters so unexpected user data will be rejected.\n* Where direct user input cannot be avoided for performance reasons, validate input against a very strict allowlist of permitted characters, avoiding special characters such as `? & / < > ; - ' \" \\` and spaces. Use a vendor-supplied escaping routine if possible.\n* Develop your application in an environment and/or using libraries that provide protection against SQL injection.\n* Harden your entire environment around a least-privilege model, ideally with isolated accounts with privileges only for particular tasks.",
+                "text": ""
+              },
+              "properties": {
+                "tags": [
+                  "python",
+                  "Sqli",
+                  "Security",
+                  "SourceServer",
+                  "SourceHttpBody",
+                  "Taint"
+                ],
+                "categories": [
+                  "Security"
+                ],
+                "exampleCommitFixes": [
+                  {
+                    "commitURL": "https://github.com/nttdots/go-dots/commit/38d1493d11c3a764136c953237233fd16a3e3dc9?diff=split#diff-c7737ee0a3441787e4bcee78bd8ab548aa068c1d16a2632ecf141d9f405d0105L-1",
+                    "lines": [
+                      {
+                        "line": "cur.execute(\"select type, capacity from blocker where id=%d\" % i)\n",
+                        "lineNumber": 15,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "cur.execute(\"select type, capacity from blocker where id=%s\", (i,))\n",
+                        "lineNumber": 14,
+                        "lineChange": "added"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/StorminStanley/st2incubator/commit/0b4500580e10365fa7f4fe8b2e96dbba2bd329bf?diff=split#diff-31d8468daa423d5561ecde70355d49ec9e205612ac5e39aa59516dbcbcf37e4aL-1",
+                    "lines": [
+                      {
+                        "line": "email = MySQLdb.escape_string(email)\n",
+                        "lineNumber": 100,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "c = self.db.cursor()\n",
+                        "lineNumber": 101,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "query = 'SELECT * FROM user_registration WHERE email=\"%s\"' % email\n",
+                        "lineNumber": 102,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "try:\n",
+                        "lineNumber": 103,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    c.execute(query)\n",
+                        "lineNumber": 104,
+                        "lineChange": "none"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/stopstalk/stopstalk-deployment/commit/e378c37e6a401dc430bf52dce1be8760b9bf9a25?diff=split#diff-c69db29661e495522c99940fe7c8bab30c8a0ccc3fc10ef92b6aa066f14d592fL-1",
+                    "lines": [
+                      {
+                        "line": "    iutable = db.institute_user\n",
+                        "lineNumber": 408,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    query = (atable.institute == record.institute) & \\\n",
+                        "lineNumber": 409,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "            (atable.email != record.email) & \\\n",
+                        "lineNumber": 410,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "            (atable.institute != \"Other\") & \\\n",
+                        "lineNumber": 411,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "            (atable.blacklisted == False) & \\\n",
+                        "lineNumber": 412,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "            (atable.registration_key == \"\")\n",
+                        "lineNumber": 413,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 414,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    rows = db(query).select(atable.id)\n",
+                        "lineNumber": 415,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    if len(rows):\n",
+                        "lineNumber": 416,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "        query_values = \",\".join([str((int(x.id), int(record.id))) for x in rows]).replace(\" \", \"\")\n",
+                        "lineNumber": 416,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "        db.executesql(\"INSERT INTO institute_user(send_to_id,user_registered_id) VALUES %s;\" % query_values)\n",
+                        "lineNumber": 417,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "        for row in rows:\n",
+                        "lineNumber": 417,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "            iutable.insert(send_to_id=row.id,\n",
+                        "lineNumber": 418,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "                           user_registered_id=record.id)\n",
+                        "lineNumber": 419,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "            db.commit()\n",
+                        "lineNumber": 420,
+                        "lineChange": "added"
+                      }
+                    ]
+                  }
+                ],
+                "exampleCommitDescriptions": [],
+                "precision": "very-high",
+                "repoDatasetSize": 64,
+                "cwe": [
+                  "CWE-89"
+                ]
+              }
+            },
+            {
+              "id": "javascript/DOMXSS",
+              "name": "DOMXSS",
+              "shortDescription": {
+                "text": "Cross-site Scripting (XSS)"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "help": {
+                "markdown": "## Details\n\nA cross-site scripting attack occurs when the attacker tricks a legitimate web-based application or site to accept a request as originating from a trusted source.\n\nThis is done by escaping the context of the web application; the web application then delivers that data to its users along with other trusted dynamic content, without validating it. The browser unknowingly executes malicious script on the client side (through client-side languages; usually JavaScript or HTML)  in order to perform actions that are otherwise typically blocked by the browser's Same Origin Policy.\n\nInjecting malicious code is the most prevalent manner by which XSS is exploited; for this reason, escaping characters in order to prevent this manipulation is the top method for securing code against this vulnerability.\n\nEscaping means that the application is coded to mark key characters, and particularly key characters included in user input, to prevent those characters from being interpreted in a dangerous context. For example, in HTML, `<` can be coded as  `&lt`; and `>` can be coded as `&gt`; in order to be interpreted and displayed as themselves in text, while within the code itself, they are used for HTML tags. If malicious content is injected into an application that escapes special characters and that malicious content uses `<` and `>` as HTML tags, those characters are nonetheless not interpreted as HTML tags by the browser if they've been correctly escaped in the application code and in this way the attempted attack is diverted.\n\nThe most prominent use of XSS is to steal cookies (source: OWASP HttpOnly) and hijack user sessions, but XSS exploits have been used to expose sensitive information, enable access to privileged services and functionality and deliver malware.\n\n### Types of attacks\nThere are a few methods by which XSS can be manipulated:\n\n|Type|Origin|Description|\n|--|--|--|\n|**Stored**|Server|The malicious code is inserted in the application (usually as a link) by the attacker. The code is activated every time a user clicks the link.|\n|**Reflected**|Server|The attacker delivers a malicious link externally from the vulnerable web site application to a user. When clicked, malicious code is sent to the vulnerable web site, which reflects the attack back to the user's browser.|\n|**DOM-based**|Client|The attacker forces the user's browser to render a malicious page. The data in the page itself delivers the cross-site scripting data.|\n|**Mutated**| |The attacker injects code that appears safe, but is then rewritten and modified by the browser, while parsing the markup. An example is rebalancing unclosed quotation marks or even adding quotation marks to unquoted parameters.|\n\n### Affected environments\nThe following environments are susceptible to an XSS attack:\n\n* Web servers\n* Application servers\n* Web application environments\n\n## Best practices for prevention\nThis section describes the top best practices designed to specifically protect your code:\n\n* Sanitize data input in an HTTP request before reflecting it back, ensuring all data is validated, filtered or escaped before echoing anything back to the user, such as the values of query parameters during searches.\n* Convert special characters such as `?`, `&`, `/`, `<`, `>` and spaces to their respective HTML or URL encoded equivalents.\n* Give users the option to disable client-side scripts.\n* Redirect invalid requests.\n* Detect simultaneous logins, including those from two separate IP addresses, and invalidate those sessions.\n* Use and enforce a Content Security Policy (source: Wikipedia) to disable any features that might be manipulated for an XSS attack.\n* Read the documentation for any of the libraries referenced in your code to understand which elements allow for embedded HTML.",
+                "text": ""
+              },
+              "properties": {
+                "tags": [
+                  "javascript",
+                  "DOMXSS",
+                  "Security",
+                  "SourceNonServer",
+                  "SourceResourceAccess",
+                  "SourceNetworkRequest",
+                  "Taint"
+                ],
+                "categories": [
+                  "Security"
+                ],
+                "exampleCommitFixes": [
+                  {
+                    "commitURL": "https://github.com/Drive4ik/simple-tab-groups/commit/d23caa02378845671eb32ee2c43c368f857b47c3?diff=split#diff-efdba41d528998f946ce1103fa57532e3746b2e9b1984cb92c94a2526451aedbL-1",
+                    "lines": [
+                      {
+                        "line": "document.getElementById('title').innerHTML = title || url;\n",
+                        "lineNumber": 6,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "document.getElementById('title').innerText = title || url;\n",
+                        "lineNumber": 6,
+                        "lineChange": "added"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/academic/vipa/commit/31c6fc127f775fd304f484fbb74e07d6d565aa0e?diff=split#diff-f92a276b67e184a63ce4d03fb5d47c10ff0bb2f10cba449dc9d537d2300c605fL-1",
+                    "lines": [
+                      {
+                        "line": "var $citeItemMustTpl = $(\"#step3_cite_item1_tpl\").html();\n",
+                        "lineNumber": 27,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "var $citeItemShouldTpl = $(\"#step3_cite_item2_tpl\").html();\n",
+                        "lineNumber": 28,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "for (var i in $mustFields) {\n",
+                        "lineNumber": 29,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    $(\".citationDetailsFields\", $tpl).append(\n",
+                        "lineNumber": 28,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "            '<input type=\"text\" class=\"form-control has-warning\" placeholder=\"' +\n",
+                        "lineNumber": 29,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "            $mustFields[i] + ' *\" name=\"' + $mustFields[i] + '\" /> ');\n",
+                        "lineNumber": 30,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "    renderedTpl = Mustache.render($citeItemMustTpl, {'name': $mustFields[i], 'value': ''});\n",
+                        "lineNumber": 30,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    $(\".citationDetailsFields\", $tpl).append(renderedTpl);\n",
+                        "lineNumber": 31,
+                        "lineChange": "added"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/188867052/MatrixAdmin/commit/2252cc42a30439859ba6a2623151514ffc86b2ef?diff=split#diff-7b7071e994f356b320dab8de63d56ee7a17ea6a65e62bdea9b39b20e452c3aa1L-1",
+                    "lines": [
+                      {
+                        "line": "$.post(this._searchUrl, data, function (response) {\n",
+                        "lineNumber": 25,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "    $(\".widget-content\")[0].innerHTML = response;\n",
+                        "lineNumber": 26,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "$.post(searchUrl, data, function (response) {\n",
+                        "lineNumber": 28,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    successPointer(response);\n",
+                        "lineNumber": 29,
+                        "lineChange": "added"
+                      }
+                    ]
+                  }
+                ],
+                "exampleCommitDescriptions": [],
+                "precision": "very-high",
+                "repoDatasetSize": 115,
+                "cwe": [
+                  "CWE-79"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "python/Sqli",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "Unsanitized input from the HTTP request body flows into execute, where it is used in an SQL query. This may result in an SQL Injection vulnerability.",
+            "markdown": "Unsanitized input from {0} {1} into {2}, where it is used in an SQL query. This may result in an SQL Injection vulnerability.",
+            "arguments": [
+              "[the HTTP request body](0)",
+              "[flows](1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),(14),(15),(16)",
+              "[execute](17)"
+            ]
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 57,
+                  "endLine": 57,
+                  "startColumn": 5,
+                  "endColumn": 19
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "0": "3c771493a1c8fc469c37f3b34ccdf6f0472e82b58437aecdf7fb102d3c272101",
+            "1": "26f1400e.d3fa0bdc.79e62dc9.7369b21f.1d07cee4.ba14daf2.75d4ed92.a52f12f1.8b4d62a5.97768bdb.699632e4.fc1ad390.af3d5a48.05a1d16e.75d4ed92.d5d61f97"
+          },
+          "codeFlows": [
+            {
+              "threadFlows": [
+                {
+                  "locations": [
+                    {
+                      "location": {
+                        "id": 0,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 41,
+                            "endLine": 41,
+                            "startColumn": 18,
+                            "endColumn": 30
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 1,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 41,
+                            "endLine": 41,
+                            "startColumn": 18,
+                            "endColumn": 30
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 2,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 41,
+                            "endLine": 41,
+                            "startColumn": 12,
+                            "endColumn": 32
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 3,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 41,
+                            "endLine": 41,
+                            "startColumn": 5,
+                            "endColumn": 32
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 4,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 42,
+                            "endLine": 42,
+                            "startColumn": 16,
+                            "endColumn": 20
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 5,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 42,
+                            "endLine": 42,
+                            "startColumn": 16,
+                            "endColumn": 24
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 6,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 42,
+                            "endLine": 42,
+                            "startColumn": 5,
+                            "endColumn": 40
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 7,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 45,
+                            "endLine": 45,
+                            "startColumn": 8,
+                            "endColumn": 16
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 8,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 45,
+                            "endLine": 45,
+                            "startColumn": 21,
+                            "endColumn": 29
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 9,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 51,
+                            "endLine": 51,
+                            "startColumn": 20,
+                            "endColumn": 28
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 10,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 51,
+                            "endLine": 51,
+                            "startColumn": 20,
+                            "endColumn": 36
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 11,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 51,
+                            "endLine": 51,
+                            "startColumn": 9,
+                            "endColumn": 46
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 12,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 52,
+                            "endLine": 52,
+                            "startColumn": 8,
+                            "endColumn": 16
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 13,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 53,
+                            "endLine": 53,
+                            "startColumn": 53,
+                            "endColumn": 61
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 14,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 53,
+                            "endLine": 53,
+                            "startColumn": 17,
+                            "endColumn": 64
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 15,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 53,
+                            "endLine": 53,
+                            "startColumn": 9,
+                            "endColumn": 64
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 16,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 57,
+                            "endLine": 57,
+                            "startColumn": 20,
+                            "endColumn": 25
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 17,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 57,
+                            "endLine": 57,
+                            "startColumn": 5,
+                            "endColumn": 19
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "priorityScore": 800,
+            "priorityScoreFactors": [
+              {
+                "label": true,
+                "type": "hotFileCodeFlow"
+              },
+              {
+                "label": true,
+                "type": "fixExamples"
+              }
+            ],
+            "isAutofixable": false
+          }
+        },
+        {
+          "ruleId": "javascript/DOMXSS",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "Unsanitized input from data from a remote resource flows into innerHTML, where it is used to dynamically construct the HTML page on client side. This may result in a DOM Based Cross-Site Scripting attack (DOMXSS).",
+            "markdown": "Unsanitized input from {0} {1} into {2}, where it is used to dynamically construct the HTML page on client side. This may result in a DOM Based Cross-Site Scripting attack (DOMXSS).",
+            "arguments": [
+              "[data from a remote resource](0)",
+              "[flows](1),(2),(3),(4),(5),(6),(7),(8)",
+              "[innerHTML](9)"
+            ]
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/static/index.html",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 78,
+                  "endLine": 82,
+                  "startColumn": 43,
+                  "endColumn": 22
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "0": "8d8742c0d6bbfa1540dc2789dcd27795e83412ff8fce0c82e444fda86efbe13a",
+            "1": "cf7733e4.88a95d38.98501263.6483b32f.9cde7c93.dbe83c7e.cd61fc56.46b2ae44.e2f206eb.7d4b7307.c9330245.313735ce.79a7d027.dbe83c7e.cd61fc56.d416126b"
+          },
+          "codeFlows": [
+            {
+              "threadFlows": [
+                {
+                  "locations": [
+                    {
+                      "location": {
+                        "id": 0,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/static/index.html",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 39,
+                            "endLine": 39,
+                            "startColumn": 40,
+                            "endColumn": 45
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 1,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/static/index.html",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 39,
+                            "endLine": 39,
+                            "startColumn": 40,
+                            "endColumn": 45
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 2,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/static/index.html",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 39,
+                            "endLine": 39,
+                            "startColumn": 23,
+                            "endColumn": 31
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 3,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/static/index.html",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 46,
+                            "endLine": 46,
+                            "startColumn": 21,
+                            "endColumn": 29
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 4,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/static/index.html",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 77,
+                            "endLine": 77,
+                            "startColumn": 45,
+                            "endColumn": 53
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 5,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/static/index.html",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 77,
+                            "endLine": 77,
+                            "startColumn": 54,
+                            "endColumn": 58
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 6,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/static/index.html",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 77,
+                            "endLine": 77,
+                            "startColumn": 27,
+                            "endColumn": 36
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 7,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/static/index.html",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 80,
+                            "endLine": 80,
+                            "startColumn": 38,
+                            "endColumn": 47
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 8,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/static/index.html",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 78,
+                            "endLine": 82,
+                            "startColumn": 43,
+                            "endColumn": 22
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 9,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/static/index.html",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 78,
+                            "endLine": 82,
+                            "startColumn": 43,
+                            "endColumn": 22
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "priorityScore": 550,
+            "priorityScoreFactors": [
+              {
+                "label": true,
+                "type": "hotFileCodeFlow"
+              },
+              {
+                "label": true,
+                "type": "fixExamples"
+              }
+            ],
+            "isAutofixable": false
+          }
+        }
+      ],
+      "properties": {
+        "coverage": [
+          {
+            "isSupported": true,
+            "lang": "HTML",
+            "files": 1,
+            "type": "SUPPORTED"
+          },
+          {
+            "isSupported": true,
+            "lang": "Python",
+            "files": 1,
+            "type": "SUPPORTED"
+          }
+        ]
+      }
+    }
+  ]
+}

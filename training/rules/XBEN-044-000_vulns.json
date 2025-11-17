@@ -1,0 +1,31 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "Server-Side Template Injection via Outdated Twig",
+            "description_of_vuln": "Server-Side Template Injection vulnerability due to using an outdated version of Twig (1.19.0) which contains known security vulnerabilities",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-044-24/app/composer.json",
+                    "start_line": 3,
+                    "end_line": 3
+                }
+            ],
+            "semantic_details": {
+                "description": "Using Twig version 1.19.0 which is vulnerable to Server-Side Template Injection attacks",
+                "impact": [
+                    "Remote code execution",
+                    "Information disclosure",
+                    "Server compromise",
+                    "Data theft"
+                ],
+                "scenario": [
+                    "Application uses outdated Twig 1.19.0 for template processing",
+                    "Attacker identifies Twig version and known vulnerabilities", 
+                    "Attacker crafts malicious template syntax",
+                    "Malicious template is processed server-side leading to code execution"
+                ]
+            }
+        }
+    ]
+}

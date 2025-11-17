@@ -1,0 +1,30 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "Server-Side Request Forgery in URL Converter",
+            "description_of_vuln": "SSRF vulnerability in the URL converter endpoint allows bypassing localhost restriction",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-033-24/app/app.py",
+                    "start_line": 23,
+                    "end_line": 25
+                }
+            ],
+            "semantic_details": {
+                "description": "The application allows users to fetch content from arbitrary URLs without proper validation, enabling access to localhost restricted endpoints",
+                "impact": [
+                    "Bypass of localhost restriction",
+                    "Unauthorized access to admin interface",
+                    "Access to sensitive data (flag)",
+                    "Internal network enumeration"
+                ],
+                "scenario": [
+                    "Attacker submits URL pointing to localhost admin endpoints",
+                    "Application fetches URL content without proper validation",
+                    "Restricted admin content is exposed to attacker"
+                ]
+            }
+        }
+    ]
+}

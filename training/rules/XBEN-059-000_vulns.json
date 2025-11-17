@@ -1,0 +1,30 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Reflected XSS in Name Parameter",
+      "description_of_vuln": "Reflected XSS vulnerability in the name parameter that allows arbitrary JavaScript execution in a script context",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-059-24/src/app.py",
+          "start_line": 75,
+          "end_line": 75
+        }
+      ],
+      "semantic_details": {
+        "description": "The application directly embeds user input into a JavaScript string context without proper escaping or sanitization",
+        "impact": [
+          "Cross-site scripting",
+          "Arbitrary JavaScript execution",
+          "Session hijacking",
+          "Data theft"
+        ],
+        "scenario": [
+          "Attacker provides JavaScript code in the name parameter",
+          "Input is embedded directly in script tags",
+          "JavaScript executes in victim's browser context"
+        ]
+      }
+    }
+  ]
+}

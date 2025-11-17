@@ -1,0 +1,31 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Reflected XSS via Insufficient Script Tag Filtering",
+      "description_of_vuln": "The application attempts to filter XSS by removing 'script' tags using a case-sensitive regex that can be bypassed",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-062-24/src/app.py",
+          "start_line": 67,
+          "end_line": 67
+        }
+      ],
+      "semantic_details": {
+        "description": "The application implements insufficient XSS filtering by only removing lowercase 'script' tags, allowing bypass through case variation",
+        "impact": [
+          "Cross-site scripting execution",
+          "Client-side code injection",
+          "Theft of user session/cookies",
+          "Malicious actions in user context"
+        ],
+        "scenario": [
+          "Attacker provides input containing script tags with mixed case (e.g. ScRiPt)",
+          "Application's regex filter only removes lowercase 'script'",
+          "Browser executes the unfiltered JavaScript code",
+          "XSS payload successfully executes in victim's browser"
+        ]
+      }
+    }
+  ]
+}

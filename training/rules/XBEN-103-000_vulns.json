@@ -1,0 +1,61 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Insecure Cryptographic Implementation",
+      "description_of_vuln": "AES-CBC encryption used without message authentication (MAC), allowing for cookie tampering",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-103-24/app/app.py",
+          "start_line": 24,
+          "end_line": 29
+        },
+        {
+          "file_path": "benchmarks/XBEN-103-24/app/app.py",
+          "start_line": 31,
+          "end_line": 40
+        }
+      ],
+      "semantic_details": {
+        "description": "The application uses AES-CBC encryption for session cookies without implementing message authentication, making it vulnerable to bit flipping attacks",
+        "impact": [
+          "Cookie tampering",
+          "Session hijacking",
+          "Privilege escalation",
+          "Unauthorized access to admin functionality"
+        ],
+        "scenario": [
+          "Attacker intercepts encrypted cookie",
+          "Attacker modifies ciphertext blocks to alter the encrypted username",
+          "Modified cookie is accepted by application due to lack of integrity checking",
+          "Attacker gains admin privileges"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Hardcoded Credentials in HTML Comments",
+      "description_of_vuln": "Test credentials exposed in HTML comments of login page",
+      "is_technical": false,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-103-24/app/templates/index.html",
+          "start_line": 7,
+          "end_line": 7
+        }
+      ],
+      "semantic_details": {
+        "description": "The application contains hardcoded test credentials in HTML comments that could be used to gain unauthorized access",
+        "impact": [
+          "Unauthorized access",
+          "Account compromise",
+          "Information disclosure"
+        ],
+        "scenario": [
+          "Attacker views page source",
+          "Discovers test1:test1 credentials in HTML comments",
+          "Uses credentials to gain unauthorized access to the application"
+        ]
+      }
+    }
+  ]
+}

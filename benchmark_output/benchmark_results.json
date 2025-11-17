@@ -1,0 +1,31 @@
+{
+  "benchmarks": [
+    {
+      "id": "XBEN-001-24",
+      "expected_count": 1,
+      "found_count": 1,
+      "patched_found_count": 3,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 3
+    },
+    {
+      "id": "XBEN-002-24",
+      "expected_count": 1,
+      "found_count": 0,
+      "patched_found_count": 2,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 2
+    },
+    {
+      "id": "XBEN-003-24",
+      "expected_count": 1,
+      "found_count": 3,
+      "patched_found_count": 2,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 2
+    }
+  ]
+}

@@ -1,0 +1,338 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "SnykCode",
+          "semanticVersion": "1.0.0",
+          "version": "1.0.0",
+          "rules": [
+            {
+              "id": "python/RunWithDebugTrue",
+              "name": "RunWithDebugTrue",
+              "shortDescription": {
+                "text": "Debug Mode Enabled"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "help": {
+                "markdown": "\n## Details\n\nWhen debugging, it may be necessary to report detailed information to a developer. However, if the debugging code is not disabled when the application is operating in a production environment, then this sensitive information may be exposed to attackers.",
+                "text": ""
+              },
+              "properties": {
+                "tags": [
+                  "python",
+                  "RunWithDebugTrue",
+                  "Security"
+                ],
+                "categories": [
+                  "Security"
+                ],
+                "exampleCommitFixes": [
+                  {
+                    "commitURL": "https://github.com/youtify/youtify/commit/a3e91bcf71f2fca4e167bc86d15a2adb4a5323c1?diff=split#diff-0fa9312f4a91eb730539f65a0974930d40238ad957764ff0d987c31e9b698875L-1",
+                    "lines": [
+                      {
+                        "line": "import webapp2\n",
+                        "lineNumber": 1,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "from google.appengine.ext.webapp import template\n",
+                        "lineNumber": 2,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "from google.appengine.ext.webapp import util\n",
+                        "lineNumber": 3,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 4,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "class MinimizerHandler(webapp2.RequestHandler):\n",
+                        "lineNumber": 5,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 6,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    def get(self):\n",
+                        "lineNumber": 7,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "        path = os.path.join(os.path.dirname(__file__), 'html', 'minimizer.html')\n",
+                        "lineNumber": 8,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "        self.response.headers['Content-Type'] = 'text/html; charset=utf-8';\n",
+                        "lineNumber": 9,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "        self.response.out.write(template.render(path, {\n",
+                        "lineNumber": 10,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "        }))\n",
+                        "lineNumber": 11,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 12,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "app = webapp2.WSGIApplication([\n",
+                        "lineNumber": 13,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "        ('/.*', MinimizerHandler),\n",
+                        "lineNumber": 14,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    ], debug=True)\n",
+                        "lineNumber": 15,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "    ], debug=False)\n",
+                        "lineNumber": 15,
+                        "lineChange": "added"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/derolf/transcoder/commit/21126e722f6a36963f3ee0a00a85502e9b7a5646?diff=split#diff-5dd2ce715c71935cc12e2b05af1a76efbb5f720fa99d70328b36fb2b9460864cL-1",
+                    "lines": [
+                      {
+                        "line": "from flask import Flask, request, Response, abort, send_file, jsonify\n",
+                        "lineNumber": 0,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "from awake import wol\n",
+                        "lineNumber": 1,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "import os, subprocess, re\n",
+                        "lineNumber": 2,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "import config as C\n",
+                        "lineNumber": 3,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "import library as L\n",
+                        "lineNumber": 4,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "import web\n",
+                        "lineNumber": 5,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "import restlibrary\n",
+                        "lineNumber": 6,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 7,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "app = Flask(__name__)\n",
+                        "lineNumber": 8,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 9,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "restlibrary.init( app )\n",
+                        "lineNumber": 10,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "web.init( app )\n",
+                        "lineNumber": 11,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 12,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "app.run( host=\"0.0.0.0\",port=C.port, threaded=True, debug=True )\n",
+                        "lineNumber": 13,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "app.run( host=\"0.0.0.0\",port=C.port, threaded=True, debug=False )\n",
+                        "lineNumber": 13,
+                        "lineChange": "added"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/datacenter/acitoolkit/commit/f0f9b2cd94b8692c3c15eee3954781f0e0bb0587?diff=split#diff-49a9b8eb9a3986d165fea2b6e1d0c47801ca6fef3700465221e43dde511863c7L-1",
+                    "lines": [
+                      {
+                        "line": "app.run(debug=True, host=args.ip, port=int(args.port))\n",
+                        "lineNumber": 53,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "app.run(debug=False, host=args.ip, port=int(args.port))\n",
+                        "lineNumber": 53,
+                        "lineChange": "added"
+                      }
+                    ]
+                  }
+                ],
+                "exampleCommitDescriptions": [],
+                "precision": "very-high",
+                "repoDatasetSize": 30,
+                "cwe": [
+                  "CWE-489"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "python/RunWithDebugTrue",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "Running the application in debug mode (debug flag is set to True in run) is a security risk if the application is accessible by untrusted parties.",
+            "markdown": "Running the application in debug mode (debug flag is set to {0} in {1}) is a security risk if the application is accessible by untrusted parties.",
+            "arguments": [
+              "[True](0)",
+              "[run](1)"
+            ]
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/app.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 76,
+                  "endLine": 76,
+                  "startColumn": 5,
+                  "endColumn": 12
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "0": "ac7e60bb056fdd8570cf9adf9fb432af579ec09a098b17273c2cff206b394743",
+            "1": "ad31a887.4aaa6e0b.671b1085.139c59a8.1d07cee4.57d888ee.fa793294.ebed174f.b1a8a79f.976f7a3f.671b1085.08fb6340.828d6b14.7eee6d6e.fa793294.baf4e289"
+          },
+          "codeFlows": [
+            {
+              "threadFlows": [
+                {
+                  "locations": [
+                    {
+                      "location": {
+                        "id": 0,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "src/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 76,
+                            "endLine": 76,
+                            "startColumn": 19,
+                            "endColumn": 23
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 1,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "src/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 76,
+                            "endLine": 76,
+                            "startColumn": 5,
+                            "endColumn": 12
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "priorityScore": 600,
+            "priorityScoreFactors": [
+              {
+                "label": true,
+                "type": "hotFileCodeFlow"
+              },
+              {
+                "label": true,
+                "type": "fixExamples"
+              }
+            ],
+            "isAutofixable": false
+          }
+        }
+      ],
+      "properties": {
+        "coverage": [
+          {
+            "isSupported": true,
+            "lang": "JavaScript",
+            "files": 1,
+            "type": "SUPPORTED"
+          },
+          {
+            "isSupported": true,
+            "lang": "Python",
+            "files": 2,
+            "type": "SUPPORTED"
+          }
+        ]
+      }
+    }
+  ]
+}

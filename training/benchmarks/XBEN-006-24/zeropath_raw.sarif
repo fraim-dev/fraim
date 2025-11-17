@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "ZeroPath Security Scanner",
+          "version": "1.0.0",
+          "rules": [
+            {
+              "id": "ZEROPATH-SQL-INJECTION-(SQLI)",
+              "shortDescription": {
+                "text": "SQL Injection (SQLI)"
+              },
+              "fullDescription": {
+                "text": "The application is vulnerable to SQL injection due to the direct interpolation of the user-controlled variable 'job_type' into the SQL query at line 52. This could allow an attacker to manipulate the SQL query and potentially access or modify the database in unauthorized ways. It is recommended to use parameterized queries or prepared statements to mitigate this risk."
+              },
+              "help": {
+                "text": "The code contains a clear SQL injection vulnerability in the /jobs endpoint where user-supplied 'job_type' is directly interpolated into an SQL query using f-strings. While there are attempts at security controls (keyword filtering and blocking 'private' type), these can be bypassed. The vulnerability is particularly severe because: 1) The database contains sensitive data (a flag), 2) The endpoint is publicly accessible, 3) The response includes full query results, and 4) The keyword filtering is insufficient. An attacker could craft malicious input to extract sensitive data, including the hidden 'private' job containing the flag.",
+                "markdown": "## Description\nThe application is vulnerable to SQL injection due to the direct interpolation of the user-controlled variable 'job_type' into the SQL query at line 52. This could allow an attacker to manipulate the SQL query and potentially access or modify the database in unauthorized ways. It is recommended to use parameterized queries or prepared statements to mitigate this risk.\n\n## Technical Assessment\nThe code contains a clear SQL injection vulnerability in the /jobs endpoint where user-supplied 'job_type' is directly interpolated into an SQL query using f-strings. While there are attempts at security controls (keyword filtering and blocking 'private' type), these can be bypassed. The vulnerability is particularly severe because: 1) The database contains sensitive data (a flag), 2) The endpoint is publicly accessible, 3) The response includes full query results, and 4) The keyword filtering is insufficient. An attacker could craft malicious input to extract sensitive data, including the hidden 'private' job containing the flag.\n\n## Non-Technical Description\nOnce upon a time in the bustling town of Techville, there was a popular online job portal called JobFinder. JobFinder was known for its user-friendly interface, where job seekers could easily search for positions by entering their preferences, such as job type, location, and salary range. The site was a favorite among job hunters and employers alike, and it seemed to be running smoothly.\n\nHowever, beneath the surface, a hidden vulnerability lurked, waiting for the right moment to strike. This vulnerability was like a secret door in a castle that had been left unlocked. It could be exploited by someone with a little bit of cunning knowledge—an attacker.\n\nOne day, a mischievous individual, let’s call him Alex, decided to explore JobFinder. Alex wasn’t looking for a job; instead, he was looking for a way to exploit the system. He noticed that when he searched for a job by entering a specific type, the website would take his input and use it to create a query to the database, which held all the job listings.\n\nWhat Alex discovered was alarming: the website didn’t check or filter the input properly. This meant that he could enter not just a job type, like “Engineer” or “Designer,” but also something more sinister. Instead of a job type, he could input a special command that would trick the database into revealing sensitive information or even altering data.\n\nWith a few clever keystrokes, Alex crafted a malicious input that would allow him to access confidential information about other users, such as their personal details and job applications. He could even manipulate the database to delete job postings or create fake listings, all while remaining hidden behind the screen.\n\nWhile Alex was having his fun, the unsuspecting users of JobFinder continued to search for their dream jobs, oblivious to the fact that their data was at risk. Meanwhile, the website administrators were completely unaware that their beloved platform had a secret vulnerability that could lead to chaos.\n\nFortunately, the story doesn’t end there. A vigilant security engineer, who was responsible for keeping the website safe, noticed some unusual activity in the system. After investigating, they discovered the vulnerability and quickly set to work to fix it. They implemented safeguards to ensure that any user input was properly checked and sanitized before being used in the database queries.\n\nThanks to the engineer's swift actions, the secret door was locked, and JobFinder became a safer place for everyone. Users could continue their job searches without fear, and the attackers, like Alex, were left with no way to exploit the system. The tale serves as a reminder of the importance of security in technology, ensuring that everyone can enjoy the benefits of online services without worrying about hidden dangers. And so, JobFinder continued to thrive, with the users happily finding their dream jobs, secure in the knowledge that their information was protected."
+              },
+              "properties": {
+                "tags": [
+                  "CWE-89",
+                  "SAST",
+                  "Python"
+                ],
+                "precision": "high",
+                "security-severity": "10"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "ZEROPATH-SQL-INJECTION-(SQLI)",
+          "level": "error",
+          "message": {
+            "text": "SQL Injection Vulnerability in Job Type Query",
+            "markdown": "**SQL Injection Vulnerability in Job Type Query**\n\nThe application is vulnerable to SQL injection due to the direct interpolation of the user-controlled variable 'job_type' into the SQL query at line 52. This could allow an attacker to manipulate the SQL query and potentially access or modify the database in unauthorized ways. It is recommended to use parameterized queries or prepared statements to mitigate this risk."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                },
+                "region": {
+                  "startLine": 52,
+                  "endLine": 52
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issueId": "418cdefa-2863-44ef-98de-a52d12eefa19",
+            "status": "open",
+            "type": "patchable",
+            "discoveryTool": "ZeroPath Sast",
+            "triagePhase": "CodeGeneration",
+            "createdAt": "2024-11-12T02:10:01.907Z",
+            "updatedAt": "2024-11-12T02:10:45.914Z",
+            "codeSegment": "    conn = get_db_connection()\n    cursor = conn.cursor()\n    if job_type and job_type == 'private':\n        conn.close()\n        return HTMLResponse(content=json.dumps({\"detail\": \"Only admins can see private jobs\"}), status_code=403)\n\n    filtered_words = ['OR', 'or', 'AND', 'and', 'SELECT', 'select', 'UNION', 'union', 'FROM', 'from', 'WHERE', 'where']\n    for word in filtered_words:\n        job_type = job_type.replace(word, '')\n    if job_type:\n        query = f\"SELECT * FROM jobs WHERE type = '{job_type}'\"\n    else:\n        query = \"SELECT * FROM jobs WHERE type IN ('front-end', 'back-end')\"\n\n    cursor.execute(query)\n    jobs = cursor.fetchall()\n    conn.close()\n    return [{\"id\": job[\"id\"], \"name\": job[\"name\"], \"type\": job[\"type\"],\n             \"description\": job[\"description\"]} for job in jobs]\n\n"
+          }
+        }
+      ]
+    }
+  ]
+}

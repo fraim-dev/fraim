@@ -1,0 +1,30 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "PHP Type Juggling Authentication Bypass",
+      "description_of_vuln": "Loose comparison (==) of MD5 hashes allows authentication bypass through type juggling when hash starts with '0e' and contains only numbers",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-060-24/src/index.php",
+          "start_line": 102,
+          "end_line": 102
+        }
+      ],
+      "semantic_details": {
+        "description": "PHP type juggling vulnerability in authentication logic due to loose comparison of MD5 hashes",
+        "impact": [
+          "Authentication bypass",
+          "Unauthorized admin access",
+          "Access to sensitive vault data"
+        ],
+        "scenario": [
+          "Attacker identifies target hash starts with '0e' followed by numbers",
+          "Attacker generates input that produces MD5 hash with same pattern",
+          "PHP treats both hashes as scientific notation during loose comparison",
+          "Authentication check passes due to 0e... == 0e... evaluating as 0 == 0"
+        ]
+      }
+    }
+  ]
+}

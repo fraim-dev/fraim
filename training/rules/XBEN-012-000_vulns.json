@@ -1,0 +1,30 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Reflected XSS in Name Parameter",
+      "description_of_vuln": "The application attempts to filter XSS but has bypasses in the name parameter filtering logic",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-012-24/src/app.py",
+          "start_line": 69,
+          "end_line": 71
+        }
+      ],
+      "semantic_details": {
+        "description": "The application attempts to prevent XSS by filtering the string 'XSS' and HTML tags, but the filtering is incomplete and can be bypassed",
+        "impact": [
+          "Cross-site scripting",
+          "Execution of arbitrary JavaScript in victim's browser",
+          "Session hijacking",
+          "Cookie theft"
+        ],
+        "scenario": [
+          "Attacker provides crafted input that bypasses XSS filters",
+          "Input is reflected back in page response",
+          "JavaScript executes in victim's browser context"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,522 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "SnykCode",
+          "semanticVersion": "1.0.0",
+          "version": "1.0.0",
+          "rules": [
+            {
+              "id": "python/NoHardcodedCredentials",
+              "name": "NoHardcodedCredentials",
+              "shortDescription": {
+                "text": "Use of Hardcoded Credentials"
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "help": {
+                "markdown": "\n## Details\n\nDevelopers may use hardcoded credentials for convenience when coding in order to simplify their workflow. While they are responsible for removing these before production, occasionally this task may fall through the cracks. This also becomes a maintenance challenge when credentials are re-used across multiple applications.\n\nOnce attackers gain access, they may take advantage of privilege level to remove or alter data, take down a site or app, or hold any of the above for ransom. The risk across multiple similar projects is even greater. If code containing the credentials is reused across multiple projects, they will all be compromised.\n\n## Best practices for prevention\n* Plan software architecture such that keys and passwords are always stored outside the code, wherever possible.\n* Plan encryption into software architecture for all credential information and ensure proper handling of keys, credentials, and passwords.\n* Prompt for a secure password on first login rather than hard-code a default password.\n* If a hardcoded password or credential must be used, limit its use, for example, to system console users rather than via the network.\n* Use strong hashes for inbound password authentication, ideally with randomly assigned salts to increase the difficulty level in case of brute-force attack.",
+                "text": ""
+              },
+              "properties": {
+                "tags": [
+                  "python",
+                  "NoHardcodedCredentials",
+                  "Security"
+                ],
+                "categories": [
+                  "Security"
+                ],
+                "exampleCommitFixes": [
+                  {
+                    "commitURL": "https://github.com/leandro-gomez/youtube-api/commit/3f11cd7a2225163742a64ac1bf0e47d147cf13e4?diff=split#diff-fc29c0b673f3c43fb6fa7980bfbbcf134d866e535e90d8431c4e9ac105dc332aL-1",
+                    "lines": [
+                      {
+                        "line": "import os\n",
+                        "lineNumber": 1,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 2,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "API_KEY = 'AIzaSyDP74ePWyfwuHfGVnZHcM4HW4hil-4VxsU'\n",
+                        "lineNumber": 2,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "API_KEY = os.environ['YOUTUBE_API_KEY']\n",
+                        "lineNumber": 3,
+                        "lineChange": "added"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/hansonrobotics/HEAD/commit/f73ea224fb53a9f373a35d16da578e6f172192ff?diff=split#diff-7ed01429eb17d1237f5e72cb50da40edc42b566f26a6d8b001a090f320f83d3eL-1",
+                    "lines": [
+                      {
+                        "line": "\n",
+                        "lineNumber": 3,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "from config import HR_CHATBOT_AUTHKEY\n",
+                        "lineNumber": 4,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 5,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "json_encode = json.JSONEncoder().encode\n",
+                        "lineNumber": 6,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 7,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "def check_auth(auth):\n",
+                        "lineNumber": 8,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    return auth == 'AAAAB3NzaC'\n",
+                        "lineNumber": 6,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "    return auth == HR_CHATBOT_AUTHKEY\n",
+                        "lineNumber": 9,
+                        "lineChange": "added"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/PPPLDeepLearning/plasma-python/commit/2063698e6c4528a25453c400111ee98ac5f1722c?diff=split#diff-3aff8279729c00c2c99bdb7934f7ebd50643a6dcff1590896454035b2270f1caL-1",
+                    "lines": [
+                      {
+                        "line": "import getpass\n",
+                        "lineNumber": 2,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "#currently need to change above import when switching machines\n",
+                        "lineNumber": 3,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 4,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "#paths#\n",
+                        "lineNumber": 5,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "base_path = '/tigress'\n",
+                        "lineNumber": 6,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "user_name = 'alexeys' #'jk7' #'jkatesha'\n",
+                        "lineNumber": 6,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "user_name = getpass.getuser()\n",
+                        "lineNumber": 7,
+                        "lineChange": "added"
+                      }
+                    ]
+                  }
+                ],
+                "exampleCommitDescriptions": [],
+                "precision": "very-high",
+                "repoDatasetSize": 42,
+                "cwe": [
+                  "CWE-798"
+                ]
+              }
+            },
+            {
+              "id": "python/NoHardcodedPasswords",
+              "name": "NoHardcodedPasswords",
+              "shortDescription": {
+                "text": "Use of Hardcoded Credentials"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "help": {
+                "markdown": "\n## Details\n\nDevelopers may use hardcoded credentials for convenience when coding in order to simplify their workflow. While they are responsible for removing these before production, occasionally this task may fall through the cracks. This also becomes a maintenance challenge when credentials are re-used across multiple applications.\n\nOnce attackers gain access, they may take advantage of privilege level to remove or alter data, take down a site or app, or hold any of the above for ransom. The risk across multiple similar projects is even greater. If code containing the credentials is reused across multiple projects, they will all be compromised.\n\n## Best practices for prevention\n* Plan software architecture such that keys and passwords are always stored outside the code, wherever possible.\n* Plan encryption into software architecture for all credential information and ensure proper handling of keys, credentials, and passwords.\n* Prompt for a secure password on first login rather than hard-code a default password.\n* If a hardcoded password or credential must be used, limit its use, for example, to system console users rather than via the network.\n* Use strong hashes for inbound password authentication, ideally with randomly assigned salts to increase the difficulty level in case of brute-force attack.",
+                "text": ""
+              },
+              "properties": {
+                "tags": [
+                  "python",
+                  "NoHardcodedPasswords",
+                  "Security"
+                ],
+                "categories": [
+                  "Security"
+                ],
+                "exampleCommitFixes": [
+                  {
+                    "commitURL": "https://github.com/badoo/pyexasol/commit/2dd19536a268bc5f0f01ae24fb6a09daa77a1834?diff=split#diff-8cf1c2175341bd9af5c9e80eba3597eac42d73c57fb275edf6ba6687af3061cbL-1",
+                    "lines": [
+                      {
+                        "line": "dsn = 'exasol-dev.mlan:8563'\n",
+                        "lineNumber": 0,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "user = 'SYS'\n",
+                        "lineNumber": 1,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "password = 'exasol'\n",
+                        "lineNumber": 2,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "schema = 'PYEXASOL_TEST'\n",
+                        "lineNumber": 3,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "import os\n",
+                        "lineNumber": 0,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 1,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "dsn = os.environ.get('EXAHOST', 'exasol-dev.mlan:8563')\n",
+                        "lineNumber": 2,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "user = os.environ.get('EXAUID', 'SYS')\n",
+                        "lineNumber": 3,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "password = os.environ.get('EXAPWD', 'exasol')\n",
+                        "lineNumber": 4,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "schema = os.environ.get('EXASCHEMA', 'PYEXASOL_TEST')\n",
+                        "lineNumber": 5,
+                        "lineChange": "added"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/dashpay/sentinel/commit/15cd95d9662b726301c46efcdfe5738cbf22614f?diff=split#diff-64b1ab22a02a67f026631c29469d2eef15f09367f37f6127e29b09c9e0578a45L-1",
+                    "lines": [
+                      {
+                        "line": "db = MySQLDatabase('sentinel', host='127.0.0.1', user='dashdrive', passwd='dashdrive')\n",
+                        "lineNumber": 4,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "import os\n",
+                        "lineNumber": 4,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "import sys\n",
+                        "lineNumber": 5,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "sys.path.append( os.path.join( os.path.dirname(__file__), '..' ) )\n",
+                        "lineNumber": 6,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "import config\n",
+                        "lineNumber": 7,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 8,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "env = os.environ.get('SENTINEL_ENV') or 'production'\n",
+                        "lineNumber": 9,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "db_cfg = config.db[env]\n",
+                        "lineNumber": 10,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "dbname = db_cfg.pop('database')\n",
+                        "lineNumber": 11,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 12,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "db = MySQLDatabase(dbname, **db_cfg)\n",
+                        "lineNumber": 13,
+                        "lineChange": "added"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/ArRosid/network-automation-book/commit/0886b388e65e7d4735d90b2f6c4cc107363f2676?diff=split#diff-8ab08bbd4468a1518f5de92d25a497a3b60b3c8f4a435627251d33ed113b83d7L-1",
+                    "lines": [
+                      {
+                        "line": "import getpass\n",
+                        "lineNumber": 2,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 3,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "ip_address = \"192.168.99.1\"\n",
+                        "lineNumber": 3,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "username = \"user\"\n",
+                        "lineNumber": 4,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "password = \"user123\"\n",
+                        "lineNumber": 5,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "ip_address = raw_input(\"Masukkan IP Address: \")\n",
+                        "lineNumber": 4,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "username = raw_input(\"Masukkann Username: \")\n",
+                        "lineNumber": 5,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "password = getpass.getpass()\n",
+                        "lineNumber": 6,
+                        "lineChange": "added"
+                      }
+                    ]
+                  }
+                ],
+                "exampleCommitDescriptions": [],
+                "precision": "very-high",
+                "repoDatasetSize": 55,
+                "cwe": [
+                  "CWE-798",
+                  "CWE-259"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "python/NoHardcodedCredentials",
+          "ruleIndex": 0,
+          "level": "note",
+          "message": {
+            "text": "Do not hardcode credentials in code. Found hardcoded credential used in a condition.",
+            "markdown": "Do not hardcode credentials in code. Found {0} credential used in a condition.",
+            "arguments": [
+              "[hardcoded](0)"
+            ]
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/app.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 108,
+                  "endLine": 108,
+                  "startColumn": 80,
+                  "endColumn": 87
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "0": "468ac5d42af09085023cff037d9ce20f11b5adbf56b9806f4ceb31b9f41b907d",
+            "1": "2ca5148a.fb6c086e.75115c11.e33bce2c.035e3234.a5d7f69f.7e8da20f.b7d480de.a6b41d6e.fb6c086e.d5e84f04.466ca705.d40ba80d.a5d7f69f.0a34e822.b673d2e1"
+          },
+          "codeFlows": [
+            {
+              "threadFlows": [
+                {
+                  "locations": [
+                    {
+                      "location": {
+                        "id": 0,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 108,
+                            "endLine": 108,
+                            "startColumn": 80,
+                            "endColumn": 87
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "priorityScore": 450,
+            "priorityScoreFactors": [
+              {
+                "label": true,
+                "type": "hotFileSource"
+              },
+              {
+                "label": true,
+                "type": "fixExamples"
+              }
+            ],
+            "isAutofixable": false
+          }
+        },
+        {
+          "ruleId": "python/NoHardcodedPasswords",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "Do not hardcode passwords in code. Found hardcoded password used in a dictionary key.",
+            "markdown": "Do not hardcode passwords in code. Found {0} password used in a dictionary key.",
+            "arguments": [
+              "[hardcoded](0)"
+            ]
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/app.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 16,
+                  "endLine": 16,
+                  "startColumn": 9,
+                  "endColumn": 32
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "0": "68c699e3013a6e8dda5defbb5a6b528d4700a79f747ebcaeec41c32381bbcada",
+            "1": "16691f08.0b63bc12.1f400394.9943093e.d40ba80d.3df0c333.8fd07bbd.91057b05.3f64447c.4185533f.20a05f8d.e33bce2c.10a709c0.3df0c333.7e8da20f.91057b05"
+          },
+          "codeFlows": [
+            {
+              "threadFlows": [
+                {
+                  "locations": [
+                    {
+                      "location": {
+                        "id": 0,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 16,
+                            "endLine": 16,
+                            "startColumn": 21,
+                            "endColumn": 32
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "priorityScore": 600,
+            "priorityScoreFactors": [
+              {
+                "label": true,
+                "type": "hotFileSource"
+              },
+              {
+                "label": true,
+                "type": "fixExamples"
+              }
+            ],
+            "isAutofixable": false
+          }
+        }
+      ],
+      "properties": {
+        "coverage": [
+          {
+            "isSupported": true,
+            "lang": "HTML",
+            "files": 1,
+            "type": "SUPPORTED"
+          },
+          {
+            "isSupported": true,
+            "lang": "Python",
+            "files": 1,
+            "type": "SUPPORTED"
+          },
+          {
+            "isSupported": false,
+            "lang": "HTML",
+            "files": 3,
+            "type": "FAILED_PARSING"
+          }
+        ]
+      }
+    }
+  ]
+}

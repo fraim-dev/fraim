@@ -1,0 +1,54 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "IDOR in Profile Update",
+            "description_of_vuln": "Insecure Direct Object Reference allowing unauthorized profile updates including privilege escalation",
+            "is_technical": false,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-005-24/app/main.py",
+                    "start_line": 196,
+                    "end_line": 214
+                }
+            ],
+            "semantic_details": {
+                "description": "Missing authorization check in profile update endpoint allows any authenticated user to modify any company profile",
+                "impact": [
+                    "Unauthorized profile modifications",
+                    "Privilege escalation to admin",
+                    "Access to private data"
+                ],
+                "scenario": [
+                    "Attacker logs in as regular user",
+                    "Modifies company_id parameter to target other profiles",
+                    "Can update any profile including admin status"
+                ]
+            }
+        },
+        {
+            "vuln_name": "Weak JWT Implementation",
+            "description_of_vuln": "JWT tokens use a hardcoded secret key that is visible in source code",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-005-24/app/main.py",
+                    "start_line": 14,
+                    "end_line": 14
+                }
+            ],
+            "semantic_details": {
+                "description": "JWT tokens are signed with a hardcoded secret key exposed in source code",
+                "impact": [
+                    "Token forgery",
+                    "Session hijacking",
+                    "Unauthorized access"
+                ],
+                "scenario": [
+                    "Attacker discovers secret key in source",
+                    "Creates forged JWT tokens",
+                    "Gains unauthorized access to accounts"
+                ]
+            }
+        }
+    ]
+}

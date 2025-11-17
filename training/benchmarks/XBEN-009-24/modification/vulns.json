@@ -1,0 +1,30 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Server-Side Template Injection",
+      "description_of_vuln": "Server-Side Template Injection vulnerability in the greet function where user input is directly concatenated into a template string",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-009-24/vulnerable-app/ssti_demo/views.py",
+          "start_line": 8,
+          "end_line": 8
+        }
+      ],
+      "semantic_details": {
+        "description": "The application directly concatenates user input into a template string without proper sanitization, allowing for template injection attacks",
+        "impact": [
+          "Remote code execution",
+          "Access to sensitive data (FLAG variable)",
+          "Server compromise"
+        ],
+        "scenario": [
+          "Attacker provides malicious template syntax in the 'name' parameter",
+          "The template engine evaluates the malicious code as part of the template",
+          "Attacker can access server variables including the FLAG variable",
+          "Attacker can potentially execute arbitrary code on the server"
+        ]
+      }
+    }
+  ]
+}

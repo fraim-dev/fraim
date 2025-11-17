@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "ZeroPath Security Scanner",
+          "version": "1.0.0",
+          "rules": [
+            {
+              "id": "ZEROPATH-INSECURE-CONFIGURATION",
+              "shortDescription": {
+                "text": "Insecure Configuration"
+              },
+              "fullDescription": {
+                "text": "The application is vulnerable to a race condition during the logout process, allowing an attacker to maintain an active session even after logging out. This occurs when multiple requests are sent simultaneously to trading endpoints while the session is being invalidated, potentially leading to unauthorized access. It is crucial to implement proper session management to prevent this type of attack."
+              },
+              "help": {
+                "text": "The SAST tool identified a potential race condition in the logout functionality where concurrent requests during session invalidation could allow an attacker to maintain their session beyond logout. While technically exploitable, the vulnerability has limited impact since it can only extend the attacker's own session, cannot escalate privileges, and requires precise timing. The implementation uses proper session validation and includes several security controls that make practical exploitation challenging.",
+                "markdown": "## Description\nThe application is vulnerable to a race condition during the logout process, allowing an attacker to maintain an active session even after logging out. This occurs when multiple requests are sent simultaneously to trading endpoints while the session is being invalidated, potentially leading to unauthorized access. It is crucial to implement proper session management to prevent this type of attack.\n\n## Technical Assessment\nThe SAST tool identified a potential race condition in the logout functionality where concurrent requests during session invalidation could allow an attacker to maintain their session beyond logout. While technically exploitable, the vulnerability has limited impact since it can only extend the attacker's own session, cannot escalate privileges, and requires precise timing. The implementation uses proper session validation and includes several security controls that make practical exploitation challenging.\n\n## Non-Technical Description\n### The Tale of the Crafty Attacker\n\nOnce upon a time in the bustling digital marketplace, there was a clever attacker who discovered a sneaky way to exploit a flaw in the system. This marketplace allowed users to manage their accounts and make trades, but little did the developers know that a hidden vulnerability lay within.\n\nOne day, the attacker, eager to take advantage of unsuspecting users, decided to create multiple accounts. With these accounts, they established several valid sessions, allowing them to interact with the marketplace as if they were different customers. This gave the attacker a powerful position, as they could act quickly and unpredictably.\n\nAs the attacker prepared for their scheme, they decided to log out of one of their accounts. They initiated the logout process, which sent a signal to the system to terminate their session. However, before the logout could fully complete, the attacker sprang into action. They sent a flurry of requests to the trading endpoints—these were the magical doors that allowed users to make trades and manage their assets.\n\nHere’s where the story takes a twist. The system was designed to process requests in a way that sometimes allowed them to slip through the cracks. As the logout command was being processed, the attacker’s rapid-fire requests zoomed past, taking advantage of a momentary lapse in the system’s defenses. This moment, known as a race condition, meant that some of the attacker’s requests were processed before the system could fully log them out.\n\nAs a result, even though the attacker had logged out, the system mistakenly created new session artifacts—like invisible keys that allowed the attacker to continue accessing their account. These artifacts lingered in the system, giving the attacker continued access to their trades and account information, despite the logout.\n\nIn the end, the attacker was able to manipulate the marketplace, making trades and accessing sensitive information without the system realizing they were no longer supposed to be there. The marketplace, thinking it had securely logged out the attacker, was blissfully unaware of the ongoing breach.\n\nThis tale serves as a cautionary reminder of the importance of robust security measures. If the system had been designed to handle logout processes more effectively, it could have closed the door on the crafty attacker for good. And so, the digital marketplace learned that even the smallest oversight can lead to significant vulnerabilities, reminding everyone to stay vigilant in the ever-evolving world of cybersecurity."
+              },
+              "properties": {
+                "tags": [
+                  "CWE-384",
+                  "SAST",
+                  "Python"
+                ],
+                "precision": "high",
+                "security-severity": "10"
+              }
+            },
+            {
+              "id": "ZEROPATH-BROKEN-AUTHENTICATION",
+              "shortDescription": {
+                "text": "Broken Authentication"
+              },
+              "fullDescription": {
+                "text": "The application is vulnerable to a broken authentication issue that allows an attacker to exploit a race condition. By sending parallel requests to the password endpoint, an attacker can confirm the existence of a user and potentially set the session user ID before the password verification completes. This could lead to unauthorized access to the victim's account, allowing the attacker to perform actions as if they were the victim."
+              },
+              "help": {
+                "text": "The SAST tool identified a critical authentication bypass vulnerability in a two-step login process. The vulnerability stems from exposing user IDs in the password template before authentication is complete, combined with improper session management. An attacker can exploit this by making parallel requests to capture a victim's user ID and maintain an authenticated session despite failed password attempts, leading to complete account takeover. The vulnerability is particularly concerning as it affects a financial trading system where unauthorized access could have severe consequences.",
+                "markdown": "## Description\nThe application is vulnerable to a broken authentication issue that allows an attacker to exploit a race condition. By sending parallel requests to the password endpoint, an attacker can confirm the existence of a user and potentially set the session user ID before the password verification completes. This could lead to unauthorized access to the victim's account, allowing the attacker to perform actions as if they were the victim.\n\n## Technical Assessment\nThe SAST tool identified a critical authentication bypass vulnerability in a two-step login process. The vulnerability stems from exposing user IDs in the password template before authentication is complete, combined with improper session management. An attacker can exploit this by making parallel requests to capture a victim's user ID and maintain an authenticated session despite failed password attempts, leading to complete account takeover. The vulnerability is particularly concerning as it affects a financial trading system where unauthorized access could have severe consequences.\n\n## Non-Technical Description\nOnce upon a time in the world of online trading, there was a popular platform where users could buy and sell stocks. This platform had a lot of security measures in place to protect its users, but one day, a clever attacker discovered a way to exploit a flaw in the system.\n\nThe attacker, looking to gain access to a victim's account, started their plan by sending two requests to the platform simultaneously. The first request was a simple inquiry to check if the victim had an account. The attacker used the victim's username and sent a \"GET\" request, which was like asking the platform, \"Does this person exist?\"\n\nTo the attacker’s delight, the platform quickly responded, confirming that the victim was indeed a registered user. Along with this confirmation, the attacker received a unique identifier for the victim's account, known as a user_id.\n\nWhile the attacker was still celebrating this small victory, they moved on to the next part of their plan. They sent a second request, this time attempting to log in as the victim. In this \"POST\" request, the attacker provided a random password, something completely incorrect, like \"anything.\" \n\nNow, here's where the flaw in the system came into play. The platform was busy checking whether the password was correct or not, but it didn’t realize that the attacker had already received the victim's user_id. Before the platform could finish verifying the password, the attacker took advantage of the user_id they had just obtained. They tricked the platform into thinking they were the victim by setting their session to that user_id.\n\nEven though the password check ultimately failed, the attacker had already established an authenticated session with the victim's account. This meant that they could now access the victim's account as if they were the real user, despite not knowing the correct password.\n\nWith this newfound access, the attacker could execute trades, view sensitive information, and manipulate the victim's account at will. The victim, unaware of the breach, continued their trading activities, completely oblivious to the fact that someone else was pulling the strings behind the scenes.\n\nThis story highlights a serious vulnerability in the system that allowed an attacker to bypass security measures and gain unauthorized access to a user's account, ultimately leading to a significant risk for the victim. It serves as a reminder of the importance of robust security practices to protect users from such malicious activities."
+              },
+              "properties": {
+                "tags": [
+                  "CWE-362",
+                  "SAST",
+                  "Python"
+                ],
+                "precision": "high",
+                "security-severity": "10"
+              }
+            },
+            {
+              "id": "ZEROPATH-INSECURE-DIRECT-OBJECT-REFERENCE-(IDOR)",
+              "shortDescription": {
+                "text": "Insecure Direct Object Reference (IDOR)"
+              },
+              "fullDescription": {
+                "text": "The 'order_archive' function is vulnerable to Insecure Direct Object Reference (IDOR), allowing any authenticated user to archive any order without proper authorization checks. This could lead to unauthorized users modifying orders they do not own, compromising data integrity and security. It is crucial to implement access control measures to ensure that only the rightful owner of an order can archive it."
+              },
+              "help": {
+                "text": "The code contains a confirmed IDOR vulnerability in the order archiving functionality. While authentication is properly implemented, there is no authorization check to verify if the logged-in user has permission to archive a specific order. Any authenticated user can archive any order by manipulating the order_id parameter in the URL, regardless of ownership. This allows for horizontal privilege escalation where users can affect orders belonging to other users, potentially causing business disruption and unauthorized data modification.",
+                "markdown": "## Description\nThe 'order_archive' function is vulnerable to Insecure Direct Object Reference (IDOR), allowing any authenticated user to archive any order without proper authorization checks. This could lead to unauthorized users modifying orders they do not own, compromising data integrity and security. It is crucial to implement access control measures to ensure that only the rightful owner of an order can archive it.\n\n## Technical Assessment\nThe code contains a confirmed IDOR vulnerability in the order archiving functionality. While authentication is properly implemented, there is no authorization check to verify if the logged-in user has permission to archive a specific order. Any authenticated user can archive any order by manipulating the order_id parameter in the URL, regardless of ownership. This allows for horizontal privilege escalation where users can affect orders belonging to other users, potentially causing business disruption and unauthorized data modification.\n\n## Non-Technical Description\nOnce upon a time in a bustling online store, customers could place orders for their favorite products. The store had a special feature that allowed customers to archive their orders once they no longer needed them. This was meant to help keep their order history tidy and organized.\n\nHowever, unbeknownst to the store owners, there was a hidden flaw in their system. Imagine a scenario where a customer, let's call him Alex, places an order for a new gadget. Alex is a legitimate customer and has every right to manage his own orders. But what if another user, let’s name him Sam, who is not connected to Alex at all, discovered a way to exploit this flaw?\n\nOne day, Sam, who had malicious intentions, stumbled upon a special web address that allowed users to archive orders. The address looked something like this: '/order/<order_id>/archive'. Sam realized that he could replace `<order_id>` with any number he wanted, which represented someone else's order. \n\nFeeling mischievous, Sam decided to try his luck. He crafted a request to the store’s website, pretending to archive an order that belonged to Alex. The system received Sam’s request and, without any checks to see if Sam was actually allowed to archive that order, it simply processed it. \n\nSam watched in delight as the store’s system marked Alex's order as archived, even though he had no right to make that change. This meant that Alex could no longer see his order in his account, and he had no idea that someone else had tampered with it. \n\nThis little trick allowed Sam to play with other customers' orders, archiving them at will. The store's owners never realized what was happening until they started receiving complaints from upset customers who couldn’t find their orders anymore. \n\nThe moral of the story is that just like a locked door protects a home from intruders, a proper security system needs to be in place to ensure that only the rightful owners can access and manage their own orders. Without these safeguards, it’s all too easy for someone with bad intentions to sneak in and cause chaos. The store learned a valuable lesson about the importance of securing their online system to keep their customers safe and happy."
+              },
+              "properties": {
+                "tags": [
+                  "CWE-639",
+                  "SAST",
+                  "Python"
+                ],
+                "precision": "high",
+                "security-severity": "9.3"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "ZEROPATH-INSECURE-CONFIGURATION",
+          "level": "error",
+          "message": {
+            "text": "Race Condition Vulnerability in Logout Process",
+            "markdown": "**Race Condition Vulnerability in Logout Process**\n\nThe application is vulnerable to a race condition during the logout process, allowing an attacker to maintain an active session even after logging out. This occurs when multiple requests are sent simultaneously to trading endpoints while the session is being invalidated, potentially leading to unauthorized access. It is crucial to implement proper session management to prevent this type of attack."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 37,
+                  "endLine": 41
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issueId": "a2f19e33-b4ee-4f77-a235-8158e776485b",
+            "status": "open",
+            "type": "patchable",
+            "discoveryTool": "ZeroPath Sast BL",
+            "triagePhase": "CodeGeneration",
+            "createdAt": "2024-11-12T02:19:50.890Z",
+            "updatedAt": "2024-11-12T02:20:32.691Z",
+            "codeSegment": "            # Redirect to password page if username exists\n            return redirect(url_for('password', username=username))\n        else:\n            # Render login page with error message if username doesn't exist\n            return render_template('login.html', error='User not found')\n    return render_template('login.html', error=error)\n\n\n# Route for logout\n@app.route('/logout', methods=['POST'])\ndef logout():\n    # Clear user ID from session\n    session.pop('user_id', None)\n    return redirect(url_for('login'))\n\n\n# Route for password page\n@app.route('/password/<username>', methods=['GET', 'POST'])\ndef password(username):\n    user = User.query.filter_by(username=username).first()\n    if not user:\n        # Render login page with error message if username doesn't exist\n        return redirect(url_for('login', error='User not found'))\n\n"
+          }
+        },
+        {
+          "ruleId": "ZEROPATH-BROKEN-AUTHENTICATION",
+          "level": "error",
+          "message": {
+            "text": "Race Condition Vulnerability in Password Authentication",
+            "markdown": "**Race Condition Vulnerability in Password Authentication**\n\nThe application is vulnerable to a broken authentication issue that allows an attacker to exploit a race condition. By sending parallel requests to the password endpoint, an attacker can confirm the existence of a user and potentially set the session user ID before the password verification completes. This could lead to unauthorized access to the victim's account, allowing the attacker to perform actions as if they were the victim."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 45,
+                  "endLine": 65
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issueId": "4bf5a64b-f96e-4d17-bb04-4494b4e1cf31",
+            "status": "open",
+            "type": "patchable",
+            "discoveryTool": "ZeroPath Sast BL",
+            "triagePhase": "CodeGeneration",
+            "createdAt": "2024-11-12T02:19:50.890Z",
+            "updatedAt": "2024-11-12T02:20:30.670Z",
+            "codeSegment": "# Route for logout\n@app.route('/logout', methods=['POST'])\ndef logout():\n    # Clear user ID from session\n    session.pop('user_id', None)\n    return redirect(url_for('login'))\n\n\n# Route for password page\n@app.route('/password/<username>', methods=['GET', 'POST'])\ndef password(username):\n    user = User.query.filter_by(username=username).first()\n    if not user:\n        # Render login page with error message if username doesn't exist\n        return redirect(url_for('login', error='User not found'))\n\n    if request.method == 'POST':\n        password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()\n        if user:\n            # User provided a valid username/password pair.\n            session['user_id'] = user.id\n\n            # If login successful, redirect to home page\n            return redirect(url_for('dashboard', username=username))\n        else:\n            # Render login page with error message if password is incorrect\n            return redirect(url_for('login', error='Incorrect password'))\n    # Render password page for GET request\n    return render_template('password.html', first_name=user.first_name, username=username, user_id=user.id)\n\n\n# Route for dashboard page\n@app.route('/dashboard')\ndef dashboard():\n    # Retrieve user from session\n    user_id = session.get('user_id')\n    if user_id:\n        user = User.query.filter(User.id == user_id).first()\n        return render_template('dashboard.html', user=user)\n"
+          }
+        },
+        {
+          "ruleId": "ZEROPATH-INSECURE-DIRECT-OBJECT-REFERENCE-(IDOR)",
+          "level": "error",
+          "message": {
+            "text": "Insecure Direct Object Reference in Order Archiving Function",
+            "markdown": "**Insecure Direct Object Reference in Order Archiving Function**\n\nThe 'order_archive' function is vulnerable to Insecure Direct Object Reference (IDOR), allowing any authenticated user to archive any order without proper authorization checks. This could lead to unauthorized users modifying orders they do not own, compromising data integrity and security. It is crucial to implement access control measures to ensure that only the rightful owner of an order can archive it."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 135,
+                  "endLine": 138
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issueId": "09c719e8-ac78-4893-a47b-dcef3c11d873",
+            "status": "open",
+            "type": "patchable",
+            "discoveryTool": "ZeroPath Sast",
+            "triagePhase": "CodeGeneration",
+            "createdAt": "2024-11-12T02:19:50.890Z",
+            "updatedAt": "2024-11-12T02:20:30.665Z",
+            "codeSegment": "\n# Route for order's archive\n@app.route('/order/<int:order_id>/archive')\ndef order_archive(order_id):\n    # Retrieve user from session\n    user_id = session.get('user_id')\n    if user_id:\n        user = User.query.filter(User.id == user_id).first()\n\n        # Process the order status change\n        order = Order.query.filter(Order.id == order_id).first_or_404()\n        order.archiver = user\n        order.archived = True\n        db.session.commit()\n        \n        active_orders = Order.query.filter(Order.creator == user).filter(Order.archived == False).all()\n        return render_template('orders.html', orders=active_orders)\n    else:\n        # If user not in session, redirect to login\n        return redirect(url_for('login'))\n\n"
+          }
+        },
+        {
+          "ruleId": "ZEROPATH-INSECURE-DIRECT-OBJECT-REFERENCE-(IDOR)",
+          "level": "error",
+          "message": {
+            "text": "Insecure Direct Object Reference (IDOR) allows unauthorized order archiving",
+            "markdown": "**Insecure Direct Object Reference (IDOR) allows unauthorized order archiving**\n\nThe application is vulnerable to an Insecure Direct Object Reference (IDOR) attack, allowing an authenticated user to archive orders that belong to other users. This occurs because the system does not verify the ownership of the order before allowing the archiving action. An attacker can exploit this by manipulating the order_id parameter in the request, leading to unauthorized access and modification of other users' orders."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 128,
+                  "endLine": 145
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issueId": "a1067fe7-efc8-4953-8ad9-82779565c68b",
+            "status": "open",
+            "type": "patchable",
+            "discoveryTool": "ZeroPath Sast BL",
+            "triagePhase": "CodeGeneration",
+            "createdAt": "2024-11-12T02:19:50.890Z",
+            "updatedAt": "2024-11-12T02:20:28.608Z",
+            "codeSegment": "        user = User.query.filter(User.id == user_id).first()\n        archived_orders = Order.query.filter(Order.archiver == user).all()\n        return render_template('orders_archive.html', orders=archived_orders)\n    else:\n        # If user not in session, redirect to login\n        return redirect(url_for('login'))\n\n\n# Route for order's archive\n@app.route('/order/<int:order_id>/archive')\ndef order_archive(order_id):\n    # Retrieve user from session\n    user_id = session.get('user_id')\n    if user_id:\n        user = User.query.filter(User.id == user_id).first()\n\n        # Process the order status change\n        order = Order.query.filter(Order.id == order_id).first_or_404()\n        order.archiver = user\n        order.archived = True\n        db.session.commit()\n        \n        active_orders = Order.query.filter(Order.creator == user).filter(Order.archived == False).all()\n        return render_template('orders.html', orders=active_orders)\n    else:\n        # If user not in session, redirect to login\n        return redirect(url_for('login'))\n\n"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "JWT Token IDOR",
+            "description_of_vuln": "The application decodes JWT tokens without verifying signatures, allowing user_id manipulation",
+            "is_technical": false,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-027-24/app/website/app/routes.py",
+                    "start_line": 82,
+                    "end_line": 85
+                }
+            ],
+            "semantic_details": {
+                "description": "JWT token signature verification is disabled, allowing token manipulation",
+                "impact": [
+                    "Unauthorized access to other user accounts",
+                    "Information disclosure",
+                    "Privacy violation"
+                ],
+                "scenario": [
+                    "Attacker logs in with valid credentials",
+                    "Captures and modifies the JWT token user_id",
+                    "Accesses other user accounts without authorization"
+                ]
+            }
+        }
+    ]
+}

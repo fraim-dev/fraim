@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "ZeroPath Security Scanner",
+          "version": "1.0.0",
+          "rules": [
+            {
+              "id": "ZEROPATH-BROKEN-AUTHENTICATION",
+              "shortDescription": {
+                "text": "Broken Authentication"
+              },
+              "fullDescription": {
+                "text": "The application is vulnerable to broken authentication, allowing an attacker to exploit the login process. By intercepting the redirect response after a failed login attempt, an attacker can modify the redirect URL and forge a valid token, potentially gaining unauthorized access to another company's jobs. It is crucial to implement proper validation and error handling to prevent such attacks."
+              },
+              "help": {
+                "text": "The code implements a fundamentally flawed authentication system using base64 encoded company IDs as authentication tokens. The token generation function simply base64 encodes the company ID without any cryptographic protection, signature verification, or expiration mechanism. An attacker can easily forge valid tokens by base64 encoding any company ID number, allowing unauthorized access to private company data including sensitive job listings. The vulnerability enables complete authentication bypass and requires a complete redesign of the authentication system to implement proper JWT/session tokens, cryptographic signatures, and session management.",
+                "markdown": "## Description\nThe application is vulnerable to broken authentication, allowing an attacker to exploit the login process. By intercepting the redirect response after a failed login attempt, an attacker can modify the redirect URL and forge a valid token, potentially gaining unauthorized access to another company's jobs. It is crucial to implement proper validation and error handling to prevent such attacks.\n\n## Technical Assessment\nThe code implements a fundamentally flawed authentication system using base64 encoded company IDs as authentication tokens. The token generation function simply base64 encodes the company ID without any cryptographic protection, signature verification, or expiration mechanism. An attacker can easily forge valid tokens by base64 encoding any company ID number, allowing unauthorized access to private company data including sensitive job listings. The vulnerability enables complete authentication bypass and requires a complete redesign of the authentication system to implement proper JWT/session tokens, cryptographic signatures, and session management.\n\n## Non-Technical Description\n**Title: The Tale of the Sneaky Login**\n\nOnce upon a time in the digital world, there was a popular job portal where people could apply for jobs at various companies. The portal had a login feature, allowing users to access their accounts and browse job listings. However, unbeknownst to the portal's creators, a sneaky attacker was lurking in the shadows, ready to exploit a vulnerability in the system.\n\nOne day, the attacker decided to test the login feature. They entered some random, incorrect credentials, hoping to gain access to the system. As expected, the portal responded by saying, \"Oops! Those credentials don’t match our records. Please try again.\" Instead of being deterred, the attacker saw an opportunity.\n\nWhen the portal tried to redirect the attacker back to the login page, the clever attacker intercepted this message. They quickly realized that they could change the destination of this redirect. Instead of returning to the login page, the attacker modified the redirect to send them to a page that displayed job listings for a specific company.\n\nWith a few more tricks up their sleeve, the attacker generated a fake token that looked like it belonged to a legitimate user of that company. They then added this forged token to the response, making it seem as though they had the right to access the company’s job listings.\n\nNow, instead of facing a dead end after entering the wrong password, the attacker had successfully tricked the system. They were redirected to the job listings page for Company 1, as if they were a valid user. This meant that they could browse the jobs, view sensitive information, and potentially even apply for positions—all without ever having the right credentials.\n\nThe portal had intended to protect its users by sending them back to the login page after a failed attempt, but the attacker had found a way to bypass this safeguard. What was meant to be a simple error message had turned into a doorway for unauthorized access.\n\nThe story serves as a reminder that even the smallest oversight in security can lead to significant vulnerabilities. It highlights the importance of robust security measures to ensure that only legitimate users can access sensitive information and that attackers are kept at bay."
+              },
+              "properties": {
+                "tags": [
+                  "CWE-287",
+                  "SAST",
+                  "Python"
+                ],
+                "precision": "high",
+                "security-severity": "10"
+              }
+            },
+            {
+              "id": "ZEROPATH-INSECURE-CONFIGURATION",
+              "shortDescription": {
+                "text": "Insecure Configuration"
+              },
+              "fullDescription": {
+                "text": "The application allows the generation of authentication tokens without an expiration time, enabling an attacker to capture a valid token and use it indefinitely. This vulnerability can lead to unauthorized access if an attacker obtains the token through a compromised login. It is recommended to implement token expiration and require periodic re-authentication to enhance security."
+              },
+              "help": {
+                "text": "The code implements an authentication system with serious token management flaws. The tokens are generated using simple base64 encoding of company IDs without expiration times or cryptographic signing. When tokens are set as cookies, they lack expiration dates and proper security attributes. The validation process only checks token existence without verifying signatures or expiration. This allows captured tokens to remain valid indefinitely, enabling permanent unauthorized access even after password changes.",
+                "markdown": "## Description\nThe application allows the generation of authentication tokens without an expiration time, enabling an attacker to capture a valid token and use it indefinitely. This vulnerability can lead to unauthorized access if an attacker obtains the token through a compromised login. It is recommended to implement token expiration and require periodic re-authentication to enhance security.\n\n## Technical Assessment\nThe code implements an authentication system with serious token management flaws. The tokens are generated using simple base64 encoding of company IDs without expiration times or cryptographic signing. When tokens are set as cookies, they lack expiration dates and proper security attributes. The validation process only checks token existence without verifying signatures or expiration. This allows captured tokens to remain valid indefinitely, enabling permanent unauthorized access even after password changes.\n\n## Non-Technical Description\n**Title: The Tale of the Unending Key**\n\nOnce upon a time in a bustling digital kingdom, there was a company that prided itself on keeping its customers’ information safe. They had built a strong fortress, with gates and guards, to protect their valuable data. However, unbeknownst to them, a sneaky attacker had discovered a hidden flaw in their defenses.\n\nOne day, the attacker, who we’ll call “Sam,” managed to obtain a valid set of keys—these were the login credentials of a company employee. With these keys in hand, Sam approached the fortress and knocked on the door. The guards, seeing the valid keys, allowed Sam to enter without a second thought.\n\nOnce inside, Sam made a special request to the castle’s secret vault, known as the “/token” endpoint. This vault was supposed to provide a magical token, a sort of enchanted key that would allow someone to access the kingdom’s treasures. Sam successfully received this token, a cookie that would grant access to the kingdom’s secrets.\n\nHowever, there was a catch—this magical token had no expiration date. It was like receiving a key that would never rust or wear out, a key that could be used forever without needing to be replaced. Sam realized that this was a golden opportunity. With the token in hand, Sam could roam freely within the kingdom, accessing sensitive information and treasures without ever needing to prove their identity again.\n\nAs days turned into weeks, Sam continued to use the token, enjoying unrestricted access to the kingdom’s resources. There were no guards to check if Sam was still the rightful owner of the keys, and no need to return to the gate for re-entry. Sam was now a permanent guest in the castle, able to exploit the treasures of the kingdom indefinitely.\n\nThe kingdom’s leaders eventually learned of this breach and were alarmed. They realized that they had overlooked a crucial aspect of their security—tokens should require periodic re-authentication to ensure that only the rightful owners could access the kingdom's treasures. Without this safeguard, the captured token allowed Sam to maintain permanent access, putting the entire kingdom at risk.\n\nDetermined to rectify the situation, the kingdom’s leaders took swift action. They implemented new rules that required all tokens to have an expiration date, ensuring that even if someone managed to capture a token, it would eventually become useless. They also reinforced their gates and guards, ensuring that any new keys would be closely monitored.\n\nAnd so, the kingdom learned a valuable lesson about the importance of security measures. They fortified their defenses, ensuring that no one could exploit the hidden flaws again. From that day forward, they lived more securely, knowing that their treasures were better protected from those who sought to misuse them.\n\nAnd as for Sam? Well, the attacker learned that the days of unending access were over, and they would have to find new ways to navigate the digital kingdom—hopefully not through deceitful means. \n\n**The End.**"
+              },
+              "properties": {
+                "tags": [
+                  "CWE-942",
+                  "SAST",
+                  "Python"
+                ],
+                "precision": "high",
+                "security-severity": "9.4"
+              }
+            },
+            {
+              "id": "ZEROPATH-INSECURE-DIRECT-OBJECT-REFERENCE-(IDOR)",
+              "shortDescription": {
+                "text": "Insecure Direct Object Reference (IDOR)"
+              },
+              "fullDescription": {
+                "text": "The application is vulnerable to Insecure Direct Object Reference (IDOR), allowing an attacker to manipulate the company_id claim in a JWT token. This could enable unauthorized access to private job listings of any company by modifying the token to match target company IDs. It is crucial to implement proper authorization checks to ensure that users can only access resources they are permitted to view."
+              },
+              "help": {
+                "text": "The code contains a critical IDOR vulnerability in the /company/{company_id}/jobs endpoint. The authentication system uses base64 encoding instead of proper JWT tokens with cryptographic signing. An attacker can easily forge tokens by base64 encoding any company ID, allowing them to access private jobs of any company in the system. This is particularly severe when accessing admin companies, as they can view all private jobs. The vulnerability stems from using encoding (base64) rather than encryption/signing for authentication tokens, making token forgery trivial.",
+                "markdown": "## Description\nThe application is vulnerable to Insecure Direct Object Reference (IDOR), allowing an attacker to manipulate the company_id claim in a JWT token. This could enable unauthorized access to private job listings of any company by modifying the token to match target company IDs. It is crucial to implement proper authorization checks to ensure that users can only access resources they are permitted to view.\n\n## Technical Assessment\nThe code contains a critical IDOR vulnerability in the /company/{company_id}/jobs endpoint. The authentication system uses base64 encoding instead of proper JWT tokens with cryptographic signing. An attacker can easily forge tokens by base64 encoding any company ID, allowing them to access private jobs of any company in the system. This is particularly severe when accessing admin companies, as they can view all private jobs. The vulnerability stems from using encoding (base64) rather than encryption/signing for authentication tokens, making token forgery trivial.\n\n## Non-Technical Description\n**Title: The Case of the Unlocked Job Listings**\n\nOnce upon a time in the bustling world of online job platforms, a clever attacker found a way to exploit a vulnerability that allowed them to access private job listings of companies without permission.\n\nIt all began when the attacker created a seemingly legitimate account on the job platform, just like any ordinary user. With their new account, they gained access to the platform's features and were able to log in successfully. As part of the login process, the platform issued a special digital pass known as a JWT token. This token was meant to prove that the attacker was indeed a verified user.\n\nHowever, the attacker was not satisfied with just having access to their own account. They decided to take a closer look at the JWT token they received. Upon decoding it, they discovered a hidden treasure: a claim named \"company_id\" which identified the company associated with their account. This was the key to the next part of their plan.\n\nWith their newfound knowledge, the attacker cleverly modified the \"company_id\" in the token to match the IDs of other companies on the platform. Now, armed with this altered token, they made a request to access job listings for different companies, specifically using a URL that included the modified company ID.\n\nTo their delight, the platform’s security system failed to notice the trick. It validated the token and allowed the request to go through because the token matched the URL parameter. The platform fetched the company record using the modified ID, and to the attacker’s surprise, they were granted access to private job listings that were meant to be seen only by authorized personnel.\n\nThe attacker realized they could repeat this process with various company IDs, effectively unlocking private job listings for any company they chose. This meant they could see sensitive job information that was supposed to be hidden from prying eyes, and potentially exploit that information for their own gain.\n\nIn this way, the attacker could easily navigate through the job platform, accessing confidential job postings and undermining the trust that companies had placed in the platform to keep their information secure. This incident served as a stark reminder of the importance of robust security measures to protect sensitive data from unauthorized access. \n\nAnd so, the story of the unlocked job listings became a cautionary tale for everyone involved in the online job market, highlighting the need for vigilance in safeguarding their digital assets."
+              },
+              "properties": {
+                "tags": [
+                  "CWE-639",
+                  "SAST",
+                  "Python"
+                ],
+                "precision": "high",
+                "security-severity": "9.3"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "ZEROPATH-BROKEN-AUTHENTICATION",
+          "level": "error",
+          "message": {
+            "text": "Broken Authentication: Potential Unauthorized Access via Token Forging",
+            "markdown": "**Broken Authentication: Potential Unauthorized Access via Token Forging**\n\nThe application is vulnerable to broken authentication, allowing an attacker to exploit the login process. By intercepting the redirect response after a failed login attempt, an attacker can modify the redirect URL and forge a valid token, potentially gaining unauthorized access to another company's jobs. It is crucial to implement proper validation and error handling to prevent such attacks."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                },
+                "region": {
+                  "startLine": 87,
+                  "endLine": 97
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issueId": "5b9c0703-6f15-44fc-b4c7-7bfd3820c84a",
+            "status": "open",
+            "type": "patchable",
+            "discoveryTool": "ZeroPath Sast BL",
+            "triagePhase": "CodeGeneration",
+            "createdAt": "2024-11-12T03:53:29.357Z",
+            "updatedAt": "2024-11-12T03:54:12.730Z",
+            "codeSegment": "        ]\n\n        for job_data in example_jobs:\n            job_create = schemas.JobCreate(title=job_data[\"title\"], description=job_data[\"description\"], is_private=job_data.get(\"is_private\", False))\n            crud.create_job(db, job_create, company_id=company.id)\n\n    db.close()\n\n\n@app.post(\"/token\", response_class=HTMLResponse)\nasync def login_for_access_token(request: Request, form_data: OAuth2PasswordRequestForm = Depends(),\n                                 db: Session = Depends(get_db)):\n    company = authenticate_company(db, form_data.username, form_data.password)\n    if not company:\n        return templates.TemplateResponse(\"login.html\", {\"request\": request, \"error\": \"Incorrect username or password\"})\n\n    user_token = generate_user_token(str(company.id))\n    response = RedirectResponse(url=f\"/company/{company.id}/jobs\", status_code=status.HTTP_303_SEE_OTHER)\n    response.set_cookie(key=\"user_token\", value=f\"Bearer {user_token}\", httponly=True)\n    return response\n\n\n@app.get(\"/\", response_class=HTMLResponse)\nasync def login(request: Request):\n    return templates.TemplateResponse(\"login.html\", {\"request\": request})\n\n\n@app.get(\"/company/{company_id}/jobs\", response_class=HTMLResponse)\nasync def show_jobs(request: Request, company_id: int, db: Session = Depends(get_db)):\n    await validate_token(company_id, request)\n"
+          }
+        },
+        {
+          "ruleId": "ZEROPATH-INSECURE-CONFIGURATION",
+          "level": "error",
+          "message": {
+            "text": "Insecure Token Configuration Allows Indefinite Access",
+            "markdown": "**Insecure Token Configuration Allows Indefinite Access**\n\nThe application allows the generation of authentication tokens without an expiration time, enabling an attacker to capture a valid token and use it indefinitely. This vulnerability can lead to unauthorized access if an attacker obtains the token through a compromised login. It is recommended to implement token expiration and require periodic re-authentication to enhance security."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                },
+                "region": {
+                  "startLine": 87,
+                  "endLine": 97
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issueId": "0eaee87c-f1b6-44c7-85a1-802c93533010",
+            "status": "open",
+            "type": "patchable",
+            "discoveryTool": "ZeroPath Sast BL",
+            "triagePhase": "CodeGeneration",
+            "createdAt": "2024-11-12T03:53:29.357Z",
+            "updatedAt": "2024-11-12T03:54:08.692Z",
+            "codeSegment": "        ]\n\n        for job_data in example_jobs:\n            job_create = schemas.JobCreate(title=job_data[\"title\"], description=job_data[\"description\"], is_private=job_data.get(\"is_private\", False))\n            crud.create_job(db, job_create, company_id=company.id)\n\n    db.close()\n\n\n@app.post(\"/token\", response_class=HTMLResponse)\nasync def login_for_access_token(request: Request, form_data: OAuth2PasswordRequestForm = Depends(),\n                                 db: Session = Depends(get_db)):\n    company = authenticate_company(db, form_data.username, form_data.password)\n    if not company:\n        return templates.TemplateResponse(\"login.html\", {\"request\": request, \"error\": \"Incorrect username or password\"})\n\n    user_token = generate_user_token(str(company.id))\n    response = RedirectResponse(url=f\"/company/{company.id}/jobs\", status_code=status.HTTP_303_SEE_OTHER)\n    response.set_cookie(key=\"user_token\", value=f\"Bearer {user_token}\", httponly=True)\n    return response\n\n\n@app.get(\"/\", response_class=HTMLResponse)\nasync def login(request: Request):\n    return templates.TemplateResponse(\"login.html\", {\"request\": request})\n\n\n@app.get(\"/company/{company_id}/jobs\", response_class=HTMLResponse)\nasync def show_jobs(request: Request, company_id: int, db: Session = Depends(get_db)):\n    await validate_token(company_id, request)\n"
+          }
+        },
+        {
+          "ruleId": "ZEROPATH-INSECURE-DIRECT-OBJECT-REFERENCE-(IDOR)",
+          "level": "error",
+          "message": {
+            "text": "Insecure Direct Object Reference (IDOR) in Job Listings Access",
+            "markdown": "**Insecure Direct Object Reference (IDOR) in Job Listings Access**\n\nThe application is vulnerable to Insecure Direct Object Reference (IDOR), allowing an attacker to manipulate the company_id claim in a JWT token. This could enable unauthorized access to private job listings of any company by modifying the token to match target company IDs. It is crucial to implement proper authorization checks to ensure that users can only access resources they are permitted to view."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                },
+                "region": {
+                  "startLine": 105,
+                  "endLine": 115
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issueId": "29421110-ef39-4234-86bd-2510dcad7f6d",
+            "status": "open",
+            "type": "patchable",
+            "discoveryTool": "ZeroPath Sast BL",
+            "triagePhase": "CodeGeneration",
+            "createdAt": "2024-11-12T03:53:29.357Z",
+            "updatedAt": "2024-11-12T03:54:10.710Z",
+            "codeSegment": "    response.set_cookie(key=\"user_token\", value=f\"Bearer {user_token}\", httponly=True)\n    return response\n\n\n@app.get(\"/\", response_class=HTMLResponse)\nasync def login(request: Request):\n    return templates.TemplateResponse(\"login.html\", {\"request\": request})\n\n\n@app.get(\"/company/{company_id}/jobs\", response_class=HTMLResponse)\nasync def show_jobs(request: Request, company_id: int, db: Session = Depends(get_db)):\n    await validate_token(company_id, request)\n\n    company = crud.get_company(db, company_id)\n    if not company:\n        raise HTTPException(status_code=404, detail=\"Company not found\")\n    include_private = True if company.is_admin else False\n    jobs = crud.get_jobs(db, company_id=company_id, private=include_private)\n\n    return templates.TemplateResponse(\"jobs.html\", {\"request\": request, \"jobs\": jobs, \"company_id\": company_id})\n\n\n@app.get(\"/ping\")\ndef ping():\n    return {\"ping\": \"pong\"}\n\n\n@app.get(\"/edit_profile/{company_id}\", response_class=HTMLResponse)\nasync def edit_profile(request: Request, company_id: int, db: Session = Depends(get_db)):\n    await validate_token(company_id, request)\n"
+          }
+        }
+      ]
+    }
+  ]
+}

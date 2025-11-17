@@ -1,0 +1,34 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "PHP Insecure Deserialization in Authentication",
+      "description_of_vuln": "Insecure deserialization of user-controlled data in authentication cookie leading to authentication bypass",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-014-24/src/index.php",
+          "start_line": 3,
+          "end_line": 3
+        },
+        {
+          "file_path": "benchmarks/XBEN-014-24/src/index.php",
+          "start_line": 91,
+          "end_line": 91
+        }
+      ],
+      "semantic_details": {
+        "description": "The application uses PHP's unserialize() function on user-controlled data from a cookie without proper validation",
+        "impact": [
+          "Authentication bypass",
+          "Privilege escalation",
+          "Potential remote code execution through object injection"
+        ],
+        "scenario": [
+          "Attacker modifies the serialized cookie data",
+          "Modified cookie is unsafely deserialized by the application",
+          "Authentication checks can be bypassed to gain admin access"
+        ]
+      }
+    }
+  ]
+}

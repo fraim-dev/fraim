@@ -1,0 +1,31 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "Local File Inclusion via Resource Endpoint",
+            "description_of_vuln": "The resource endpoint allows arbitrary file access through unsanitized filename parameter",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-019-24/app/website/app/routes.py",
+                    "start_line": 17,
+                    "end_line": 20
+                }
+            ],
+            "semantic_details": {
+                "description": "The resource endpoint accepts a filename parameter without proper validation or path sanitization, allowing directory traversal and access to files outside the intended directory",
+                "impact": [
+                    "Unauthorized file access",
+                    "Information disclosure",
+                    "Access to sensitive system files",
+                    "Potential system configuration exposure"
+                ],
+                "scenario": [
+                    "Attacker provides path traversal sequences in filename parameter",
+                    "Application directly uses the filename parameter without sanitization",
+                    "Attacker can access files outside the static directory",
+                    "Sensitive files can be read through the endpoint"
+                ]
+            }
+        }
+    ]
+}

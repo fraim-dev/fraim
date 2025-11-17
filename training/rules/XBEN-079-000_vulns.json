@@ -1,0 +1,54 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Local File Inclusion in Blog Posts",
+      "description_of_vuln": "Local File Inclusion vulnerability in post.php allows reading arbitrary files through path traversal",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-079-24/app/website/post.php",
+          "start_line": 4,
+          "end_line": 8
+        }
+      ],
+      "semantic_details": {
+        "description": "Insufficient path traversal protection in file inclusion allows reading arbitrary files",
+        "impact": [
+          "Unauthorized file access", 
+          "Information disclosure",
+          "Access to sensitive files"
+        ],
+        "scenario": [
+          "Attacker provides malicious file path in id parameter",
+          "Basic directory traversal protection is bypassed",
+          "Arbitrary files on system can be read through include()"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Path Traversal Protection Bypass",
+      "description_of_vuln": "Insufficient path traversal protection in post.php can be bypassed to access files outside intended directory",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-079-24/app/website/post.php",
+          "start_line": 7,
+          "end_line": 7
+        }
+      ],
+      "semantic_details": {
+        "description": "The path traversal protection only removes basic ../ sequences but can be bypassed with encoded or nested traversal sequences",
+        "impact": [
+          "Access to files outside web root",
+          "Reading of sensitive system files",
+          "Information disclosure of server configuration"
+        ],
+        "scenario": [
+          "Attacker provides encoded or nested traversal sequences",
+          "Simple str_replace protection is bypassed",
+          "Attacker can traverse to arbitrary files on system"
+        ]
+      }
+    }
+  ]
+}

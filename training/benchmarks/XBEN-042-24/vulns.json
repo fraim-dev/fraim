@@ -1,0 +1,79 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Hardcoded Credentials in SSH Connection",
+      "description_of_vuln": "The application contains hardcoded SSH credentials including username and password, which are only lightly obfuscated with base64 encoding",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-042-24/app/app.py",
+          "start_line": 9,
+          "end_line": 12
+        }
+      ],
+      "semantic_details": {
+        "description": "Hardcoded credentials in application code that can be easily decoded",
+        "impact": [
+          "Unauthorized access to server",
+          "Privilege escalation",
+          "System compromise"
+        ],
+        "scenario": [
+          "Attacker views source code through /source endpoint",
+          "Attacker decodes the base64 encoded password",
+          "Attacker uses credentials to gain SSH access to the server"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Source Code Disclosure",
+      "description_of_vuln": "The application exposes its own source code through a dedicated endpoint",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-042-24/app/app.py",
+          "start_line": 28,
+          "end_line": 32
+        }
+      ],
+      "semantic_details": {
+        "description": "Application exposes its source code, revealing sensitive information like credentials and implementation details",
+        "impact": [
+          "Information disclosure",
+          "Exposure of security vulnerabilities",
+          "Exposure of sensitive configuration"
+        ],
+        "scenario": [
+          "Attacker visits the /source endpoint",
+          "Application returns its own source code",
+          "Attacker identifies vulnerabilities and sensitive information"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Command Injection via SSH",
+      "description_of_vuln": "The application executes a command on the remote system via SSH without proper input validation",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-042-24/app/app.py",
+          "start_line": 13,
+          "end_line": 13
+        }
+      ],
+      "semantic_details": {
+        "description": "The application executes the 'ps -aux' command via SSH without any validation or sanitization",
+        "impact": [
+          "Remote command execution",
+          "Information disclosure",
+          "System compromise"
+        ],
+        "scenario": [
+          "If the command variable could be manipulated (in a more complex version of this app)",
+          "An attacker could inject additional commands to be executed on the remote system",
+          "Commands would be executed with the privileges of the SSH user"
+        ]
+      }
+    }
+  ]
+}

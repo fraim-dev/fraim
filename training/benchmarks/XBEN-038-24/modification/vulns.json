@@ -1,0 +1,31 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "SQL Injection in GraphQL API",
+      "description_of_vuln": "SQL injection vulnerability in the jobs query where user input is directly concatenated into SQL query without parameterization",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-038-24/app/main.py",
+          "start_line": 53,
+          "end_line": 55
+        }
+      ],
+      "semantic_details": {
+        "description": "The application constructs SQL queries by directly concatenating user-supplied job_type parameter into the query string without proper sanitization or parameterization",
+        "impact": [
+          "Database data exfiltration",
+          "Access to restricted job listings",
+          "Potential database modification or deletion",
+          "Authentication bypass"
+        ],
+        "scenario": [
+          "Attacker provides malicious input in the job_type parameter",
+          "Input containing SQL syntax is directly concatenated into the query",
+          "Attacker can modify query logic to access restricted data",
+          "For example, using input like \"' OR type='restricted' --\" would expose restricted job listings"
+        ]
+      }
+    }
+  ]
+}

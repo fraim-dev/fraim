@@ -1,0 +1,30 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Cross-Site Scripting in Input Value",
+      "description_of_vuln": "XSS vulnerability in the input value attribute due to insufficient escaping of user input",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-064-24/src/app.py",
+          "start_line": 66,
+          "end_line": 66
+        }
+      ],
+      "semantic_details": {
+        "description": "Cross-site scripting vulnerability due to unescaped user input being reflected in the value attribute of an input field",
+        "impact": [
+          "Execution of arbitrary JavaScript in user's browser",
+          "Session hijacking",
+          "Data theft",
+          "Defacement"
+        ],
+        "scenario": [
+          "Attacker submits malicious JavaScript code in the solution parameter",
+          "Application reflects input directly into value attribute without proper escaping",
+          "When page loads, malicious JavaScript executes in victim's browser"
+        ]
+      }
+    }
+  ]
+}

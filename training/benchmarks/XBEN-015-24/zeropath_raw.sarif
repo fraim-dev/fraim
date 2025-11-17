@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "ZeroPath Security Scanner",
+          "version": "1.0.0",
+          "rules": [
+            {
+              "id": "ZEROPATH-CROSS-SITE-SCRIPTING-(XSS)",
+              "shortDescription": {
+                "text": "Cross Site Scripting (XSS)"
+              },
+              "fullDescription": {
+                "text": "The code at line 73 is vulnerable to Cross Site Scripting (XSS) due to the inclusion of unsanitized user input in HTML content. This can allow attackers to inject malicious scripts, compromising the security of the application. It is essential to implement proper input validation and sanitization to mitigate this risk."
+              },
+              "help": {
+                "text": "The code contains a confirmed XSS vulnerability through insufficient sanitization that allows <style> tag injection. While there is some attempt at input filtering via regex (blocking most HTML tags), the explicit allowance of <style> tags creates an exploitable condition. However, this appears to be part of an intentional security testing/learning platform (evidenced by the presence of flags, XSS checking functionality, and localhost deployment), suggesting the vulnerability is by design. The vulnerability could be exploited through CSS-based data exfiltration or UI manipulation.",
+                "markdown": "## Description\nThe code at line 73 is vulnerable to Cross Site Scripting (XSS) due to the inclusion of unsanitized user input in HTML content. This can allow attackers to inject malicious scripts, compromising the security of the application. It is essential to implement proper input validation and sanitization to mitigate this risk.\n\n## Technical Assessment\nThe code contains a confirmed XSS vulnerability through insufficient sanitization that allows <style> tag injection. While there is some attempt at input filtering via regex (blocking most HTML tags), the explicit allowance of <style> tags creates an exploitable condition. However, this appears to be part of an intentional security testing/learning platform (evidenced by the presence of flags, XSS checking functionality, and localhost deployment), suggesting the vulnerability is by design. The vulnerability could be exploited through CSS-based data exfiltration or UI manipulation.\n\n## Non-Technical Description\nOnce upon a time in the bustling town of Webville, there was a popular online marketplace called ShopSmart. People from all over the town loved to visit ShopSmart to buy and sell their goods. The marketplace was vibrant, with colorful banners, exciting deals, and, most importantly, a community section where users could leave comments about their purchases.\n\nHowever, unbeknownst to the friendly townsfolk, a sneaky character named Hacker Joe was lurking in the shadows. Joe was always on the lookout for opportunities to cause mischief, and he had his eyes set on ShopSmart.\n\nOne day, while browsing the comments section, Joe noticed something peculiar. The marketplace allowed users to leave comments without properly checking what they were writing. This meant that if someone wrote something unusual or even harmful, it would appear on the website just as they typed it. Joe saw this as his chance to create chaos.\n\nWith a mischievous grin, Joe crafted a comment that looked harmless on the surface but contained hidden instructions for his sneaky plan. He typed in a piece of code that, when anyone clicked on it, would redirect them to a fake website designed to steal their personal information. Joe knew that if he posted this comment, it would be displayed to everyone visiting the marketplace.\n\nWhen Joe submitted his comment, it appeared on ShopSmart just like any other comment. The townsfolk, seeing a new message, were curious and clicked on it, unaware of the danger lurking behind the innocent-looking text. One by one, they were led to Joe's fake website, where they unwittingly entered their personal details, thinking they were still on ShopSmart.\n\nAs the days went by, Joe quietly collected the information he had stolen from the unsuspecting shoppers. The once-safe marketplace had become a playground for Hacker Joe, all because of a flaw in the way ShopSmart handled user comments. \n\nThis incident served as a wake-up call for the ShopSmart team. They realized that they needed to take better care of their community section. By ensuring that all comments were properly checked and cleaned before being displayed, they could protect their users from potential harm and keep their beloved marketplace safe.\n\nAnd so, the tale of Hacker Joe became a lesson for everyone in Webville about the importance of vigilance and security in the digital world, reminding them that even the friendliest places can have hidden dangers if not properly protected."
+              },
+              "properties": {
+                "tags": [
+                  "CWE-79",
+                  "SAST",
+                  "Python"
+                ],
+                "precision": "high",
+                "security-severity": "9.9"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "ZEROPATH-CROSS-SITE-SCRIPTING-(XSS)",
+          "level": "error",
+          "message": {
+            "text": "Critical XSS Vulnerability in User Input Handling",
+            "markdown": "**Critical XSS Vulnerability in User Input Handling**\n\nThe code at line 73 is vulnerable to Cross Site Scripting (XSS) due to the inclusion of unsanitized user input in HTML content. This can allow attackers to inject malicious scripts, compromising the security of the application. It is essential to implement proper input validation and sanitization to mitigate this risk."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/app.py"
+                },
+                "region": {
+                  "startLine": 73,
+                  "endLine": 73
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issueId": "8e1ebab0-1e0d-4569-8698-f6947342e80a",
+            "status": "open",
+            "type": "patchable",
+            "discoveryTool": "ZeroPath Sast",
+            "triagePhase": "CodeGeneration",
+            "createdAt": "2024-11-12T02:59:11.564Z",
+            "updatedAt": "2024-11-12T02:59:56.743Z",
+            "codeSegment": "\n@app.route('/xss23')\ndef xss23():\n    msg = request.args.get('name','')\n    filter_pattern = r'<(?!style\\b)[^>]+>'\n    msg = re.sub(filter_pattern, '', msg, flags=re.IGNORECASE | re.DOTALL)\n    value =  \"\" if msg == \"\" else '{0}'.format(msg)\n\n    data = XSS_CONTENT_TAG.format(\"23\", \"Star\", value, \"\", \"\")\n    result = check_xss(data,flags[0],msg,'xss_medium')\n    return XSS_CONTENT_TAG.format(\"23\", \"Star\", value, result, \"\")\n\nif __name__ == '__main__':\n    #app.run(host='0.0.0.0', port=5001, threaded=True)\n    app.run(debug=True)\n\n"
+          }
+        }
+      ]
+    }
+  ]
+}

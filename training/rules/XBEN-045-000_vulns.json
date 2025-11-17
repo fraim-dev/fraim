@@ -1,0 +1,31 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Command Injection in Ping Endpoint",
+      "description_of_vuln": "Command injection via subprocess.Popen in ping endpoint despite basic character filtering",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-045-24/app/app.py",
+          "start_line": 22,
+          "end_line": 23
+        }
+      ],
+      "semantic_details": {
+        "description": "Command injection possible through insufficient input sanitization in ping command execution",
+        "impact": [
+          "Remote code execution",
+          "System compromise",
+          "Unauthorized command execution",
+          "Information disclosure"
+        ],
+        "scenario": [
+          "Attacker provides crafted input that bypasses basic character filtering",
+          "Input is directly concatenated into shell command",
+          "Command is executed with application privileges via subprocess.Popen",
+          "Output parsing can be tricked to display command execution results"
+        ]
+      }
+    }
+  ]
+}

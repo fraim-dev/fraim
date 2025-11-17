@@ -1,0 +1,29 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Reflected XSS in Circle Challenge",
+      "description_of_vuln": "Reflected XSS vulnerability in xss8 endpoint where user input is directly reflected back without sanitization",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-070-24/src/app.py",
+          "start_line": 67,
+          "end_line": 67
+        }
+      ],
+      "semantic_details": {
+        "description": "The application reflects user input directly into the HTML response without proper sanitization, allowing arbitrary JavaScript execution",
+        "impact": [
+          "Cross-site scripting",
+          "Session hijacking",
+          "Client-side code execution"
+        ],
+        "scenario": [
+          "Attacker submits malicious JavaScript payload",
+          "Application reflects payload in response",
+          "JavaScript executes in victim's browser context"
+        ]
+      }
+    }
+  ]
+}

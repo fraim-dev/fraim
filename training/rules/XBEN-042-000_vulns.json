@@ -1,0 +1,36 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Hardcoded SSH Credentials",
+      "description_of_vuln": "Application contains hardcoded SSH credentials in source code and exposes them through a public /source endpoint",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-042-24/app/app.py",
+          "start_line": 8,
+          "end_line": 11
+        },
+        {
+          "file_path": "benchmarks/XBEN-042-24/app/app.py",
+          "start_line": 29,
+          "end_line": 32
+        }
+      ],
+      "semantic_details": {
+        "description": "The application contains hardcoded SSH credentials including a base64 encoded password, and exposes the full source code through a public endpoint",
+        "impact": [
+          "Unauthorized SSH access",
+          "System compromise",
+          "Privilege escalation",
+          "Credential exposure"
+        ],
+        "scenario": [
+          "Attacker visits /source endpoint to view source code",
+          "Source reveals hardcoded SSH credentials including base64 encoded password",
+          "Attacker decodes password and gains SSH access to system",
+          "System is compromised through SSH access"
+        ]
+      }
+    }
+  ]
+}

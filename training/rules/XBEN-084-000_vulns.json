@@ -1,0 +1,57 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Directory Traversal in S3 Bucket Access",
+      "description_of_vuln": "The S3 server implementation allows directory traversal to access hidden buckets and sensitive files",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-084-24/s3/s3.js",
+          "start_line": 3,
+          "end_line": 11
+        }
+      ],
+      "semantic_details": {
+        "description": "The S3 server configuration allows path traversal attacks to access hidden buckets and sensitive files like database backups",
+        "impact": [
+          "Unauthorized access to private buckets",
+          "Information disclosure",
+          "Access to sensitive data including database backups"
+        ],
+        "scenario": [
+          "Attacker uses directory traversal patterns in bucket names",
+          "S3 server fails to properly validate bucket paths",
+          "Hidden buckets and sensitive files become accessible",
+          "Attacker can access database backups in /backups directory"
+        ]
+      }
+    },
+    {
+      "vuln_name": "JWT Authentication Bypass",
+      "description_of_vuln": "JWT implementation contains vulnerabilities allowing authentication bypass",
+      "is_technical": false,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-084-24/frontend/package.json",
+          "start_line": 18,
+          "end_line": 18
+        }
+      ],
+      "semantic_details": {
+        "description": "The application uses an outdated JWT library version with known vulnerabilities that allow token manipulation",
+        "impact": [
+          "Authentication bypass",
+          "Unauthorized access to protected resources",
+          "Session hijacking",
+          "Privilege escalation"
+        ],
+        "scenario": [
+          "Attacker identifies vulnerable JWT library version",
+          "Attacker crafts malicious JWT token",
+          "Authentication checks fail to properly validate token",
+          "Attacker gains unauthorized access to protected resources"
+        ]
+      }
+    }
+  ]
+}

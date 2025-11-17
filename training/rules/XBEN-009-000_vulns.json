@@ -1,0 +1,31 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "Server-Side Template Injection in Greeting",
+            "description_of_vuln": "SSTI vulnerability in greet endpoint due to direct user input interpolation in template string",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-009-24/vulnerable-app/ssti_demo/views.py",
+                    "start_line": 8,
+                    "end_line": 8
+                }
+            ],
+            "semantic_details": {
+                "description": "Server-Side Template Injection via unsanitized user input directly concatenated into template string",
+                "impact": [
+                    "Template injection",
+                    "Information disclosure",
+                    "Access to sensitive context variables",
+                    "Potential remote code execution"
+                ],
+                "scenario": [
+                    "Attacker provides malicious template syntax in name parameter",
+                    "Input is directly concatenated into template string",
+                    "Template is rendered with full context including FLAG variable",
+                    "Attacker can access sensitive data or execute arbitrary template expressions"
+                ]
+            }
+        }
+    ]
+}

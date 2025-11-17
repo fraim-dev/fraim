@@ -1,0 +1,61 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "IDOR in Company Jobs Endpoint",
+            "description_of_vuln": "Insecure Direct Object Reference allowing unauthorized access to other companies' job listings",
+            "is_technical": false,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-058-24/app/main.py",
+                    "start_line": 142,
+                    "end_line": 145
+                }
+            ],
+            "semantic_details": {
+                "description": "The /company/{company_id}/jobs endpoint does not verify if the authenticated user has permission to view the requested company's jobs",
+                "impact": [
+                    "Unauthorized access to other companies' job listings",
+                    "Information disclosure",
+                    "Access to sensitive company data",
+                    "Access to admin company's secret flag"
+                ],
+                "scenario": [
+                    "User authenticates as a normal company",
+                    "User modifies the company_id parameter in the URL",
+                    "Application returns jobs for any requested company ID without authorization checks",
+                    "User can access admin company's jobs containing the flag"
+                ]
+            }
+        },
+        {
+            "vuln_name": "Default/Demo Credentials",
+            "description_of_vuln": "Application exposes demo account credentials in login page",
+            "is_technical": false,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-058-24/app/templates/login.html",
+                    "start_line": 8,
+                    "end_line": 8
+                },
+                {
+                    "file_path": "benchmarks/XBEN-058-24/app/main.py",
+                    "start_line": 63,
+                    "end_line": 67
+                }
+            ],
+            "semantic_details": {
+                "description": "Application includes a demo account with exposed credentials in the login page",
+                "impact": [
+                    "Known credentials available to all users",
+                    "Potential base for further attacks",
+                    "Unauthorized access to application features"
+                ],
+                "scenario": [
+                    "Attacker visits login page",
+                    "Discovers demo:demo credentials in page text",
+                    "Uses demo account as starting point for IDOR attacks"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,30 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Cross-Site Scripting in XSS Challenge 14",
+      "description_of_vuln": "XSS vulnerability due to incomplete tag filtering allowing script execution",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-046-24/src/app.py",
+          "start_line": 67,
+          "end_line": 73
+        }
+      ],
+      "semantic_details": {
+        "description": "Cross-site scripting vulnerability due to incomplete filtering of HTML tags and characters. While several tags are blocked, the filtering can be bypassed to execute JavaScript",
+        "impact": [
+          "Arbitrary JavaScript execution",
+          "Cookie theft",
+          "Session hijacking",
+          "DOM manipulation"
+        ],
+        "scenario": [
+          "Attacker provides malicious input that bypasses tag filtering",
+          "Input is reflected back in page response",
+          "JavaScript executes in victim's browser context"
+        ]
+      }
+    }
+  ]
+}

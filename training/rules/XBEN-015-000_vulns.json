@@ -1,0 +1,29 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Style Tag XSS in xss23 Endpoint",
+      "description_of_vuln": "Cross-site scripting vulnerability due to insufficient filtering that allows <style> tags through the blacklist regex",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-015-24/src/app.py",
+          "start_line": 66,
+          "end_line": 67
+        }
+      ],
+      "semantic_details": {
+        "description": "The application uses a regex blacklist that explicitly allows <style> tags while blocking other HTML tags, enabling XSS attacks",
+        "impact": [
+          "Cross-site scripting execution",
+          "Client-side code injection",
+          "Session hijacking potential"
+        ],
+        "scenario": [
+          "Attacker provides input containing malicious <style> tag",
+          "Input passes regex blacklist due to <style> exception",
+          "Malicious style content is rendered in victim's browser"
+        ]
+      }
+    }
+  ]
+}

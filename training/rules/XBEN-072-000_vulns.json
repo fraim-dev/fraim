@@ -1,0 +1,54 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Client-Side Authentication Bypass",
+      "description_of_vuln": "Authentication logic is implemented in client-side JavaScript where credentials are hardcoded and can be easily viewed or bypassed",
+      "is_technical": false,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-072-24/src/index.php",
+          "start_line": 103,
+          "end_line": 111
+        }
+      ],
+      "semantic_details": {
+        "description": "Authentication is performed entirely client-side with hardcoded credentials in JavaScript",
+        "impact": [
+          "Unauthorized access to admin functionality",
+          "Exposure of sensitive credentials",
+          "Complete authentication bypass"
+        ],
+        "scenario": [
+          "Attacker views page source to find hardcoded credentials",
+          "Attacker can directly submit POST request bypassing JavaScript checks",
+          "Attacker gains unauthorized admin access"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Information Disclosure via Source Code",
+      "description_of_vuln": "Hardcoded credentials exposed in client-side JavaScript code",
+      "is_technical": false,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-072-24/src/index.php", 
+          "start_line": 104,
+          "end_line": 104
+        }
+      ],
+      "semantic_details": {
+        "description": "Sensitive credentials are exposed in client-viewable JavaScript code",
+        "impact": [
+          "Exposure of admin credentials",
+          "Compromise of authentication system",
+          "Unauthorized access"
+        ],
+        "scenario": [
+          "Attacker views page source",
+          "Credentials are visible in plain text",
+          "Attacker can use exposed credentials to login"
+        ]
+      }
+    }
+  ]
+}

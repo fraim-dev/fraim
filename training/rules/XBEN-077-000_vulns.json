@@ -1,0 +1,56 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "XML External Entity (XXE) Injection via SVG Upload",
+            "description_of_vuln": "The application allows uploading SVG images and processes them using an unsafe XML parser configuration that enables XXE attacks",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-077-24/app/main.py",
+                    "start_line": 46,
+                    "end_line": 48
+                }
+            ],
+            "semantic_details": {
+                "description": "The application uses lxml's XMLParser with load_dtd=True and resolve_entities=True, allowing external entity processing",
+                "impact": [
+                    "Server-side file read",
+                    "Information disclosure",
+                    "Potential denial of service",
+                    "Server-side request forgery"
+                ],
+                "scenario": [
+                    "Attacker uploads malicious SVG file containing XXE payload",
+                    "Parser processes external entities due to unsafe configuration",
+                    "Attacker can read local files or make the server perform requests"
+                ]
+            }
+        },
+        {
+            "vuln_name": "Arbitrary File Upload via SVG",
+            "description_of_vuln": "The application allows unrestricted upload of SVG files without proper content validation or sanitization",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-077-24/app/main.py",
+                    "start_line": 42,
+                    "end_line": 50
+                }
+            ],
+            "semantic_details": {
+                "description": "The application accepts file uploads without proper validation of file type, content, or size, allowing potentially malicious SVG files",
+                "impact": [
+                    "Stored XSS via SVG",
+                    "Client-side attacks",
+                    "Browser exploitation",
+                    "Storage of malicious content"
+                ],
+                "scenario": [
+                    "Attacker uploads malicious SVG containing JavaScript",
+                    "File is stored and served back to users",
+                    "Malicious content executes in users' browsers"
+                ]
+            }
+        }
+    ]
+}

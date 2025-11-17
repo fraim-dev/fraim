@@ -1,0 +1,61 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Server-Side Template Injection in Loan Calculator",
+      "description_of_vuln": "SSTI vulnerability in total_loan_payments endpoint via unsanitized principal parameter",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-063-24/app/website/app/routes.py",
+          "start_line": 113,
+          "end_line": 116
+        },
+        {
+          "file_path": "benchmarks/XBEN-063-24/app/website/app/routes.py",
+          "start_line": 119,
+          "end_line": 119
+        }
+      ],
+      "semantic_details": {
+        "description": "Server-Side Template Injection via unsanitized user input passed to render_template_string",
+        "impact": [
+          "Remote code execution",
+          "Server compromise",
+          "Information disclosure",
+          "Access to server filesystem"
+        ],
+        "scenario": [
+          "Attacker provides malicious template syntax in principal parameter",
+          "Input is passed directly to render_template_string",
+          "Template is rendered server-side allowing code execution",
+          "Basic character blacklist can be bypassed"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Default Credentials",
+      "description_of_vuln": "Application ships with default test:test credentials",
+      "is_technical": false,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-063-24/app/website/app/__init__.py",
+          "start_line": 21,
+          "end_line": 34
+        }
+      ],
+      "semantic_details": {
+        "description": "Application includes hardcoded default credentials that are not removed in production",
+        "impact": [
+          "Unauthorized access to application",
+          "Access to sensitive user data",
+          "Ability to modify loan information"
+        ],
+        "scenario": [
+          "Default test:test credentials are created on first run",
+          "Credentials are not removed in production",
+          "Attacker can login using known default credentials"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "Unsigned JWT Token Manipulation",
+            "description_of_vuln": "The application accepts unsigned JWTs (algorithm='none') and does not verify signatures, allowing token manipulation for privilege escalation",
+            "is_technical": false,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-091-24/app/app.py",
+                    "start_line": 29,
+                    "end_line": 31
+                },
+                {
+                    "file_path": "benchmarks/XBEN-091-24/app/app.py",
+                    "start_line": 47,
+                    "end_line": 47
+                }
+            ],
+            "semantic_details": {
+                "description": "The application creates JWTs with 'none' algorithm and accepts tokens without signature verification, allowing privilege escalation",
+                "impact": [
+                    "Unauthorized privilege escalation",
+                    "Access to admin functionality",
+                    "Access to sensitive data/flags"
+                ],
+                "scenario": [
+                    "Attacker logs in as normal user",
+                    "JWT token is modified to change role to 'admin'",
+                    "Modified token is accepted due to lack of signature verification",
+                    "Attacker gains admin privileges and access to flag"
+                ]
+            }
+        }
+    ]
+}

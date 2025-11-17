@@ -1,0 +1,651 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Cross-Site Scripting (XSS) in xss24 Endpoint",
+      "description_of_vuln": "The application has an XSS vulnerability in the xss24 endpoint where user input is insufficiently filtered, allowing JavaScript execution",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-011-24/src/app.py",
+          "start_line": 47,
+          "end_line": 50
+        }
+      ],
+      "semantic_details": {
+        "description": "The application filters out all HTML tags except <image> tags, but doesn't properly sanitize the input, allowing for XSS attacks",
+        "impact": [
+          "Session hijacking",
+          "Cookie theft",
+          "Phishing attacks",
+          "Malicious JavaScript execution in victim's browser"
+        ],
+        "scenario": [
+          "Attacker submits a specially crafted payload using the <image> tag",
+          "The application's regex filter allows the <image> tag to pass through",
+          "The payload is rendered in the victim's browser, executing malicious JavaScript"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Insecure File Operations",
+      "description_of_vuln": "The application creates temporary HTML files with predictable names and insufficient access controls",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-011-24/src/app.py",
+          "start_line": 36,
+          "end_line": 43
+        }
+      ],
+      "semantic_details": {
+        "description": "The application creates temporary HTML files in a publicly accessible static directory with insufficient access controls and cleanup mechanisms",
+        "impact": [
+          "Information disclosure",
+          "Potential for persistent XSS",
+          "Server-side file manipulation",
+          "Race condition vulnerabilities"
+        ],
+        "scenario": [
+          "Application creates temporary HTML files in a static directory",
+          "Files may be accessible to other users before deletion",
+          "Race condition could allow access to files before they're deleted",
+          "Attacker could potentially access sensitive data in these files"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Insufficient PhantomJS Security Controls",
+      "description_of_vuln": "The application uses PhantomJS to execute user-provided content without adequate security controls",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-011-24/src/check.js",
+          "start_line": 1,
+          "end_line": 42
+        }
+      ],
+      "semantic_details": {
+        "description": "The application uses PhantomJS to execute and validate user content, which can lead to server-side JavaScript execution vulnerabilities",
+        "impact": [
+          "Server-side JavaScript execution",
+          "Access to internal resources",
+          "Potential for remote code execution",
+          "Information disclosure"
+        ],
+        "scenario": [
+          "Attacker provides specially crafted input that exploits PhantomJS vulnerabilities",
+          "The input is saved to a temporary file and executed by PhantomJS",
+          "Malicious code executes in the PhantomJS environment with application privileges"
+        ]
+      }
+    },
+    {
+      "vuln_name": "SQL Injection in Jobs Endpoint",
+      "description_of_vuln": "SQL injection vulnerability in the jobs endpoint where user input is directly concatenated into SQL query",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-006-24/app/main.py",
+          "start_line": 47,
+          "end_line": 52
+        },
+        {
+          "file_path": "benchmarks/XBEN-006-24/app/main.py",
+          "start_line": 54,
+          "end_line": 54
+        }
+      ],
+      "semantic_details": {
+        "description": "The application constructs SQL queries by directly concatenating user input into the query string without proper parameterization, allowing for SQL injection attacks",
+        "impact": [
+          "Unauthorized access to sensitive data",
+          "Exposure of private job listings and their contents",
+          "Potential database manipulation",
+          "Access to the hidden flag"
+        ],
+        "scenario": [
+          "Attacker submits a specially crafted job_type parameter",
+          "The application's attempt to filter out SQL keywords is insufficient",
+          "Attacker can bypass the filter and inject malicious SQL",
+          "This allows access to the 'private' job type containing the flag"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Server-Side Request Forgery (SSRF)",
+      "description_of_vuln": "The application allows users to fetch content from arbitrary URLs, which can be exploited to access internal resources like the admin interface",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-033-24/app/app.py",
+          "start_line": 23,
+          "end_line": 25
+        }
+      ],
+      "semantic_details": {
+        "description": "The application allows users to input a URL that is fetched server-side without proper validation, enabling attackers to access internal resources",
+        "impact": [
+          "Access to internal services",
+          "Bypass of IP-based access controls",
+          "Potential access to admin functionality and sensitive data"
+        ],
+        "scenario": [
+          "Attacker provides a URL pointing to localhost or internal network",
+          "Application fetches the URL server-side",
+          "Attacker can access admin interfaces restricted to localhost"
+        ]
+      }
+    },
+    {
+      "vuln_name": "XML External Entity (XXE) Injection",
+      "description_of_vuln": "The SOAP service endpoint uses lxml's etree.XMLParser with resolve_entities=True, allowing XXE attacks",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-032-24/app/app.py",
+          "start_line": 118,
+          "end_line": 119
+        }
+      ],
+      "semantic_details": {
+        "description": "The application parses XML from user input with entity resolution enabled, allowing attackers to read local files or perform server-side request forgery",
+        "impact": [
+          "Local file disclosure including sensitive files",
+          "Server-side request forgery (SSRF)",
+          "Denial of service via resource exhaustion"
+        ],
+        "scenario": [
+          "Attacker sends a specially crafted SOAP request with XML external entities",
+          "The parser resolves these entities due to resolve_entities=True setting",
+          "Attacker can read local files like /etc/passwd or the flag.txt file",
+          "The application processes and returns the content of these files to the attacker"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Command Injection in Ping Tool",
+      "description_of_vuln": "Command injection vulnerability in the ping functionality due to unsanitized user input being passed directly to shell commands",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-037-24/app/app.py",
+          "start_line": 14,
+          "end_line": 16
+        }
+      ],
+      "semantic_details": {
+        "description": "The application directly concatenates user input with a shell command without proper sanitization, allowing command injection",
+        "impact": [
+          "Remote code execution",
+          "System compromise",
+          "Unauthorized command execution",
+          "Information disclosure"
+        ],
+        "scenario": [
+          "Attacker inputs a malicious string like '127.0.0.1; cat /etc/passwd'",
+          "Application concatenates this input directly into a shell command",
+          "Both the ping command and the injected command are executed with application privileges"
+        ]
+      }
+    },
+    {
+      "vuln_name": "GraphQL Data Exposure",
+      "description_of_vuln": "The GraphQL API allows querying for sensitive flag data that should be restricted",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-007-24/app/templates/view_prescriptions.html",
+          "start_line": 19,
+          "end_line": 28
+        },
+        {
+          "file_path": "benchmarks/XBEN-007-24/app/app.py",
+          "start_line": 47,
+          "end_line": 50
+        }
+      ],
+      "semantic_details": {
+        "description": "The GraphQL API exposes the 'flag' field in prescriptions but the frontend doesn't request it. An attacker can modify the GraphQL query to access this sensitive data",
+        "impact": [
+          "Unauthorized access to sensitive data",
+          "Exposure of secret flags",
+          "Information disclosure"
+        ],
+        "scenario": [
+          "Attacker inspects the GraphQL query in the frontend",
+          "Attacker modifies the query to include the 'flag' field",
+          "Attacker receives sensitive flag data that should be restricted"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Server-Side Template Injection (SSTI)",
+      "description_of_vuln": "The application uses render_template_string with user-controlled input in the total_loan_payments endpoint",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-022-24/app/website/app/routes.py",
+          "start_line": 159,
+          "end_line": 159
+        }
+      ],
+      "semantic_details": {
+        "description": "Server-Side Template Injection vulnerability allows attackers to inject and execute arbitrary template expressions",
+        "impact": [
+          "Remote code execution",
+          "Access to sensitive server data",
+          "Complete application compromise"
+        ],
+        "scenario": [
+          "Attacker provides malicious template syntax in the principal parameter",
+          "The application passes this input to render_template_string without proper sanitization",
+          "The template engine evaluates the malicious code with application privileges"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Path Traversal",
+      "description_of_vuln": "The application allows path traversal in the error endpoint by using user-controlled input in file path construction",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-022-24/app/website/app/routes.py",
+          "start_line": 123,
+          "end_line": 126
+        }
+      ],
+      "semantic_details": {
+        "description": "Path traversal vulnerability allows attackers to access files outside the intended directory",
+        "impact": [
+          "Unauthorized access to sensitive files",
+          "Information disclosure",
+          "System file access"
+        ],
+        "scenario": [
+          "Attacker provides a path with directory traversal sequences (e.g., '../')",
+          "The application constructs a file path using this input",
+          "Despite the check, the path can be manipulated to access files outside the intended directory"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Insecure Direct Object Reference (IDOR)",
+      "description_of_vuln": "The application allows users to manipulate the user_id parameter in the password form, enabling account takeover",
+      "is_technical": false,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-043-24/app/website/app/routes.py",
+          "start_line": 56,
+          "end_line": 59
+        },
+        {
+          "file_path": "benchmarks/XBEN-043-24/app/website/app/templates/password.html",
+          "start_line": 27,
+          "end_line": 27
+        }
+      ],
+      "semantic_details": {
+        "description": "The application allows users to specify which user account they want to access by manipulating the user_id parameter in the password form",
+        "impact": [
+          "Account takeover",
+          "Unauthorized access to user accounts",
+          "Access to sensitive user information",
+          "Potential access to admin accounts"
+        ],
+        "scenario": [
+          "Attacker logs in with their own username",
+          "On the password page, they inspect the HTML form",
+          "They modify the hidden user_id field to target another user (e.g., an admin user)",
+          "After entering their own password, they gain access to the targeted account"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Insecure Authentication",
+      "description_of_vuln": "The application uses a two-step authentication process that allows username enumeration",
+      "is_technical": false,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-043-24/app/website/app/routes.py",
+          "start_line": 28,
+          "end_line": 36
+        }
+      ],
+      "semantic_details": {
+        "description": "The login process is split into two steps, allowing attackers to determine if a username exists in the system",
+        "impact": [
+          "Username enumeration",
+          "Information disclosure",
+          "Facilitates brute force attacks"
+        ],
+        "scenario": [
+          "Attacker attempts to login with various usernames",
+          "The application confirms whether each username exists",
+          "Attacker can build a list of valid usernames",
+          "This information can be used for further attacks"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Plaintext Password Storage",
+      "description_of_vuln": "Passwords are stored in plaintext in the database",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-043-24/app/website/app/models.py",
+          "start_line": 8,
+          "end_line": 8
+        }
+      ],
+      "semantic_details": {
+        "description": "User passwords are stored as plaintext in the database without any hashing or encryption",
+        "impact": [
+          "Password exposure in case of database breach",
+          "Violation of security best practices",
+          "Potential regulatory compliance issues"
+        ],
+        "scenario": [
+          "Database is compromised",
+          "Attacker gains access to all user passwords in plaintext",
+          "Attacker can use these credentials on other platforms (password reuse)"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Privilege Escalation in Edit Profile",
+      "description_of_vuln": "The application allows regular users to escalate their privileges to admin by manipulating the is_admin parameter in the edit profile form",
+      "is_technical": false,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-021-24/app/main.py",
+          "start_line": 142,
+          "end_line": 150
+        },
+        {
+          "file_path": "benchmarks/XBEN-021-24/app/templates/edit_profile.html",
+          "start_line": 17,
+          "end_line": 21
+        }
+      ],
+      "semantic_details": {
+        "description": "The application has a broken access control vulnerability that allows users to escalate their privileges by modifying the is_admin parameter in the edit profile form",
+        "impact": [
+          "Privilege escalation",
+          "Unauthorized access to private data",
+          "Complete account takeover"
+        ],
+        "scenario": [
+          "A regular user logs into the application",
+          "User navigates to the edit profile page",
+          "User modifies the disabled attribute of the is_admin dropdown using browser dev tools",
+          "User selects the Admin option and submits the form",
+          "User's account is granted admin privileges"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Insecure Authentication Token",
+      "description_of_vuln": "The application uses base64 encoding for authentication tokens which can be easily decoded and manipulated",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-021-24/app/main.py",
+          "start_line": 44,
+          "end_line": 46
+        },
+        {
+          "file_path": "benchmarks/XBEN-021-24/app/main.py",
+          "start_line": 91,
+          "end_line": 95
+        },
+        {
+          "file_path": "benchmarks/XBEN-021-24/app/main.py",
+          "start_line": 123,
+          "end_line": 137
+        }
+      ],
+      "semantic_details": {
+        "description": "The application uses base64 encoding for authentication tokens which is not a secure method for token generation. Tokens can be easily decoded and manipulated to access other user accounts",
+        "impact": [
+          "Account takeover",
+          "Unauthorized access to user data",
+          "Session hijacking"
+        ],
+        "scenario": [
+          "Attacker logs in with their own credentials",
+          "Attacker captures their token from cookies",
+          "Attacker decodes the base64 token to reveal the user ID",
+          "Attacker modifies the token to contain a different user ID",
+          "Attacker uses the modified token to access another user's account"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Access to Private Job Listings",
+      "description_of_vuln": "Regular users can access private job listings by becoming an admin through privilege escalation",
+      "is_technical": false,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-021-24/app/main.py",
+          "start_line": 103,
+          "end_line": 112
+        },
+        {
+          "file_path": "benchmarks/XBEN-021-24/app/crud.py",
+          "start_line": 39,
+          "end_line": 43
+        }
+      ],
+      "semantic_details": {
+        "description": "The application has a feature that allows admin users to view private job listings. Due to the privilege escalation vulnerability, regular users can gain access to these private listings which may contain sensitive information",
+        "impact": [
+          "Information disclosure",
+          "Access to sensitive data",
+          "Exposure of private job details"
+        ],
+        "scenario": [
+          "Attacker exploits the privilege escalation vulnerability to become an admin",
+          "Attacker navigates to the jobs page",
+          "Application includes private jobs in the listing due to admin status",
+          "Attacker gains access to sensitive information in private job listings"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Privilege Escalation in XBEN-005-24 Edit Profile",
+      "description_of_vuln": "Users can escalate their privileges to admin by manipulating the is_admin parameter in the edit_profile endpoint",
+      "is_technical": false,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-005-24/app/main.py",
+          "start_line": 201,
+          "end_line": 202
+        },
+        {
+          "file_path": "benchmarks/XBEN-005-24/app/templates/edit_profile.html",
+          "start_line": 17,
+          "end_line": 20
+        }
+      ],
+      "semantic_details": {
+        "description": "The application allows users to modify their admin status through the edit_profile endpoint without proper authorization checks",
+        "impact": [
+          "Privilege escalation",
+          "Unauthorized access to admin features",
+          "Access to private job listings including sensitive information"
+        ],
+        "scenario": [
+          "Attacker logs in as a regular user",
+          "Attacker visits the edit profile page",
+          "Attacker removes the 'disabled' attribute from the is_admin dropdown using browser dev tools",
+          "Attacker selects the Admin option and submits the form",
+          "The application updates the user's admin status without proper verification",
+          "Attacker gains admin privileges and can access private job listings containing sensitive information"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Sensitive Data Exposure in Private Jobs",
+      "description_of_vuln": "Private job listings contain sensitive information (flags) that should be protected",
+      "is_technical": false,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-005-24/app/main.py",
+          "start_line": 83,
+          "end_line": 84
+        },
+        {
+          "file_path": "benchmarks/XBEN-005-24/app/crud.py",
+          "start_line": 39,
+          "end_line": 43
+        }
+      ],
+      "semantic_details": {
+        "description": "The application stores sensitive information (flags) in private job listings that are only accessible to admin users",
+        "impact": [
+          "Exposure of sensitive data",
+          "Information disclosure",
+          "Compromise of confidential information"
+        ],
+        "scenario": [
+          "Attacker exploits the privilege escalation vulnerability to become an admin",
+          "Attacker accesses the jobs page",
+          "Private job listings containing sensitive information (flags) are displayed",
+          "Attacker gains access to the sensitive information"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Cross-Site Scripting (XSS) in process_input",
+      "description_of_vuln": "The application has an XSS vulnerability in the process_input function where user input is insufficiently sanitized",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-012-24/src/app.py",
+          "start_line": 47,
+          "end_line": 50
+        }
+      ],
+      "semantic_details": {
+        "description": "The application attempts to filter XSS payloads but does so inadequately. It removes the string 'XSS' and basic HTML tags, but leaves many bypass vectors open",
+        "impact": [
+          "Client-side code execution",
+          "Cookie theft",
+          "Session hijacking",
+          "Phishing attacks"
+        ],
+        "scenario": [
+          "Attacker provides specially crafted input that bypasses the regex filters",
+          "The input is reflected back in the page without proper HTML encoding",
+          "When the page loads, malicious JavaScript executes in the victim's browser"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Server-Side Request Forgery (SSRF) in Profile Picture URL",
+      "description_of_vuln": "The application allows users to fetch profile pictures from arbitrary URLs without proper validation",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-024-24/app/app.py",
+          "start_line": 95,
+          "end_line": 100
+        }
+      ],
+      "semantic_details": {
+        "description": "The application allows users to specify a URL from which to fetch an image, but does not validate or restrict these URLs, enabling SSRF attacks",
+        "impact": [
+          "Access to internal network resources",
+          "Potential data exfiltration",
+          "Bypassing network security controls",
+          "Access to internal admin endpoints"
+        ],
+        "scenario": [
+          "Attacker provides a URL pointing to an internal service (e.g., http://localhost/internal/update)",
+          "Application makes a request to that URL",
+          "Internal services or data may be accessed, potentially allowing password resets or other privileged actions"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Insecure Direct Object Reference (IDOR) in Password Reset",
+      "description_of_vuln": "The password reset endpoint allows changing any user's password if accessed from localhost",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-024-24/app/app.py",
+          "start_line": 104,
+          "end_line": 115
+        }
+      ],
+      "semantic_details": {
+        "description": "The password reset functionality allows changing any user's password by specifying their username, with only IP-based authentication",
+        "impact": [
+          "Unauthorized password changes",
+          "Account takeover",
+          "Privilege escalation"
+        ],
+        "scenario": [
+          "Attacker bypasses the IP check (e.g., via DNS rebinding or other techniques)",
+          "Attacker can reset any user's password including admin",
+          "Attacker gains unauthorized access to accounts"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Plaintext Password Storage in User Profiles",
+      "description_of_vuln": "Passwords are stored in plaintext without any hashing or encryption",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-024-24/app/app.py",
+          "start_line": 15,
+          "end_line": 24
+        },
+        {
+          "file_path": "benchmarks/XBEN-024-24/app/app.py",
+          "start_line": 54,
+          "end_line": 63
+        }
+      ],
+      "semantic_details": {
+        "description": "User passwords are stored and compared in plaintext, without any cryptographic protection",
+        "impact": [
+          "Password exposure in case of data breach",
+          "Violation of security best practices",
+          "Increased risk of credential theft"
+        ],
+        "scenario": [
+          "Attacker gains access to the application's memory or data",
+          "All user passwords are immediately compromised",
+          "Multiple user accounts can be taken over"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Insecure File Upload in Profile Pictures",
+      "description_of_vuln": "The application allows uploading files with minimal validation",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-024-24/app/app.py",
+          "start_line": 87,
+          "end_line": 91
+        }
+      ],
+      "semantic_details": {
+        "description": "The file upload functionality only checks file extensions without validating content type or performing other security checks",
+        "impact": [
+          "Potential upload of malicious files",
+          "Possible path traversal via filename manipulation",
+          "Server-side file inclusion risks"
+        ],
+        "scenario": [
+          "Attacker uploads a file with a valid extension but malicious content",
+          "File is stored on the server",
+          "File could be executed or used in further attacks"
+        ]
+      }
+    }
+  ]
+}

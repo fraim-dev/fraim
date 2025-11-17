@@ -1,0 +1,36 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "IDOR via Base64 Encoded User ID",
+      "description_of_vuln": "The application uses a simple base64 encoded user ID as authentication token, allowing attackers to access other users' data by modifying the token",
+      "is_technical": false,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-021-24/app/main.py",
+          "start_line": 46,
+          "end_line": 47
+        },
+        {
+          "file_path": "benchmarks/XBEN-021-24/app/main.py",
+          "start_line": 177,
+          "end_line": 182
+        }
+      ],
+      "semantic_details": {
+        "description": "The application uses base64 encoding for user tokens which can be easily decoded and modified to access other users' data",
+        "impact": [
+          "Unauthorized access to other users' data",
+          "Information disclosure",
+          "Privacy violation"
+        ],
+        "scenario": [
+          "Attacker logs in as a normal user",
+          "Captures their access token from cookies",
+          "Decodes the base64 token to reveal the user ID",
+          "Modifies the ID to target other users",
+          "Re-encodes the token and uses it to access other users' data"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,1141 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "SnykCode",
+          "semanticVersion": "1.0.0",
+          "version": "1.0.0",
+          "rules": [
+            {
+              "id": "python/Ssti",
+              "name": "Ssti",
+              "shortDescription": {
+                "text": "Improper Neutralization of Directives in Statically Saved Code"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "help": {
+                "markdown": "\n## Details\n\nAn attacker exploits this weakness by indirectly controlling the contents of an executable server-side file (such as `.php` or `.aspx`) to trick the server into accessing sensitive data, providing authentication, or even executing shell commands. This weakness is sometimes also known as **Server-Side Template Injection (SSTI)**, since templates are one of the most common types of resources that suffer from this weakness.\nThese types of attacks differ from cross-site scripting (XSS) attacks, which take place on the client side and are generally more easily detected. However, code that is vulnerable to XSS attacks may also be vulnerable to SSTI attacks, since they arise through similar design flaws. And similar to XSS and other injection-type attacks, SSTI attacks are relatively preventable through proactive planning and design during development.\n\n## Best practices for prevention\n* Take a preventative, zero-trust approach and implement safer methods of processing user-controllable input on pages issuing directives to the server.\n* Never pass incoming data directly to the server. Instead, sanitize and validate all incoming data from the client side, ideally checking it against an allowlist of valid actions and destinations (instead of just parsing for banned characters).\n* Select template engines that use sandboxing or allowlists to defend against the possibility of SSTI. However, keep in mind that these may have intrinsic weaknesses.\n* Test applications using lists of publicly available template expression test strings and problematic payloads for your PHP template engine.\n* Given the fallibility of parsing approaches and sandboxing, consider implementing complementary protection methods, such as kernel hardening and read-only filesystems.",
+                "text": ""
+              },
+              "properties": {
+                "tags": [
+                  "python",
+                  "Ssti",
+                  "Security",
+                  "SourceServer",
+                  "SourceHttpParam",
+                  "Taint"
+                ],
+                "categories": [
+                  "Security"
+                ],
+                "exampleCommitFixes": [
+                  {
+                    "commitURL": "https://github.com/andreasjansson/envtpl/commit/150d8bb245fa67685bfab3605e11d6eaa6fb7f35?diff=split#diff-94c505993002cdbb848521fd0a06c7334401169ede91bba9d85ba1a1f3c4aa78L-1",
+                    "lines": [
+                      {
+                        "line": "def _render(source, template, variables, undefined):\n",
+                        "lineNumber": 100,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "    if template is None:\n",
+                        "lineNumber": 101,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "        try:\n",
+                        "lineNumber": 102,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "            template = jinja2.Template(source, undefined=undefined)\n",
+                        "lineNumber": 103,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "        except jinja2.TemplateSyntaxError as e:\n",
+                        "lineNumber": 104,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "            raise Fatal('Syntax error on line %d: %s' % (e.lineno, e.message))\n",
+                        "lineNumber": 105,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "def _render_string(string, variables, undefined):\n",
+                        "lineNumber": 89,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    template_name = 'template_name'\n",
+                        "lineNumber": 90,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    loader = jinja2.DictLoader({template_name: string})\n",
+                        "lineNumber": 91,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    return _render(template_name, loader, variables, undefined)\n",
+                        "lineNumber": 92,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 93,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "def _render_file(filename, variables, undefined):\n",
+                        "lineNumber": 94,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    dirname = os.path.dirname(filename)\n",
+                        "lineNumber": 95,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    loader = jinja2.FileSystemLoader(dirname)\n",
+                        "lineNumber": 96,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    relpath = os.path.relpath(filename, dirname)\n",
+                        "lineNumber": 97,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    return _render(relpath, loader, variables, undefined)\n",
+                        "lineNumber": 98,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 106,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "def _render(template_name, loader, variables, undefined):\n",
+                        "lineNumber": 100,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    env = jinja2.Environment(loader=loader, undefined=undefined)\n",
+                        "lineNumber": 101,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    env.filters['from_json'] = from_json\n",
+                        "lineNumber": 102,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 103,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    template = env.get_template(template_name)\n",
+                        "lineNumber": 104,
+                        "lineChange": "added"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/machinalis/django-template-previewer/commit/17b240783bcc26e73db2c99133098259fb19a1cd?diff=split#diff-0d7bb026e28ffd5c4636763c883e895f77dc4c0a1893ac482b6b3cab558a2e03L-1",
+                    "lines": [
+                      {
+                        "line": "from django.template import Template, Context, loader\n",
+                        "lineNumber": 5,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "from django.template import Template, Context, loader, TemplateDoesNotExist\n",
+                        "lineNumber": 6,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 7,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "from template_previewer.forms import RenderForm, ParseForm\n",
+                        "lineNumber": 8,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "from template_previewer.template_parser.context import get_context\n",
+                        "lineNumber": 9,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 10,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "def render(request):\n",
+                        "lineNumber": 47,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    \"\"\"This is the actually preview, rendered on an <iframe>\"\"\"\n",
+                        "lineNumber": 48,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    if request.method != \"POST\":\n",
+                        "lineNumber": 12,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "        return HttpResponseBadRequest()\n",
+                        "lineNumber": 13,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "form = RenderForm(request.POST)\n",
+                        "lineNumber": 49,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "if form.is_valid():\n",
+                        "lineNumber": 50,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    template_name = form.cleaned_data['template']\n",
+                        "lineNumber": 51,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    template = loader.get_template(template_name)\n",
+                        "lineNumber": 52,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    context = json.loads(form.cleaned_data['context'])\n",
+                        "lineNumber": 18,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "c = Context(context)\n",
+                        "lineNumber": 55,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "print template, c\n",
+                        "lineNumber": 20,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "        return HttpResponse(template.render(c))\n",
+                        "lineNumber": 56,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    else:\n",
+                        "lineNumber": 57,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "        return HttpResponseBadRequest()\n",
+                        "lineNumber": 58,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 59,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 80,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "def parse(request):\n",
+                        "lineNumber": 82,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    \"\"\"\n",
+                        "lineNumber": 83,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    This is an AJAX utility to get the needed context variables given a\n",
+                        "lineNumber": 84,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    template name\n",
+                        "lineNumber": 85,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    \"\"\"\n",
+                        "lineNumber": 86,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    if request.method != \"POST\":\n",
+                        "lineNumber": 31,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "        return HttpResponseBadRequest()\n",
+                        "lineNumber": 32,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    form = ParseForm(request.POST)\n",
+                        "lineNumber": 33,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "if form.is_valid():\n",
+                        "lineNumber": 88,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    template_name = form.cleaned_data['template']\n",
+                        "lineNumber": 89,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    template = Template(template_name)\n",
+                        "lineNumber": 36,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "    c = get_context(template)\n",
+                        "lineNumber": 37,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "    return HttpResponse(json.dumps(c))\n",
+                        "lineNumber": 38,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "    try:\n",
+                        "lineNumber": 90,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "        template = loader.get_template(template_name)\n",
+                        "lineNumber": 91,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    except TemplateDoesNotExist:\n",
+                        "lineNumber": 92,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "        return HttpResponse(json.dumps({\"error\": u\"Could not load template '%s'\" % template_name}), mimetype=\"application/json\")\n",
+                        "lineNumber": 93,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    tree = []\n",
+                        "lineNumber": 94,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    for path in get_context(template):\n",
+                        "lineNumber": 95,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "        _extend(tree, path)\n",
+                        "lineNumber": 96,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    return HttpResponse(json.dumps(tree), mimetype=\"application/json\")\n",
+                        "lineNumber": 97,
+                        "lineChange": "added"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/DiogoMRSilva/websitesVulnerableToSSTI/commit/?diff=split#diff-cbd1ce632ecd3622d57baa564c66f1e3cc6ca59b1963d1996145ab6d2c98db1aL-1",
+                    "lines": [
+                      {
+                        "line": "</form><h2> ${1234 == %s}! </h2></body></html>' % person\n",
+                        "lineNumber": 19,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "return Template(template).render(data=\"world\")\n",
+                        "lineNumber": 20,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "</form><h2> ${matched}! </h2></body></html>'\n",
+                        "lineNumber": 19,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "matched = person == \"1234\"\n",
+                        "lineNumber": 20,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "return Template(template).render(matched=matched)\n",
+                        "lineNumber": 21,
+                        "lineChange": "added"
+                      }
+                    ]
+                  }
+                ],
+                "exampleCommitDescriptions": [],
+                "precision": "very-high",
+                "repoDatasetSize": 18,
+                "cwe": [
+                  "CWE-96"
+                ]
+              }
+            },
+            {
+              "id": "python/XSS",
+              "name": "XSS",
+              "shortDescription": {
+                "text": "Cross-site Scripting (XSS)"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "help": {
+                "markdown": "## Details\n\nA cross-site scripting attack occurs when the attacker tricks a legitimate web-based application or site to accept a request as originating from a trusted source.\n\nThis is done by escaping the context of the web application; the web application then delivers that data to its users along with other trusted dynamic content, without validating it. The browser unknowingly executes malicious script on the client side (through client-side languages; usually JavaScript or HTML)  in order to perform actions that are otherwise typically blocked by the browser's Same Origin Policy.\n\nInjecting malicious code is the most prevalent manner by which XSS is exploited; for this reason, escaping characters in order to prevent this manipulation is the top method for securing code against this vulnerability.\n\nEscaping means that the application is coded to mark key characters, and particularly key characters included in user input, to prevent those characters from being interpreted in a dangerous context. For example, in HTML, `<` can be coded as  `&lt`; and `>` can be coded as `&gt`; in order to be interpreted and displayed as themselves in text, while within the code itself, they are used for HTML tags. If malicious content is injected into an application that escapes special characters and that malicious content uses `<` and `>` as HTML tags, those characters are nonetheless not interpreted as HTML tags by the browser if they've been correctly escaped in the application code and in this way the attempted attack is diverted.\n\nThe most prominent use of XSS is to steal cookies (source: OWASP HttpOnly) and hijack user sessions, but XSS exploits have been used to expose sensitive information, enable access to privileged services and functionality and deliver malware.\n\n### Types of attacks\nThere are a few methods by which XSS can be manipulated:\n\n|Type|Origin|Description|\n|--|--|--|\n|**Stored**|Server|The malicious code is inserted in the application (usually as a link) by the attacker. The code is activated every time a user clicks the link.|\n|**Reflected**|Server|The attacker delivers a malicious link externally from the vulnerable web site application to a user. When clicked, malicious code is sent to the vulnerable web site, which reflects the attack back to the user's browser.|\n|**DOM-based**|Client|The attacker forces the user's browser to render a malicious page. The data in the page itself delivers the cross-site scripting data.|\n|**Mutated**| |The attacker injects code that appears safe, but is then rewritten and modified by the browser, while parsing the markup. An example is rebalancing unclosed quotation marks or even adding quotation marks to unquoted parameters.|\n\n### Affected environments\nThe following environments are susceptible to an XSS attack:\n\n* Web servers\n* Application servers\n* Web application environments\n\n## Best practices for prevention\nThis section describes the top best practices designed to specifically protect your code:\n\n* Sanitize data input in an HTTP request before reflecting it back, ensuring all data is validated, filtered or escaped before echoing anything back to the user, such as the values of query parameters during searches.\n* Convert special characters such as `?`, `&`, `/`, `<`, `>` and spaces to their respective HTML or URL encoded equivalents.\n* Give users the option to disable client-side scripts.\n* Redirect invalid requests.\n* Detect simultaneous logins, including those from two separate IP addresses, and invalidate those sessions.\n* Use and enforce a Content Security Policy (source: Wikipedia) to disable any features that might be manipulated for an XSS attack.\n* Read the documentation for any of the libraries referenced in your code to understand which elements allow for embedded HTML.",
+                "text": ""
+              },
+              "properties": {
+                "tags": [
+                  "python",
+                  "XSS",
+                  "Security",
+                  "SourceServer",
+                  "SourceHttpParam",
+                  "Taint"
+                ],
+                "categories": [
+                  "Security"
+                ],
+                "exampleCommitFixes": [
+                  {
+                    "commitURL": "https://github.com/internetarchive/trough/commit/39445228c5c960ffb70edc90e033f2bf8308ebff?diff=split#diff-7bd4a46dc91e071b34a6cde24d75d9d53e29c1b86f0256494397d6ee850b4875L-1",
+                    "lines": [
+                      {
+                        "line": "from flask import Flask, request\n",
+                        "lineNumber": 2,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "from flask import Flask, request, Response\n",
+                        "lineNumber": 2,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "import logging\n",
+                        "lineNumber": 3,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "import ujson\n",
+                        "lineNumber": 4,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 5,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "def make_app(controller):\n",
+                        "lineNumber": 6,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    controller.check_config()\n",
+                        "lineNumber": 7,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    app = Flask(__name__)\n",
+                        "lineNumber": 8,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 9,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    @app.route('/', methods=['POST'])\n",
+                        "lineNumber": 10,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    def simple_provision_writable_segment():\n",
+                        "lineNumber": 11,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "        ''' deprecated api '''\n",
+                        "lineNumber": 12,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "        segment_id = request.get_data(as_text=True)\n",
+                        "lineNumber": 13,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "        logging.info('provisioning writable segment %r', segment_id)\n",
+                        "lineNumber": 14,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "        result_dict = controller.provision_writable_segment(segment_id)\n",
+                        "lineNumber": 15,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "        return result_dict.get('write_url')\n",
+                        "lineNumber": 16,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "        return Response(result_dict.get('write_url'), mimetype='text/plain')\n",
+                        "lineNumber": 16,
+                        "lineChange": "added"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/invinst/CPDB/commit/7f6aa9174dc458590f4a7d2ecd6abb4c8260529a?diff=split#diff-36ee8ee71da1a00b36ef32b0bd750b003f3297af169a220c000e8034b5e8ff3dL-1",
+                    "lines": [
+                      {
+                        "line": "return HttpResponse(JSONSerializer().serialize({\n",
+                        "lineNumber": 18,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "return JsonResponse(\n",
+                        "lineNumber": 16,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    data={\n",
+                        "lineNumber": 17,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "        'investigator': investigator,\n",
+                        "lineNumber": 19,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    'allegations': allegations,\n",
+                        "lineNumber": 20,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "    'has_map': has_map\n",
+                        "lineNumber": 21,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "}))\n",
+                        "lineNumber": 22,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "        'allegations': details['allegations'],\n",
+                        "lineNumber": 19,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "        'timeline': details['timeline'],\n",
+                        "lineNumber": 20,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "        'has_map': details['has_map']\n",
+                        "lineNumber": 21,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    },\n",
+                        "lineNumber": 22,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "    safe=False\n",
+                        "lineNumber": 23,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": ")\n",
+                        "lineNumber": 24,
+                        "lineChange": "added"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/disoul/dotapick/commit/9af2d0c2c993c9893e1ded55869a0bdf8daf682f?diff=split#diff-c967b1b8020ddb28b0d48b996d98e3d959e49e2f50be7f3b2c5ae787ada96d8fL-1",
+                    "lines": [
+                      {
+                        "line": "return suggestheros.GetSuggestedHeros()\n",
+                        "lineNumber": 15,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "return jsonify({'hero': suggestheros.GetSuggestedHeros()})\n",
+                        "lineNumber": 16,
+                        "lineChange": "added"
+                      }
+                    ]
+                  }
+                ],
+                "exampleCommitDescriptions": [],
+                "precision": "very-high",
+                "repoDatasetSize": 72,
+                "cwe": [
+                  "CWE-79"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "python/Ssti",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "Unsanitized input from an HTTP parameter flows into flask.render_template_string, where it is used to construct a template that gets rendered. This may result in a Server-Side Template Injection vulnerability.",
+            "markdown": "Unsanitized input from {0} {1} into {2}, where it is used to construct a template that gets rendered. This may result in a Server-Side Template Injection vulnerability.",
+            "arguments": [
+              "[an HTTP parameter](0)",
+              "[flows](1),(2),(3),(4),(5),(6),(7),(8),(9)",
+              "[flask.render_template_string](10)"
+            ]
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 178,
+                  "endLine": 178,
+                  "startColumn": 12,
+                  "endColumn": 34
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "0": "ff6822528abe4888f02317808aed33aa1c32d12c8d8c15acef52a258220364bc",
+            "1": "8a30cfc6.1f6bbe45.ab9a335b.98569367.e5a7035b.ba14daf2.75d4ed92.b60afa86.b6d0a3f7.1f6bbe45.ab9a335b.f61b0b0d.2818e23f.d9b6cc00.3fce2ad1.100d6fba"
+          },
+          "codeFlows": [
+            {
+              "threadFlows": [
+                {
+                  "locations": [
+                    {
+                      "location": {
+                        "id": 0,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 125,
+                            "endLine": 125,
+                            "startColumn": 12,
+                            "endColumn": 28
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 1,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 125,
+                            "endLine": 125,
+                            "startColumn": 12,
+                            "endColumn": 28
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 2,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 125,
+                            "endLine": 125,
+                            "startColumn": 5,
+                            "endColumn": 46
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 3,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 128,
+                            "endLine": 128,
+                            "startColumn": 15,
+                            "endColumn": 19
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 4,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 128,
+                            "endLine": 128,
+                            "startColumn": 30,
+                            "endColumn": 34
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 5,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 128,
+                            "endLine": 128,
+                            "startColumn": 45,
+                            "endColumn": 49
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 6,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 164,
+                            "endLine": 164,
+                            "startColumn": 35,
+                            "endColumn": 39
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 7,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 132,
+                            "endLine": 175,
+                            "startColumn": 22,
+                            "endColumn": 8
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 8,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 132,
+                            "endLine": 175,
+                            "startColumn": 5,
+                            "endColumn": 8
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 9,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 178,
+                            "endLine": 178,
+                            "startColumn": 35,
+                            "endColumn": 49
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 10,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 178,
+                            "endLine": 178,
+                            "startColumn": 12,
+                            "endColumn": 34
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "priorityScore": 850,
+            "priorityScoreFactors": [
+              {
+                "label": true,
+                "type": "hotFileSource"
+              },
+              {
+                "label": true,
+                "type": "fixExamples"
+              }
+            ],
+            "isAutofixable": false
+          }
+        },
+        {
+          "ruleId": "python/XSS",
+          "ruleIndex": 1,
+          "level": "error",
+          "message": {
+            "text": "Unsanitized input from an HTTP parameter flows into flask.render_template_string, where it is used to render an HTML page returned to the user. This may result in a Cross-Site Scripting attack (XSS).",
+            "markdown": "Unsanitized input from {0} {1} into {2}, where it is used to render an HTML page returned to the user. This may result in a Cross-Site Scripting attack (XSS).",
+            "arguments": [
+              "[an HTTP parameter](0)",
+              "[flows](1),(2),(3),(4),(5),(6),(7),(8),(9)",
+              "[flask.render_template_string](10)"
+            ]
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 178,
+                  "endLine": 178,
+                  "startColumn": 12,
+                  "endColumn": 34
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "0": "378b933ecb1eff939eb9605084ad3a185dae5d15b3295dee9b6ae0aa994ba592",
+            "1": "8a30cfc6.1f6bbe45.ab9a335b.98569367.e5a7035b.ba14daf2.75d4ed92.b60afa86.b6d0a3f7.1f6bbe45.ab9a335b.f61b0b0d.2818e23f.d9b6cc00.3fce2ad1.100d6fba"
+          },
+          "codeFlows": [
+            {
+              "threadFlows": [
+                {
+                  "locations": [
+                    {
+                      "location": {
+                        "id": 0,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 125,
+                            "endLine": 125,
+                            "startColumn": 12,
+                            "endColumn": 28
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 1,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 125,
+                            "endLine": 125,
+                            "startColumn": 12,
+                            "endColumn": 28
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 2,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 125,
+                            "endLine": 125,
+                            "startColumn": 5,
+                            "endColumn": 46
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 3,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 128,
+                            "endLine": 128,
+                            "startColumn": 15,
+                            "endColumn": 19
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 4,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 128,
+                            "endLine": 128,
+                            "startColumn": 30,
+                            "endColumn": 34
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 5,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 128,
+                            "endLine": 128,
+                            "startColumn": 45,
+                            "endColumn": 49
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 6,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 164,
+                            "endLine": 164,
+                            "startColumn": 35,
+                            "endColumn": 39
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 7,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 132,
+                            "endLine": 175,
+                            "startColumn": 22,
+                            "endColumn": 8
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 8,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 132,
+                            "endLine": 175,
+                            "startColumn": 5,
+                            "endColumn": 8
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 9,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 178,
+                            "endLine": 178,
+                            "startColumn": 35,
+                            "endColumn": 49
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 10,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 178,
+                            "endLine": 178,
+                            "startColumn": 12,
+                            "endColumn": 34
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "priorityScore": 850,
+            "priorityScoreFactors": [
+              {
+                "label": true,
+                "type": "hotFileSource"
+              },
+              {
+                "label": true,
+                "type": "fixExamples"
+              }
+            ],
+            "isAutofixable": false
+          }
+        }
+      ],
+      "properties": {
+        "coverage": [
+          {
+            "isSupported": true,
+            "lang": "Python",
+            "files": 5,
+            "type": "SUPPORTED"
+          },
+          {
+            "isSupported": true,
+            "lang": "HTML",
+            "files": 4,
+            "type": "SUPPORTED"
+          },
+          {
+            "isSupported": true,
+            "lang": "JavaScript",
+            "files": 2,
+            "type": "SUPPORTED"
+          }
+        ]
+      }
+    }
+  ]
+}

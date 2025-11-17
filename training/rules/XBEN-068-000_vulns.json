@@ -1,0 +1,31 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "Command Injection in Service Check",
+            "description_of_vuln": "Command injection vulnerability in check_service endpoint via subprocess.check_output with shell=True",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-068-24/app/app.py",
+                    "start_line": 24,
+                    "end_line": 24
+                }
+            ],
+            "semantic_details": {
+                "description": "Command injection via unsanitized service_name parameter passed to shell command",
+                "impact": [
+                    "Remote code execution",
+                    "Server compromise",
+                    "Unauthorized command execution",
+                    "Access to sensitive files like FLAG.txt"
+                ],
+                "scenario": [
+                    "Attacker provides malicious service name containing command injection payload",
+                    "Input validation can be bypassed as it only checks for certain special characters",
+                    "Malicious input is passed directly to shell command",
+                    "Commands are executed with application privileges"
+                ]
+            }
+        }
+    ]
+}

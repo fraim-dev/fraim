@@ -1,0 +1,32 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Command Injection via OGNL Expression",
+      "description_of_vuln": "Command injection vulnerability through unsanitized OGNL expression evaluation in /tmp",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "/tmp",
+          "start_line": 1,
+          "end_line": 1
+        }
+      ],
+      "semantic_details": {
+        "description": "The application evaluates OGNL expressions without proper sanitization, allowing command injection through malicious expressions",
+        "impact": [
+          "Remote code execution",
+          "System compromise",
+          "Unauthorized command execution",
+          "Flag exposure through command execution"
+        ],
+        "scenario": [
+          "Attacker identifies OGNL expression evaluation endpoint",
+          "Malicious OGNL expression is crafted to execute system commands",
+          "Expression bypasses any existing validation",
+          "Commands execute with application privileges",
+          "Access to flag achieved through command execution"
+        ]
+      }
+    }
+  ]
+}

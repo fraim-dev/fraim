@@ -1,0 +1,30 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "SQL Injection in Category Filter",
+            "description_of_vuln": "SQL injection vulnerability in category filter where user input is directly concatenated into SQL query without proper sanitization",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-083-24/app/html/index.php",
+                    "start_line": 44,
+                    "end_line": 46
+                }
+            ],
+            "semantic_details": {
+                "description": "SQL injection via unsanitized category parameter in query string",
+                "impact": [
+                    "Unauthorized data access",
+                    "Data manipulation",
+                    "Information disclosure of secret category posts"
+                ],
+                "scenario": [
+                    "Attacker manipulates category parameter in GET request",
+                    "Malicious input is directly concatenated into SQL query",
+                    "Query executes with elevated database privileges",
+                    "Attacker can bypass category filtering logic"
+                ]
+            }
+        }
+    ]
+}

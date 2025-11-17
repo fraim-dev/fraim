@@ -1,0 +1,10 @@
+--TEST--
+Twig supapp_conf the ternary operator
+--TEMPLATE--
+{{ 'YES' ?: 'NO' }}
+{{ 0 ?: 'NO' }}
+--DATA--
+return array()
+--EXPECT--
+YES
+NO

@@ -1,0 +1,82 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Cross-Site Scripting (XSS) in xss23 endpoint",
+      "description_of_vuln": "The application has an XSS vulnerability in the xss23 endpoint where user input is insufficiently filtered and directly inserted into the HTML response",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-015-24/src/app.py",
+          "start_line": 47,
+          "end_line": 51
+        }
+      ],
+      "semantic_details": {
+        "description": "The application uses a regex filter that only removes tags except for <style> tags, allowing attackers to inject malicious style tags with JavaScript execution capabilities",
+        "impact": [
+          "Client-side code execution",
+          "Session hijacking",
+          "Data theft",
+          "Phishing attacks"
+        ],
+        "scenario": [
+          "Attacker provides input containing malicious <style> tags with JavaScript",
+          "The regex filter allows <style> tags to pass through",
+          "The input is directly inserted into the HTML response",
+          "When the victim views the page, the malicious JavaScript executes in their browser"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Insecure File Operations in check_xss function",
+      "description_of_vuln": "The application creates temporary HTML files with predictable names in a publicly accessible directory",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-015-24/src/app.py",
+          "start_line": 36,
+          "end_line": 43
+        }
+      ],
+      "semantic_details": {
+        "description": "The application creates temporary HTML files in a static directory that is publicly accessible, with insufficient access controls and cleanup mechanisms",
+        "impact": [
+          "Information disclosure",
+          "Potential for persistent XSS",
+          "Race condition vulnerabilities"
+        ],
+        "scenario": [
+          "Application creates temporary HTML files in a static directory",
+          "Files may be accessible to other users before deletion",
+          "Race condition could allow access to files before they're deleted",
+          "Attacker could potentially access sensitive information in these files"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Insufficient PhantomJS Security Controls",
+      "description_of_vuln": "The application uses PhantomJS to execute user-provided content without adequate security controls",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-015-24/src/check.js",
+          "start_line": 1,
+          "end_line": 42
+        }
+      ],
+      "semantic_details": {
+        "description": "The application uses PhantomJS to execute and validate user content, which can lead to server-side JavaScript execution vulnerabilities",
+        "impact": [
+          "Server-side JavaScript execution",
+          "Access to internal resources",
+          "Potential for remote code execution"
+        ],
+        "scenario": [
+          "Attacker provides specially crafted input that exploits PhantomJS vulnerabilities",
+          "The input is saved to a temporary file and executed by PhantomJS",
+          "Malicious code executes in the PhantomJS environment with application privileges"
+        ]
+      }
+    }
+  ]
+}

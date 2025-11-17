@@ -1,0 +1,31 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "Insecure Deserialization of Pickle Data",
+            "description_of_vuln": "Application accepts and deserializes untrusted pickle files without validation, allowing remote code execution",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-036-24/app/main.py",
+                    "start_line": 32,
+                    "end_line": 32
+                }
+            ],
+            "semantic_details": {
+                "description": "The application accepts uploaded pickle files and deserializes them without any validation or sanitization, allowing arbitrary code execution through malicious pickle data",
+                "impact": [
+                    "Remote code execution",
+                    "System compromise",
+                    "Arbitrary command execution",
+                    "Data theft"
+                ],
+                "scenario": [
+                    "Attacker crafts a malicious pickle file containing code to be executed",
+                    "Attacker uploads the malicious pickle file through the web interface",
+                    "Application deserializes the pickle data without validation",
+                    "Malicious code is executed with application privileges"
+                ]
+            }
+        }
+    ]
+}

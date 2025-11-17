@@ -1,0 +1,82 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "JWT Token Verification Bypass",
+      "description_of_vuln": "The application decodes JWT tokens without verifying the signature by setting 'verify_signature' to false",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-027-24/app/website/app/routes.py",
+          "start_line": 76,
+          "end_line": 77
+        }
+      ],
+      "semantic_details": {
+        "description": "The application accepts JWT tokens without verifying their signature, allowing attackers to forge tokens with arbitrary user data",
+        "impact": [
+          "Authentication bypass",
+          "Privilege escalation",
+          "Unauthorized access to user accounts",
+          "Access to sensitive user information including the flag"
+        ],
+        "scenario": [
+          "Attacker obtains a legitimate JWT token",
+          "Attacker modifies the payload to include a different user_id (such as the flag user's ID)",
+          "Application accepts the modified token without signature verification",
+          "Attacker gains access to the flag user's account and data"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Insecure Authentication",
+      "description_of_vuln": "The application uses a two-step authentication process that allows username enumeration",
+      "is_technical": false,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-027-24/app/website/app/routes.py",
+          "start_line": 28,
+          "end_line": 36
+        }
+      ],
+      "semantic_details": {
+        "description": "The login process is split into two steps, allowing attackers to determine if a username exists in the system",
+        "impact": [
+          "Username enumeration",
+          "Information disclosure",
+          "Facilitates brute force attacks"
+        ],
+        "scenario": [
+          "Attacker attempts to login with various usernames",
+          "The application confirms whether each username exists by redirecting to the password page",
+          "Attacker can build a list of valid usernames including special accounts",
+          "This information can be used for further attacks"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Plaintext Password Storage",
+      "description_of_vuln": "Passwords are stored in plaintext in the database",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-027-24/app/website/app/models.py",
+          "start_line": 8,
+          "end_line": 8
+        }
+      ],
+      "semantic_details": {
+        "description": "User passwords are stored as plaintext in the database without any hashing or encryption",
+        "impact": [
+          "Password exposure in case of database breach",
+          "Violation of security best practices",
+          "Potential regulatory compliance issues"
+        ],
+        "scenario": [
+          "Database is compromised",
+          "Attacker gains access to all user passwords in plaintext",
+          "Attacker can use these credentials on other platforms (password reuse)"
+        ]
+      }
+    }
+  ]
+}

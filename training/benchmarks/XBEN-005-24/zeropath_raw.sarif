@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "ZeroPath Security Scanner",
+          "version": "1.0.0",
+          "rules": [
+            {
+              "id": "ZEROPATH-HARDCODED-SECRET",
+              "shortDescription": {
+                "text": "Hardcoded Secret"
+              },
+              "fullDescription": {
+                "text": "The application is using a potentially hardcoded or weak secret key for encoding JSON Web Tokens (JWTs) with the `jwt.encode` method. This poses a significant security risk, as an attacker could exploit a weak or guessable key to forge valid tokens, leading to unauthorized access or privilege escalation. It is crucial to ensure that the secret key is stored securely and that a strong cryptographic algorithm is used to mitigate these risks."
+              },
+              "help": {
+                "text": "The agent discovered a critical JWT authentication vulnerability where a weak, hardcoded secret key ('a very secret key') is used for token signing. The secret key is directly embedded in the source code rather than being stored securely in environment variables. This implementation allows attackers who gain access to the source code to forge valid JWT tokens, potentially impersonating any user including administrators. The application handles sensitive data including private jobs and admin privileges, making this a high-impact security issue. The investigation revealed this is part of the main application code, not a test file, and there are no mitigating factors present.",
+                "markdown": "## Description\nThe application is using a potentially hardcoded or weak secret key for encoding JSON Web Tokens (JWTs) with the `jwt.encode` method. This poses a significant security risk, as an attacker could exploit a weak or guessable key to forge valid tokens, leading to unauthorized access or privilege escalation. It is crucial to ensure that the secret key is stored securely and that a strong cryptographic algorithm is used to mitigate these risks.\n\n## Technical Assessment\nThe agent discovered a critical JWT authentication vulnerability where a weak, hardcoded secret key ('a very secret key') is used for token signing. The secret key is directly embedded in the source code rather than being stored securely in environment variables. This implementation allows attackers who gain access to the source code to forge valid JWT tokens, potentially impersonating any user including administrators. The application handles sensitive data including private jobs and admin privileges, making this a high-impact security issue. The investigation revealed this is part of the main application code, not a test file, and there are no mitigating factors present.\n\n## Non-Technical Description\nOnce upon a time in the digital world, there was a popular application that many people relied on for their daily activities. This application used something called a JSON Web Token, or JWT, to keep users safe by verifying their identities. Think of it like a special badge that proves who you are. However, there was a hidden problem that made this badge less secure than it should have been.\n\nIn the depths of the application’s code, the developers had set up a secret key—like a password—that was supposed to keep the badges safe. But instead of treating this key like a precious treasure, they carelessly left it out in the open for anyone to see. Imagine if a store owner wrote their safe combination on a sticky note and stuck it to the front of the cash register! \n\nBecause of this oversight, an attacker could easily find this secret key. With it in hand, they could create their own badges, pretending to be real users. This meant they could sneak into the application, access sensitive information, or even perform actions as if they were someone else—like impersonating a trusted friend or colleague. The attacker could wreak havoc, all because the key was not kept safe.\n\nBut that wasn’t the only issue. The developers had also chosen a weak algorithm to secure these badges. It was like using a flimsy lock on a heavy door. Even if the attacker didn’t find the secret key, they could exploit flaws in the algorithm to break the lock and create their own badges. This would allow them to manipulate the system and gain access to areas they shouldn’t be in.\n\nThe consequences of these vulnerabilities could be severe. Imagine if someone could impersonate you and access your personal information, or even change your account settings. The attacker could create chaos, leading to unauthorized access, data breaches, and a loss of trust in the application.\n\nIn the end, the developers learned a valuable lesson: keeping secrets safe is crucial in the digital world. They realized they needed to protect their secret key like it was a treasure and choose strong algorithms to ensure that their users could trust the badges they were given. With these changes, they could safeguard their application and keep their users safe from harm, ensuring that everyone could continue to enjoy the benefits of their service without fear."
+              },
+              "properties": {
+                "tags": [
+                  "CWE-798",
+                  "SAST",
+                  "Python"
+                ],
+                "precision": "high",
+                "security-severity": "10"
+              }
+            },
+            {
+              "id": "ZEROPATH-INSECURE-DIRECT-OBJECT-REFERENCE-(IDOR)",
+              "shortDescription": {
+                "text": "Insecure Direct Object Reference (IDOR)"
+              },
+              "fullDescription": {
+                "text": "The application is vulnerable to Insecure Direct Object Reference (IDOR) attacks in the '/edit_profile/{company_id}' endpoint. An attacker can manipulate the JWT token's 'sub' claim to access and enumerate company profiles by sending requests with forged tokens. This could lead to unauthorized access to sensitive company data, making it crucial to implement proper authorization checks based on the user's permissions."
+              },
+              "help": {
+                "text": "The code contains a legitimate IDOR vulnerability in the POST endpoint for /edit_profile/{company_id}. While the GET endpoint properly validates that the authenticated user can only access their own profile by comparing the company_id from the JWT token with the requested company_id, the POST endpoint omits this crucial check. This allows an authenticated user to modify any company's profile by manipulating the company_id in the URL while using their own valid JWT token. The impact includes unauthorized profile modifications and potential privilege escalation by setting is_admin=True for any account.",
+                "markdown": "## Description\nThe application is vulnerable to Insecure Direct Object Reference (IDOR) attacks in the '/edit_profile/{company_id}' endpoint. An attacker can manipulate the JWT token's 'sub' claim to access and enumerate company profiles by sending requests with forged tokens. This could lead to unauthorized access to sensitive company data, making it crucial to implement proper authorization checks based on the user's permissions.\n\n## Technical Assessment\nThe code contains a legitimate IDOR vulnerability in the POST endpoint for /edit_profile/{company_id}. While the GET endpoint properly validates that the authenticated user can only access their own profile by comparing the company_id from the JWT token with the requested company_id, the POST endpoint omits this crucial check. This allows an authenticated user to modify any company's profile by manipulating the company_id in the URL while using their own valid JWT token. The impact includes unauthorized profile modifications and potential privilege escalation by setting is_admin=True for any account.\n\n## Non-Technical Description\n**Title: The Story of the Sneaky Attacker and the Company IDs**\n\nOnce upon a time, in a bustling digital world, there was a company that stored valuable information about its clients and employees. This information was protected by a special key known as a JWT, or JSON Web Token. The JWT was meant to ensure that only authorized individuals could access sensitive data, like company profiles.\n\nHowever, unbeknownst to the company, a sneaky attacker was lurking in the shadows, looking for a way to exploit the system. The attacker had a clever plan to access private information without permission.\n\nFirst, the attacker began by creating a script—a set of instructions that could run automatically. This script was designed to explore the company's database and find all possible company IDs, which were like special identification numbers for each company profile. The attacker figured that if they could guess these IDs, they might be able to access the profiles without any authorization.\n\nNext, the attacker took a step further. For each company ID they discovered, they manipulated the JWT—essentially changing the information within it to make it seem like they were someone else, someone with permission to access the profiles. It was like forging a key that fit the lock, allowing them to enter where they didn’t belong.\n\nWith their script ready, the attacker sent out a flurry of requests to the company’s system, each one asking to view or edit the profile associated with a different company ID. Imagine sending thousands of letters to a company, all asking for sensitive information, but under the guise of legitimate requests. The attacker sent these requests all at once, hoping that some would slip through the cracks.\n\nAs the attacker received responses, they eagerly collected the successful ones—those that contained valuable company data. With this information, the attacker could potentially harm the company, steal sensitive data, or even impersonate company representatives.\n\nIn this way, the attacker exploited a weakness in the system, taking advantage of the company’s reliance on the JWT for security. The company had thought they were safe, but they hadn’t realized that the way they managed access to their profiles could be manipulated.\n\nThis story serves as a cautionary tale for businesses everywhere. It highlights the importance of securing sensitive information and ensuring that access controls are robust enough to prevent unauthorized access. By understanding the potential risks and taking proactive measures, companies can protect themselves from sneaky attackers who seek to exploit vulnerabilities for their gain."
+              },
+              "properties": {
+                "tags": [
+                  "CWE-639",
+                  "SAST",
+                  "Python"
+                ],
+                "precision": "high",
+                "security-severity": "9.3"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "ZEROPATH-HARDCODED-SECRET",
+          "level": "error",
+          "message": {
+            "text": "Potential Hardcoded or Weak Secret Key in JWT Encoding",
+            "markdown": "**Potential Hardcoded or Weak Secret Key in JWT Encoding**\n\nThe application is using a potentially hardcoded or weak secret key for encoding JSON Web Tokens (JWTs) with the `jwt.encode` method. This poses a significant security risk, as an attacker could exploit a weak or guessable key to forge valid tokens, leading to unauthorized access or privilege escalation. It is crucial to ensure that the secret key is stored securely and that a strong cryptographic algorithm is used to mitigate these risks."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                },
+                "region": {
+                  "startLine": 45,
+                  "endLine": 45
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issueId": "9721313c-2d83-43f3-8414-fd73c29b85f6",
+            "status": "open",
+            "type": "patchable",
+            "discoveryTool": "ZeroPath Sast",
+            "triagePhase": "CodeGeneration",
+            "createdAt": "2024-11-12T03:09:12.549Z",
+            "updatedAt": "2024-11-12T03:09:55.075Z",
+            "codeSegment": "    return pwd_context.verify(plain_password, hashed_password)\n\n\ndef create_access_token(data: dict, expires_delta: timedelta = None):\n    to_encode = data.copy()\n    if expires_delta:\n        expire = datetime.utcnow() + expires_delta\n    else:\n        expire = datetime.utcnow() + timedelta(minutes=15)\n    to_encode.update({\"exp\": expire})\n    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)\n    return encoded_jwt\n\n\ndef authenticate_company(db, name: str, password: str):\n    company = crud.get_company_by_name(db, name)\n    if not company:\n        return False\n    if not verify_password(password, company.hashed_password):\n        return False\n"
+          }
+        },
+        {
+          "ruleId": "ZEROPATH-INSECURE-DIRECT-OBJECT-REFERENCE-(IDOR)",
+          "level": "error",
+          "message": {
+            "text": "Insecure Direct Object Reference (IDOR) vulnerability in '/edit_profile/{company_id}' endpoint",
+            "markdown": "**Insecure Direct Object Reference (IDOR) vulnerability in '/edit_profile/{company_id}' endpoint**\n\nThe application is vulnerable to Insecure Direct Object Reference (IDOR) attacks in the '/edit_profile/{company_id}' endpoint. An attacker can manipulate the JWT token's 'sub' claim to access and enumerate company profiles by sending requests with forged tokens. This could lead to unauthorized access to sensitive company data, making it crucial to implement proper authorization checks based on the user's permissions."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                },
+                "region": {
+                  "startLine": 149,
+                  "endLine": 174
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issueId": "296328eb-46ab-40cf-abcd-41cda6b2680f",
+            "status": "open",
+            "type": "patchable",
+            "discoveryTool": "ZeroPath Sast BL",
+            "triagePhase": "CodeGeneration",
+            "createdAt": "2024-11-12T03:09:12.549Z",
+            "updatedAt": "2024-11-12T03:09:51.051Z",
+            "codeSegment": "    except JWTError:\n        raise credentials_exception\n\n\n@app.get(\"/ping\")\ndef ping():\n    return {\"ping\": \"pong\"}\n\n\n@app.get(\"/edit_profile/{company_id}\", response_class=HTMLResponse)\nasync def edit_profile(request: Request, company_id: int, db: Session = Depends(get_db)):\n    token = request.cookies.get(\"access_token\")\n    if not token:\n        raise HTTPException(\n            status_code=status.HTTP_401_UNAUTHORIZED,\n            detail=\"Not authenticated\",\n            headers={\"WWW-Authenticate\": \"Bearer\"},\n        )\n    credentials_exception = HTTPException(\n        status_code=status.HTTP_401_UNAUTHORIZED,\n        detail=\"Could not validate credentials\",\n        headers={\"WWW-Authenticate\": \"Bearer\"},\n    )\n    try:\n        payload = jwt.decode(token.split(\" \")[1], SECRET_KEY, algorithms=[ALGORITHM])\n        token_company_id = int(payload.get(\"sub\"))\n        if token_company_id is None:\n            raise credentials_exception\n        if token_company_id != company_id:\n            raise credentials_exception\n    except JWTError:\n        raise credentials_exception\n\n    company = crud.get_company(db, company_id)\n    return templates.TemplateResponse(\"edit_profile.html\", {\"request\": request, \"company\": company, \"company_id\": company_id})\n\n\n@app.post(\"/edit_profile/{company_id}\", response_class=HTMLResponse)\nasync def update_profile(request: Request, company_id: int, name: str = Form(...), is_admin: Optional[bool] = Form(0), db: Session = Depends(get_db)):\n    token = request.cookies.get(\"access_token\")\n    if not token:\n        raise HTTPException(\n            status_code=status.HTTP_401_UNAUTHORIZED,\n            detail=\"Not authenticated\",\n            headers={\"WWW-Authenticate\": \"Bearer\"},\n"
+          }
+        }
+      ]
+    }
+  ]
+}

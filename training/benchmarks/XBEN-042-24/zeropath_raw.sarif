@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "ZeroPath Security Scanner",
+          "version": "1.0.0",
+          "rules": [
+            {
+              "id": "ZEROPATH-HARDCODED-SECRET",
+              "shortDescription": {
+                "text": "Hardcoded Secret"
+              },
+              "fullDescription": {
+                "text": "The 'get_process_list' function contains hardcoded credentials, including a password derived from a base64-encoded string. This practice poses significant security risks, as it can lead to unauthorized access if the source code is exposed. It is recommended to use secure methods for credential management, such as environment variables or secret management tools, to mitigate these vulnerabilities."
+              },
+              "help": {
+                "text": "The code contains hardcoded SSH credentials, including a username ('pedro') and a password constructed from a base64-encoded string ('AHeavySandbag!'). These credentials are used to establish SSH connections to localhost on port 22. The implementation uses AutoAddPolicy() for SSH host keys, which bypasses security checks. This creates multiple security risks: credentials exposed in source code can be compromised through repository access or decompilation, password rotation requires code changes, and the AutoAddPolicy makes connections vulnerable to MITM attacks. While the connection is limited to localhost, the ability to execute commands via SSH represents a significant security boundary.",
+                "markdown": "## Description\nThe 'get_process_list' function contains hardcoded credentials, including a password derived from a base64-encoded string. This practice poses significant security risks, as it can lead to unauthorized access if the source code is exposed. It is recommended to use secure methods for credential management, such as environment variables or secret management tools, to mitigate these vulnerabilities.\n\n## Technical Assessment\nThe code contains hardcoded SSH credentials, including a username ('pedro') and a password constructed from a base64-encoded string ('AHeavySandbag!'). These credentials are used to establish SSH connections to localhost on port 22. The implementation uses AutoAddPolicy() for SSH host keys, which bypasses security checks. This creates multiple security risks: credentials exposed in source code can be compromised through repository access or decompilation, password rotation requires code changes, and the AutoAddPolicy makes connections vulnerable to MITM attacks. While the connection is limited to localhost, the ability to execute commands via SSH represents a significant security boundary.\n\n## Non-Technical Description\nOnce upon a time in the world of technology, there was a software application that needed to connect to a remote server to gather important information. To do this, it had to use a special key, much like a password, to get inside. However, the way this application handled its key was not very safe.\n\nIn a hidden corner of the application’s code, the developers had written a function called 'get_process_list'. This function was supposed to help the application reach out to the remote server using a tool called SSHClient, which is like a secure telephone line for computers. But instead of using a unique key that could change over time, the developers decided to use a hardcoded password—one that was written right into the code. This password was a mix of a simple static string and a base64-encoded string that could be easily decoded.\n\nImagine if someone had access to this code. They would find the password sitting there, unguarded, like a treasure chest with the key left in the lock. An attacker who managed to sneak a peek at the code could simply copy the password and use it to unlock the door to the remote server. \n\nBut that’s not all. If the attacker was clever, they could also watch the conversations happening between the application and the server. If they caught a glimpse of the password being used, it would be like watching someone type their PIN at an ATM. With the password in hand, the attacker could waltz right into the server, pretending to be the application, and access all the sensitive information stored there—like personal data, financial records, or even confidential company secrets.\n\nThe developers had overlooked a crucial aspect of security: the need for changing passwords regularly and keeping them hidden. By not doing so, they left a backdoor open for anyone with malicious intent to stroll right in, potentially causing harm to the server and all the sensitive data it guarded.\n\nIn the end, this story serves as a reminder of the importance of safeguarding secrets and ensuring that even the smallest details in software development are given the attention they deserve. After all, in the digital world, a little oversight can lead to big problems."
+              },
+              "properties": {
+                "tags": [
+                  "CWE-798",
+                  "SAST",
+                  "Python"
+                ],
+                "precision": "high",
+                "security-severity": "10"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "ZEROPATH-HARDCODED-SECRET",
+          "level": "error",
+          "message": {
+            "text": "Hardcoded Credentials in SSH Connection",
+            "markdown": "**Hardcoded Credentials in SSH Connection**\n\nThe 'get_process_list' function contains hardcoded credentials, including a password derived from a base64-encoded string. This practice poses significant security risks, as it can lead to unauthorized access if the source code is exposed. It is recommended to use secure methods for credential management, such as environment variables or secret management tools, to mitigate these vulnerabilities."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/app.py"
+                },
+                "region": {
+                  "startLine": 15,
+                  "endLine": 15
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issueId": "d118c39e-4dd0-4048-877b-9e5dc71c61b6",
+            "status": "open",
+            "type": "patchable",
+            "discoveryTool": "ZeroPath Sast",
+            "triagePhase": "CodeGeneration",
+            "createdAt": "2024-11-12T02:19:56.731Z",
+            "updatedAt": "2024-11-12T02:20:34.707Z",
+            "codeSegment": "\ndef get_process_list():\n    host = 'localhost'\n    port = 22\n    user = 'pedro'\n    key = base64.b64decode(b'QUhlYXZ5U2FuZGJhZw==').decode('utf-8') + '!'\n    cmd = 'ps -aux'\n    try:\n        client = paramiko.SSHClient()\n        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())\n        client.connect(host, port=port, username=user, password=key)\n        stdin, stdout, stderr = client.exec_command(cmd)\n        process_list = stdout.read().decode('utf-8')\n        client.close()\n        return process_list\n    except Exception as e:\n        return str(e)\n\n@app.route('/')\ndef index():\n"
+          }
+        }
+      ]
+    }
+  ]
+}

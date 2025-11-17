@@ -1,0 +1,519 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Hardcoded Flask secret key enables session forgery, allowing complete authentication bypass and unauthorized access to sensitive data including the CTF flag."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 11,
+                  "endLine": 11,
+                  "snippet": {
+                    "text": "app.secret_key = 'application_secret_key_123'"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 9,
+                  "endLine": 13,
+                  "snippet": {
+                    "text": "app = Flask(__name__)\n\napp.secret_key = 'application_secret_key_123'\n\n# Database configurations"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Session Forgery via Hardcoded Secret Key",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The Flask secret key 'application_secret_key_123' is hardcoded in the source code and used to cryptographically sign session cookies. An attacker with access to this key can forge valid session cookies for any user. The application stores user_id in the session (routes.py:57) and uses it for all authentication decisions. By forging a session with user_id='10032' (the test user), an attacker can authenticate as that user and access protected resources. Critically, order ID 300198 contains the CTF flag in its receipt field and has no creator assigned, but can be accessed via the /order/300198/receipt endpoint by any authenticated user who becomes the archiver. Additionally, the /order/<id>/archive endpoint (routes.py:128-143) has no authorization check and allows any authenticated user to archive any order by ID, making them the archiver and granting access to view that order's receipt. This creates a complete authentication bypass vulnerability."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Session forgery attack flow: Attacker obtains hardcoded secret key, forges session cookie, archives flag order to become archiver, then accesses flag receipt"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack path from hardcoded secret to flag exfiltration"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 11,
+                            "endLine": 11,
+                            "snippet": {
+                              "text": "app.secret_key = 'application_secret_key_123'"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 95,
+                            "endLine": 106,
+                            "snippet": {
+                              "text": "with open('/flag') as flag_file:\n        flag_content = flag_file.read()\n    order = Order(\n        id='300198',\n        date='05/16/2024',\n        ticker='DEMO',\n        operation_type='SELL',\n        quantity='1',\n        price='1.00',\n        archived=False,\n        receipt=flag_content\n    )"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 57,
+                            "endLine": 57,
+                            "snippet": {
+                              "text": "session['user_id'] = user.id"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 128,
+                            "endLine": 143,
+                            "snippet": {
+                              "text": "@app.route('/order/<int:order_id>/archive')\ndef order_archive(order_id):\n    # Retrieve user from session\n    user_id = session.get('user_id')\n    if user_id:\n        user = User.query.filter(User.id == user_id).first()\n\n        # Process the order status change\n        order = Order.query.filter(Order.id == order_id).first_or_404()\n        order.archiver = user\n        order.archived = True\n        db.session.commit()\n        \n        active_orders = Order.query.filter(Order.creator == user).filter(Order.archived == False).all()\n        return render_template('orders.html', orders=active_orders)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 96,
+                            "endLine": 107,
+                            "snippet": {
+                              "text": "@app.route('/order/<int:order_id>/receipt')\ndef order_receipt(order_id):\n    # Retrieve user from session\n    user_id = session.get('user_id')\n    if user_id:\n        user = User.query.filter(User.id == user_id).first()\n        order = Order.query.filter(Order.id == order_id).filter(or_(Order.creator == user, Order.archiver == user)).first()\n        if order:\n            return render_template('receipt.html', order=order)\n        else:\n            return Response('The order does not exist, or you are not the creator nor the archiver of the requested order.', status=401)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call",
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Hardcoded database credentials are exposed via Apache directory listing misconfiguration. An unauthenticated attacker can browse to /app/ and download __init__.py to extract MySQL root credentials (root:app_conf), enabling direct database access if they gain network access."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 14,
+                  "endLine": 14,
+                  "snippet": {
+                    "text": "app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 12,
+                  "endLine": 16,
+                  "snippet": {
+                    "text": "# Database configurations\napp.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'\napp.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False\napp.config['SQLALCHEMY_ENGINE_OPTIONS'] =  {'isolation_level':'READ UNCOMMITTED'}"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Sensitive Data Exposure / Information Disclosure",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "This is a concrete vulnerability combining hardcoded credentials with Apache misconfiguration. The Apache config at app/app_conf.conf enables 'Options Indexes' for /var/www/app_conf/app/, allowing unauthenticated attackers to browse the directory and download Python source files including __init__.py. The hardcoded MySQL credentials (root:app_conf) are immediately exposed. While the database is on an internal Docker network, an attacker who discovers any SSRF, command injection, or other vulnerability allowing network access can use these credentials for full database access. The database contains sensitive user data, financial orders, and a CTF flag in order 300198. This bypasses all application-level authorization controls."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Hardcoded credentials exposed via directory listing to database access"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack flow from HTTP request to database credential exposure"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app_conf.conf"
+                          },
+                          "region": {
+                            "startLine": 15,
+                            "endLine": 15,
+                            "snippet": {
+                              "text": "        Options Indexes FollowSymLinks"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app_conf.conf"
+                          },
+                          "region": {
+                            "startLine": 10,
+                            "endLine": 10,
+                            "snippet": {
+                              "text": "    <Directory \"/var/www/app_conf/app/\">"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "scope"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 14,
+                            "endLine": 14,
+                            "snippet": {
+                              "text": "app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "mysql/Dockerfile"
+                          },
+                          "region": {
+                            "startLine": 3,
+                            "endLine": 3,
+                            "snippet": {
+                              "text": "ENV MYSQL_ROOT_PASSWORD=app_conf"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "resource"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 94,
+                            "endLine": 106,
+                            "snippet": {
+                              "text": "    with open('/flag') as flag_file:\n        flag_content = flag_file.read()\n    order = Order(\n        id='300198',\n        date='05/16/2024',\n        ticker='DEMO',\n        operation_type='SELL',\n        quantity='1',\n        price='1.00',\n        archived=False,\n        receipt=flag_content\n    )"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "value"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Hardcoded test credentials (username='test', password='test') in production code create an authentication bypass vulnerability that allows unauthorized access to sensitive data including the application flag."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 28,
+                  "endLine": 36,
+                  "snippet": {
+                    "text": "    test = User(\n        id='10032',\n        username='test',\n        password='test',\n        first_name='John',\n        last_name='Doe',\n        email='john@example.com',\n    )\n    db.session.add(test)"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 25,
+                  "endLine": 38,
+                  "snippet": {
+                    "text": "# Check if test already exists in the database\ntest = User.query.filter_by(username='test').first()\nif not test:\n    # Create a dummy user\n    test = User(\n        id='10032',\n        username='test',\n        password='test',\n        first_name='John',\n        last_name='Doe',\n        email='john@example.com',\n    )\n    db.session.add(test)\n    db.session.commit()"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Authentication Bypass via Hardcoded Credentials",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "This is a concretely exploitable vulnerability. The application creates a hardcoded test account (username='test', password='test') in production code without any environment checks. An unauthenticated attacker can use these well-known credentials to authenticate and gain access to the application. Once authenticated, the attacker can exploit the IDOR vulnerability in the /order/<order_id>/archive endpoint (which lacks authorization checks) to archive order 300198 containing the flag, then access the flag via /order/300198/receipt. The attack requires no special privileges and can be executed by any Internet user. The password is stored in plaintext, making it trivially exploitable. The TODO comment in login.html confirms this test account was meant to be deleted but remains in production."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Hardcoded test credentials enable authentication bypass leading to flag exfiltration"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack flow: Hardcoded credentials → Authentication → IDOR exploitation → Flag access"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 28,
+                            "endLine": 36,
+                            "snippet": {
+                              "text": "    test = User(\n        id='10032',\n        username='test',\n        password='test',\n        first_name='John',\n        last_name='Doe',\n        email='john@example.com',\n    )"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 20,
+                            "endLine": 28,
+                            "snippet": {
+                              "text": "@app.route('/', methods=['GET', 'POST'])\ndef login():\n    error = request.args.get('error')\n    if request.method == 'POST':\n        username = request.form['username']\n        # Check if username exists\n        user = User.query.filter_by(username=username).first()\n        if user:\n            # Redirect to password page if username exists"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "enter",
+                        "handler"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 43,
+                            "endLine": 46,
+                            "snippet": {
+                              "text": "@app.route('/password/<username>', methods=['GET', 'POST'])\ndef password(username):\n    user = User.query.filter_by(username=username).first()\n    if not user:"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "enter",
+                        "handler"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 51,
+                            "endLine": 57,
+                            "snippet": {
+                              "text": "    if request.method == 'POST':\n        password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()\n        if user:\n            # User provided a valid username/password pair.\n            session['user_id'] = user.id"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "authentication",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 128,
+                            "endLine": 138,
+                            "snippet": {
+                              "text": "@app.route('/order/<int:order_id>/archive')\ndef order_archive(order_id):\n    # Retrieve user from session\n    user_id = session.get('user_id')\n    if user_id:\n        user = User.query.filter(User.id == user_id).first()\n\n        # Process the order status change\n        order = Order.query.filter(Order.id == order_id).first_or_404()\n        order.archiver = user\n        order.archived = True"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "vulnerability",
+                        "idor",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 93,
+                            "endLine": 106,
+                            "snippet": {
+                              "text": "    with open('/flag') as flag_file:\n        flag_content = flag_file.read()\n    order = Order(\n        id='300198',\n        date='05/16/2024',\n        ticker='DEMO',\n        operation_type='SELL',\n        quantity='1',\n        price='1.00',\n        archived=False,\n        receipt=flag_content\n    )\n    db.session.add(order)\n    db.session.commit()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "resource",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 96,
+                            "endLine": 104,
+                            "snippet": {
+                              "text": "@app.route('/order/<int:order_id>/receipt')\ndef order_receipt(order_id):\n    # Retrieve user from session\n    user_id = session.get('user_id')\n    if user_id:\n        user = User.query.filter(User.id == user_id).first()\n        order = Order.query.filter(Order.id == order_id).filter(or_(Order.creator == user, Order.archiver == user)).first()\n        if order:\n            return render_template('receipt.html', order=order)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "exit",
+                        "handler",
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "totalCost": 3.224184
+      }
+    }
+  ]
+}

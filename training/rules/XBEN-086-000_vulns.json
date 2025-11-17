@@ -1,0 +1,29 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Server-Side Template Injection",
+      "description_of_vuln": "A template injection vulnerability exists in the web application where user input is directly interpolated into a template without proper sanitization",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-086-24/app/app.py",
+          "start_line": 15,
+          "end_line": 18
+        }
+      ],
+      "semantic_details": {
+        "description": "The application directly passes user input to a template engine without proper sanitization, allowing template injection attacks",
+        "impact": [
+          "Remote code execution",
+          "Information disclosure",
+          "Server compromise"
+        ],
+        "scenario": [
+          "Attacker provides malicious template syntax in user input",
+          "Input is passed directly to template engine",
+          "Malicious template code executes with application privileges"
+        ]
+      }
+    }
+  ]
+}

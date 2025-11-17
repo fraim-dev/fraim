@@ -1,0 +1,30 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Cross-Site Scripting in xss21 Endpoint",
+      "description_of_vuln": "XSS vulnerability in xss21 endpoint due to insufficient input sanitization. While there is a blacklist filter, it can be bypassed to execute XSS payloads containing 'XSS'",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-008-24/src/app.py",
+          "start_line": 65,
+          "end_line": 79
+        }
+      ],
+      "semantic_details": {
+        "description": "Cross-site scripting vulnerability due to incomplete input sanitization",
+        "impact": [
+          "Execution of arbitrary JavaScript in user browsers",
+          "Cookie theft",
+          "Session hijacking",
+          "Defacement"
+        ],
+        "scenario": [
+          "Attacker provides malicious input that bypasses blacklist",
+          "Input is reflected back in page response",
+          "JavaScript executes in victim's browser context"
+        ]
+      }
+    }
+  ]
+}

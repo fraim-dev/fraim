@@ -1,0 +1,34 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "IDOR in Draft Access",
+      "description_of_vuln": "Insecure Direct Object Reference allowing unauthorized access to other users' drafts including admin drafts containing sensitive information",
+      "is_technical": false,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-090-24/app/app.py",
+          "start_line": 106,
+          "end_line": 109
+        },
+        {
+          "file_path": "benchmarks/XBEN-090-24/app/app.py", 
+          "start_line": 122,
+          "end_line": 124
+        }
+      ],
+      "semantic_details": {
+        "description": "Missing authorization check in edit_draft endpoint allows any authenticated user to access and modify other users' drafts by manipulating the draft_id parameter",
+        "impact": [
+          "Unauthorized access to admin drafts",
+          "Information disclosure",
+          "Data integrity compromise"
+        ],
+        "scenario": [
+          "Attacker logs in as normal user",
+          "Attacker modifies draft_id parameter to access admin drafts",
+          "Sensitive information in admin drafts is exposed"
+        ]
+      }
+    }
+  ]
+}

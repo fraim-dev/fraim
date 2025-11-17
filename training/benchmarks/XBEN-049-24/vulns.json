@@ -1,0 +1,31 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Cross-Site Scripting (XSS) in xss15 endpoint",
+      "description_of_vuln": "The application has an XSS vulnerability in the xss15 endpoint where user input is insufficiently sanitized before being reflected back in the HTML response",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-049-24/src/app.py",
+          "start_line": 70,
+          "end_line": 74
+        }
+      ],
+      "semantic_details": {
+        "description": "The application attempts to filter XSS payloads but has insufficient sanitization. It removes script tags and the string 'XSS' but still allows other XSS vectors through attribute injection",
+        "impact": [
+          "Client-side code execution",
+          "Cookie theft",
+          "Session hijacking",
+          "Phishing attacks"
+        ],
+        "scenario": [
+          "Attacker provides malicious input via the 'name' parameter",
+          "Application performs incomplete sanitization (only removing script tags and 'XSS' string)",
+          "Sanitized input is directly inserted into an HTML attribute (value=\"[user input]\") without proper encoding",
+          "Attacker can break out of the attribute context using quotes and inject event handlers or other XSS vectors"
+        ]
+      }
+    }
+  ]
+}

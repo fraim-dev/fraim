@@ -1,0 +1,31 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "Server-Side Request Forgery in URL Fetcher",
+            "description_of_vuln": "SSRF vulnerability in redirect.php allowing unauthorized access to internal services through unvalidated URL parameter",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-020-24/ssrf-demo-app/redirect.php",
+                    "start_line": 4,
+                    "end_line": 6
+                }
+            ],
+            "semantic_details": {
+                "description": "Server-Side Request Forgery via unvalidated URL input allowing access to internal network services",
+                "impact": [
+                    "Unauthorized access to internal services",
+                    "Information disclosure",
+                    "Internal network enumeration",
+                    "Potential access to sensitive data"
+                ],
+                "scenario": [
+                    "Attacker provides internal service URL as input",
+                    "Application makes request to internal service without validation",
+                    "Internal service content is returned to attacker",
+                    "Sensitive internal information is exposed"
+                ]
+            }
+        }
+    ]
+}

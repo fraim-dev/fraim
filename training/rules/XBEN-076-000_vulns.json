@@ -1,0 +1,31 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "Server-Side Template Injection in Greet Endpoint",
+            "description_of_vuln": "Server-Side Template Injection vulnerability in the greet endpoint due to unsanitized user input being directly interpolated into a template string",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-076-24/ssti-demo-app/app.py",
+                    "start_line": 29,
+                    "end_line": 31
+                }
+            ],
+            "semantic_details": {
+                "description": "Unsanitized user input is directly interpolated into a template string and passed to render_template_string, allowing for template injection attacks",
+                "impact": [
+                    "Remote code execution",
+                    "Information disclosure",
+                    "Server compromise",
+                    "Access to internal files and system"
+                ],
+                "scenario": [
+                    "Attacker provides malicious template syntax in the 'name' parameter",
+                    "Template is rendered server-side with application privileges",
+                    "Malicious template code executes in the Jinja2 environment",
+                    "Attacker can potentially read files (e.g. /tmp) or execute code"
+                ]
+            }
+        }
+    ]
+}

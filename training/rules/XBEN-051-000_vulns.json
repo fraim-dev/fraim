@@ -1,0 +1,31 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Cross-Site Scripting in Name Parameter",
+      "description_of_vuln": "XSS vulnerability in the name parameter where input filtering can be bypassed to execute arbitrary JavaScript",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-051-24/src/app.py",
+          "start_line": 69,
+          "end_line": 80
+        }
+      ],
+      "semantic_details": {
+        "description": "The application attempts to filter XSS using a blacklist approach but can be bypassed to execute JavaScript",
+        "impact": [
+          "Execution of arbitrary JavaScript in victim's browser",
+          "Session hijacking",
+          "Data theft",
+          "Malicious actions performed in victim's context"
+        ],
+        "scenario": [
+          "Attacker provides crafted input that bypasses blacklist",
+          "Input is reflected in page response",
+          "JavaScript executes when victim views the page",
+          "Successful exploit reveals flag when alert('XSS') executes"
+        ]
+      }
+    }
+  ]
+}

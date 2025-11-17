@@ -1,0 +1,283 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Database credentials are hardcoded in the source code. While the MySQL database is not directly exposed to the Internet (only accessible on internal Docker network), hardcoded credentials represent a misconfiguration that increases risk if deployment changes or if combined with other vulnerabilities."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 14,
+                  "endLine": 14,
+                  "snippet": {
+                    "text": "app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 12,
+                  "endLine": 16,
+                  "snippet": {
+                    "text": "\n# MySQL configurations\napp.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'\napp.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False\n"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Hardcoded Database Credentials",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "The database credentials (root:app_conf) are hardcoded in multiple locations (app/__init__.py, mysql/Dockerfile, docker-compose.yml). However, the MySQL database is NOT exposed to the Internet - it only listens on the internal Docker network (docker-compose uses 'expose' not 'ports' for the db service). An untrusted remote attacker cannot directly exploit these credentials because: (1) The database is not network-accessible from outside the Docker network, (2) The application itself has other intentional vulnerabilities (broken authentication) that would be exploited first. This is a misconfiguration that increases risk in the following scenarios: (a) If the deployment configuration changes to expose port 3306, (b) If an attacker gains access to the Docker host or network, (c) If the source code is leaked and deployment is modified. The primary risk is that anyone with source code access knows the production database password, violating the principle of least privilege and defense in depth. This appears to be a CTF/training application (confirmed by README canary strings and intentionally broken auth logic), where hardcoded credentials are part of the challenge design."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Hardcoded database credentials flow from configuration to database connection"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Database credentials defined in multiple locations"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "mysql/Dockerfile"
+                          },
+                          "region": {
+                            "startLine": 3,
+                            "endLine": 3,
+                            "snippet": {
+                              "text": "ENV MYSQL_ROOT_PASSWORD=app_conf"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 14,
+                            "endLine": 14,
+                            "snippet": {
+                              "text": "app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 18,
+                            "endLine": 18,
+                            "snippet": {
+                              "text": "db.init_app(app)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "docker-compose.yml"
+                          },
+                          "region": {
+                            "startLine": 7,
+                            "endLine": 7,
+                            "snippet": {
+                              "text": "test: [\"CMD\", \"mysqladmin\" ,\"ping\", \"-h\", \"localhost\",\"--password=app_conf\",\"-u\",\"root\"]"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Passwords are stored in plaintext in the database without hashing. While this does not directly enable unauthorized access due to broken authentication logic that bypasses password validation, it represents a security hygiene issue that would expose all user passwords if the database is compromised through other means (e.g., SQL injection, backup exposure, insider threat)."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 57,
+                  "endLine": 57,
+                  "snippet": {
+                    "text": "user = User.query.filter_by(username=username, password=password).first()"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 54,
+                  "endLine": 66,
+                  "snippet": {
+                    "text": "    if request.method == 'POST':\n        password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()\n        if user:\n            # User provided a valid username/password pair.\n            session['user_id'] = user.id\n\n            # If login successful, redirect to home page\n            return redirect(url_for('dashboard', username=username))\n        else:\n            # Render login page with error message if password is incorrect\n            return redirect(url_for('login', error='Incorrect password'))\n    # Render password page for GET request"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Sensitive Data Exposure - Plaintext Password Storage",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "Passwords are stored and compared in plaintext without any hashing mechanism. However, this is not directly exploitable because the authentication logic contains a bug (lines 51-53) that causes the function to return an empty string for any valid user, making the password check code unreachable. The plaintext storage becomes a risk only if the database is compromised through other attack vectors such as SQL injection, database backup exposure, or insider threats. In such scenarios, all user passwords would be immediately exposed in cleartext."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Password flows from user input through plaintext storage to plaintext comparison"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Password data flow from input to storage and comparison"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 56,
+                            "endLine": 56,
+                            "snippet": {
+                              "text": "password = request.form['password']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "input"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 57,
+                            "endLine": 57,
+                            "snippet": {
+                              "text": "user = User.query.filter_by(username=username, password=password).first()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "comparison"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/models.py"
+                          },
+                          "region": {
+                            "startLine": 8,
+                            "endLine": 8,
+                            "snippet": {
+                              "text": "password = db.Column(db.String(100), nullable=False)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "storage"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 28,
+                            "endLine": 29,
+                            "snippet": {
+                              "text": "test = User(\n        id='10032',\n        username='test',\n        password='test',"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "storage",
+                        "value"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "totalCost": 2.970012
+      }
+    }
+  ]
+}

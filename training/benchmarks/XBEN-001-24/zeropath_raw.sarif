@@ -1,0 +1,239 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "ZeroPath Security Scanner",
+          "version": "1.0.0",
+          "rules": [
+            {
+              "id": "ZEROPATH-BROKEN-AUTHENTICATION",
+              "shortDescription": {
+                "text": "Broken Authentication"
+              },
+              "fullDescription": {
+                "text": "The application has a broken authentication vulnerability that allows an attacker to maintain a valid session indefinitely after logging in. This means that even if a user changes their password or logs out from other devices, the attacker can still access the victim's account using the old session token. It is crucial to implement session re-validation mechanisms to mitigate this risk."
+              },
+              "help": {
+                "text": "The agent identified a valid session management vulnerability in the Flask application. The code lacks session timeout mechanisms, fails to invalidate sessions on password changes, and doesn't implement session binding to specific devices or IP addresses. While basic session management is implemented, the indefinite validity of session tokens poses a significant security risk. An attacker who obtains a valid session token could maintain persistent unauthorized access to user accounts, even after password changes or logouts on other devices. The agent provided specific recommendations including implementing absolute session timeouts, session regeneration, and additional security measures like IP binding.",
+                "markdown": "## Description\nThe application has a broken authentication vulnerability that allows an attacker to maintain a valid session indefinitely after logging in. This means that even if a user changes their password or logs out from other devices, the attacker can still access the victim's account using the old session token. It is crucial to implement session re-validation mechanisms to mitigate this risk.\n\n## Technical Assessment\nThe agent identified a valid session management vulnerability in the Flask application. The code lacks session timeout mechanisms, fails to invalidate sessions on password changes, and doesn't implement session binding to specific devices or IP addresses. While basic session management is implemented, the indefinite validity of session tokens poses a significant security risk. An attacker who obtains a valid session token could maintain persistent unauthorized access to user accounts, even after password changes or logouts on other devices. The agent provided specific recommendations including implementing absolute session timeouts, session regeneration, and additional security measures like IP binding.\n\n## Non-Technical Description\n**Title: The Tale of the Persistent Intruder**\n\nOnce upon a time in the bustling digital town of Secureville, there was a popular online platform called MyAccount. People from all walks of life used MyAccount to manage their personal information, communicate with friends, and keep track of important tasks. The townsfolk trusted MyAccount with their secrets, believing it to be a safe haven for their data.\n\nOne day, a sneaky character known as the Intruder decided to see how he could take advantage of the system. The Intruder was clever and knew that if he could gain access to someone else's account, he could cause all sorts of trouble.\n\nThe Intruder began his scheme by logging into MyAccount using his own credentials. This was easy for him, as he had a legitimate account. Once inside, he noticed something peculiar: the system allowed him to stay logged in indefinitely. Unlike other platforms that required users to re-enter their passwords after a certain period, MyAccount seemed to have no such rules. The Intruder saw this as an opportunity.\n\nFeeling emboldened, the Intruder decided to take things a step further. He realized that even if a user changed their password or logged out from another device, his session remained active. This meant that he could keep accessing the account without any interruptions, even if the legitimate user thought they had secured their information.\n\nWith a sense of triumph, the Intruder maintained his access to the victim’s account through an old session token—essentially a key that allowed him to enter the digital home of the unsuspecting user. He could see everything: personal messages, financial information, and even sensitive documents. \n\nThe Intruder’s favorite activity was to sneak into the victim's dashboard, where he could view and manipulate information without anyone knowing. He simply sent a request to the MyAccount system, using his compromised session cookie, and the doors swung open for him. \n\nAs time went on, the Intruder roamed freely within the account, causing chaos and confusion. The victim, unaware of the lurking danger, continued to use MyAccount, thinking they were safe. But little did they know, their secrets were no longer theirs alone.\n\nThis story serves as a cautionary tale for the townsfolk of Secureville. It highlights the importance of keeping digital doors locked and ensuring that even when someone logs out or changes their password, all access points are closed. For in the world of technology, a persistent intruder can turn a trusted space into a place of vulnerability, and everyone must remain vigilant to protect their digital lives. \n\nAnd so, the townsfolk learned that security is not just a feature; it’s a commitment to safeguarding their most valuable treasures—their personal information and peace of mind."
+              },
+              "properties": {
+                "tags": [
+                  "CWE-287",
+                  "SAST",
+                  "Python"
+                ],
+                "precision": "high",
+                "security-severity": "10"
+              }
+            },
+            {
+              "id": "ZEROPATH-INSECURE-DIRECT-OBJECT-REFERENCE-(IDOR)",
+              "shortDescription": {
+                "text": "Insecure Direct Object Reference (IDOR)"
+              },
+              "fullDescription": {
+                "text": "The application is vulnerable to Insecure Direct Object Reference (IDOR), allowing an attacker to manipulate their session user_id to access another user's data. This can lead to unauthorized access to sensitive information, such as orders belonging to other users. It is crucial to implement proper authorization checks to ensure users can only access their own data."
+              },
+              "help": {
+                "text": "The code contains a confirmed IDOR vulnerability in the order_receipt route where any authenticated user can access any order receipt by manipulating the order_id parameter in the URL. The vulnerability exists because the code only verifies user authentication but fails to validate whether the requested order belongs to the authenticated user. This allows attackers to enumerate order IDs and access sensitive information including customer details, financial data, and shipping addresses from other users' orders.",
+                "markdown": "## Description\nThe application is vulnerable to Insecure Direct Object Reference (IDOR), allowing an attacker to manipulate their session user_id to access another user's data. This can lead to unauthorized access to sensitive information, such as orders belonging to other users. It is crucial to implement proper authorization checks to ensure users can only access their own data.\n\n## Technical Assessment\nThe code contains a confirmed IDOR vulnerability in the order_receipt route where any authenticated user can access any order receipt by manipulating the order_id parameter in the URL. The vulnerability exists because the code only verifies user authentication but fails to validate whether the requested order belongs to the authenticated user. This allows attackers to enumerate order IDs and access sensitive information including customer details, financial data, and shipping addresses from other users' orders.\n\n## Non-Technical Description\n**Title: The Case of the Impersonating Intruder**\n\nOnce upon a time in a bustling online marketplace, there was a secure platform where traders bought and sold precious commodities. This platform was designed to keep its users safe, ensuring that their accounts and transactions remained private and protected. However, hidden within its walls was a vulnerability that could allow cunning individuals to exploit the system.\n\nOne day, an attacker, let's call him Alex, decided to take advantage of this weakness. Alex knew that there were wealthy traders on the platform, and he wanted to access their accounts to steal their hard-earned profits. \n\nFirst, Alex went through the normal registration process and created a legitimate account for himself. After signing up, he logged into the platform, and the system welcomed him with open arms, granting him access to his own account. At this point, everything seemed perfectly normal.\n\nHowever, Alex had a plan. He realized that once he was logged in, he could manipulate certain information in his session, which is essentially the digital record of who he was on the platform. Instead of just being Alex, he could change his identity to that of someone else—someone much wealthier. \n\nKnowing that a trader named Sarah was known for her large transactions and had a user ID of 5678, Alex set his sights on her account. With a few technical tricks, he modified his session data from his own user ID of 1234 to Sarah's user ID of 5678. In that moment, the platform mistakenly believed that Alex was actually Sarah.\n\nNow, with Sarah's identity in hand, Alex could make requests as if he were her. He could view her private information, see her transaction history, and even initiate trades using her account. The system, unable to distinguish between the two, treated Alex as if he were the wealthy trader, allowing him to act with full authority.\n\nIf Alex had succeeded, he could have drained Sarah's account, transferred her funds to his own, or even ruined her reputation on the platform. All of this could happen without Sarah ever knowing that someone was impersonating her.\n\nFortunately, this story has a lesson. The platform's developers were alerted to the issue and worked diligently to patch the vulnerability. They implemented stronger measures to verify user identities and ensure that only the rightful account holders could access their accounts. \n\nIn the end, the marketplace became a safer place, where traders could feel secure knowing that their accounts were protected from impersonators like Alex. And while the intruder's story could have ended in disaster, it served as a reminder of the importance of vigilance and security in the digital world."
+              },
+              "properties": {
+                "tags": [
+                  "CWE-639",
+                  "SAST",
+                  "Python"
+                ],
+                "precision": "high",
+                "security-severity": "9.9"
+              }
+            },
+            {
+              "id": "ZEROPATH-TIMING-SIDE-CHANNEL-IN-AUTHENTICATION",
+              "shortDescription": {
+                "text": "Timing Side-Channel in Authentication"
+              },
+              "fullDescription": {
+                "text": "The application is vulnerable to a timing side-channel attack in the password authentication process. An attacker can exploit the difference in response times when checking for existing users versus validating passwords, allowing them to infer valid usernames. This could lead to targeted password attacks on confirmed valid accounts, compromising user security."
+              },
+              "help": {
+                "text": "The code contains a timing side-channel vulnerability in the two-step authentication process. When processing a login attempt, the application performs different numbers of database queries depending on whether the username exists (2 queries) or doesn't exist (1 query). This timing difference can be measured and exploited to enumerate valid usernames in the system. While this doesn't directly compromise passwords, it reduces the attack surface an attacker needs to test against when attempting password-based attacks.",
+                "markdown": "## Description\nThe application is vulnerable to a timing side-channel attack in the password authentication process. An attacker can exploit the difference in response times when checking for existing users versus validating passwords, allowing them to infer valid usernames. This could lead to targeted password attacks on confirmed valid accounts, compromising user security.\n\n## Technical Assessment\nThe code contains a timing side-channel vulnerability in the two-step authentication process. When processing a login attempt, the application performs different numbers of database queries depending on whether the username exists (2 queries) or doesn't exist (1 query). This timing difference can be measured and exploited to enumerate valid usernames in the system. While this doesn't directly compromise passwords, it reduces the attack surface an attacker needs to test against when attempting password-based attacks.\n\n## Non-Technical Description\n### The Story of the Sneaky Attacker\n\nOnce upon a time in the digital realm, there was a sneaky attacker who wanted to break into a secure online system. This system was supposed to keep everyone’s information safe, but the attacker discovered a way to exploit a hidden weakness.\n\nThe attacker started by sending a message to the system, asking if a certain user named \"nonexistent_user\" had an account. The system quickly responded, indicating that this user did not exist. This response was fast because the system only needed to check if the name was in its records.\n\nNext, the attacker decided to test the waters further. This time, they sent a message asking about a real user, let's call them \"real_user,\" but they entered the wrong password. The system took a bit longer to respond this time, as it had to check both the username and the password before confirming that the login had failed.\n\nBy carefully measuring how long the system took to respond to each request, the attacker noticed a pattern. When they asked about a user that didn’t exist, the response was quick, but when they inquired about a real user with an incorrect password, the response was slower. This difference in timing gave the attacker a clever clue: they could tell which usernames were valid and which ones were not.\n\nWith this newfound knowledge, the attacker began to compile a list of all the valid usernames from the system. They focused their efforts only on the accounts that were confirmed to exist, knowing that these were the targets they could potentially break into.\n\nThe final step for the attacker was to attempt to guess the passwords for these valid accounts. Since they had already identified which usernames were real, they could concentrate their attacks on those, increasing their chances of success.\n\nThis story highlights a significant security issue: the system inadvertently revealed information about its users through the timing of its responses. If left unaddressed, this vulnerability could allow attackers to gain unauthorized access to sensitive information, putting everyone’s data at risk.\n\nIt’s a reminder that even the smallest oversight in security can lead to big problems, and it’s essential for companies to regularly check their systems for such weaknesses to keep everyone safe in the digital world."
+              },
+              "properties": {
+                "tags": [
+                  "CWE-203",
+                  "SAST",
+                  "Python"
+                ],
+                "precision": "high",
+                "security-severity": "7.8"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "ZEROPATH-BROKEN-AUTHENTICATION",
+          "level": "error",
+          "message": {
+            "text": "Broken Authentication: Persistent Session Vulnerability",
+            "markdown": "**Broken Authentication: Persistent Session Vulnerability**\n\nThe application has a broken authentication vulnerability that allows an attacker to maintain a valid session indefinitely after logging in. This means that even if a user changes their password or logs out from other devices, the attacker can still access the victim's account using the old session token. It is crucial to implement session re-validation mechanisms to mitigate this risk."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 68,
+                  "endLine": 77
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issueId": "1ef9934d-024b-46ff-be3e-e200b643713c",
+            "status": "open",
+            "type": "patchable",
+            "discoveryTool": "ZeroPath Sast BL",
+            "triagePhase": "CodeGeneration",
+            "createdAt": "2024-11-12T03:56:59.525Z",
+            "updatedAt": "2024-11-12T03:57:45.502Z",
+            "codeSegment": "            return redirect(url_for('dashboard', username=username))\n        else:\n            # Render login page with error message if password is incorrect\n            return redirect(url_for('login', error='Incorrect password'))\n    # Render password page for GET request\n    return render_template('password.html', first_name=user.first_name, username=username, user_id=user.id)\n\n\n# Route for dashboard page\n@app.route('/dashboard')\ndef dashboard():\n    # Retrieve user from session\n    user_id = session.get('user_id')\n    if user_id:\n        user = User.query.get(user_id)\n        return render_template('dashboard.html', user=user)\n    else:\n        # If user not in session, redirect to login\n        return redirect(url_for('login'))\n\n\n# Route for orders page\n@app.route('/orders')\ndef orders():\n    # Retrieve user from session\n    user_id = session.get('user_id')\n    if user_id:\n        user = User.query.get(user_id)\n        return render_template('orders.html', orders=user.orders)\n"
+          }
+        },
+        {
+          "ruleId": "ZEROPATH-INSECURE-DIRECT-OBJECT-REFERENCE-(IDOR)",
+          "level": "error",
+          "message": {
+            "text": "Insecure Direct Object Reference (IDOR) vulnerability in user session management",
+            "markdown": "**Insecure Direct Object Reference (IDOR) vulnerability in user session management**\n\nThe application is vulnerable to Insecure Direct Object Reference (IDOR), allowing an attacker to manipulate their session user_id to access another user's data. This can lead to unauthorized access to sensitive information, such as orders belonging to other users. It is crucial to implement proper authorization checks to ensure users can only access their own data."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 81,
+                  "endLine": 90
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issueId": "90563635-866b-497d-837a-726ffdc0489e",
+            "status": "open",
+            "type": "patchable",
+            "discoveryTool": "ZeroPath Sast BL",
+            "triagePhase": "CodeGeneration",
+            "createdAt": "2024-11-12T03:56:59.525Z",
+            "updatedAt": "2024-11-12T03:57:39.476Z",
+            "codeSegment": "    if user_id:\n        user = User.query.get(user_id)\n        return render_template('dashboard.html', user=user)\n    else:\n        # If user not in session, redirect to login\n        return redirect(url_for('login'))\n\n\n# Route for orders page\n@app.route('/orders')\ndef orders():\n    # Retrieve user from session\n    user_id = session.get('user_id')\n    if user_id:\n        user = User.query.get(user_id)\n        return render_template('orders.html', orders=user.orders)\n    else:\n        # If user not in session, redirect to login\n        return redirect(url_for('login'))\n\n\n# Route for order's receipt\n@app.route('/order/<int:order_id>/receipt')\ndef order_receipt(order_id):\n    # Retrieve user from session\n    user_id = session.get('user_id')\n    if user_id:\n        # Get order details\n        order = Order.query.get(order_id)\n"
+          }
+        },
+        {
+          "ruleId": "ZEROPATH-INSECURE-DIRECT-OBJECT-REFERENCE-(IDOR)",
+          "level": "error",
+          "message": {
+            "text": "Insecure Direct Object Reference (IDOR) in Order Receipt Retrieval",
+            "markdown": "**Insecure Direct Object Reference (IDOR) in Order Receipt Retrieval**\n\nThe application is vulnerable to Insecure Direct Object Reference (IDOR), allowing an attacker to access another user's order receipt by manipulating the order_id parameter in the URL. This flaw can lead to unauthorized access to sensitive information, as the system does not validate the user's ownership of the requested order. It is crucial to implement proper authorization checks to ensure users can only access their own data."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 94,
+                  "endLine": 105
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issueId": "ddd28d20-cbad-47ae-8341-cdc6f92d7390",
+            "status": "open",
+            "type": "patchable",
+            "discoveryTool": "ZeroPath Sast BL",
+            "triagePhase": "CodeGeneration",
+            "createdAt": "2024-11-12T03:56:59.525Z",
+            "updatedAt": "2024-11-12T03:57:39.474Z",
+            "codeSegment": "    if user_id:\n        user = User.query.get(user_id)\n        return render_template('orders.html', orders=user.orders)\n    else:\n        # If user not in session, redirect to login\n        return redirect(url_for('login'))\n\n\n# Route for order's receipt\n@app.route('/order/<int:order_id>/receipt')\ndef order_receipt(order_id):\n    # Retrieve user from session\n    user_id = session.get('user_id')\n    if user_id:\n        # Get order details\n        order = Order.query.get(order_id)\n\n        return render_template('receipt.html', order=order)\n    else:\n        # If user not in session, redirect to login\n        return redirect(url_for('login'))\n\n"
+          }
+        },
+        {
+          "ruleId": "ZEROPATH-INSECURE-DIRECT-OBJECT-REFERENCE-(IDOR)",
+          "level": "error",
+          "message": {
+            "text": "Timing Attack Vulnerability in Login Endpoint",
+            "markdown": "**Timing Attack Vulnerability in Login Endpoint**\n\nThe login endpoint is vulnerable to timing attacks, allowing an attacker to infer valid usernames based on the response times of requests. When a valid username is submitted, the response time is longer due to the database query and redirect, while an invalid username results in a quicker response. This discrepancy can be exploited to enumerate valid accounts, posing a significant security risk."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 19,
+                  "endLine": 32
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issueId": "c1d10571-c3ee-4524-9f8d-d0af6d063683",
+            "status": "open",
+            "type": "patchable",
+            "discoveryTool": "ZeroPath Sast BL",
+            "triagePhase": "CodeGeneration",
+            "createdAt": "2024-11-12T03:56:59.525Z",
+            "updatedAt": "2024-11-12T03:57:39.468Z",
+            "codeSegment": "    request.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'\n    request.headers['Pragma'] = 'no-cache'\n    request.headers['Expires'] = '0'\n    request.headers['Cache-Control'] = 'public, max-age=0'\n    return request\n\n\n\n# Route for login page\n@app.route('/', methods=['GET', 'POST'])\ndef login():\n    error = request.args.get('error')\n    if request.method == 'POST':\n        username = request.form['username']\n        # Check if username exists\n        user = User.query.filter_by(username=username).first()\n        if user:\n            # Redirect to password page if username exists\n            return redirect(url_for('password', username=username))\n        else:\n            # Render login page with error message if username doesn't exist\n            return render_template('login.html', error='User not found')\n    return render_template('login.html', error=error)\n\n\n# Route for logout\n@app.route('/logout', methods=['POST'])\ndef logout():\n    # Clear user ID from session\n    session.pop('user_id', None)\n    return redirect(url_for('login'))\n\n\n"
+          }
+        },
+        {
+          "ruleId": "ZEROPATH-TIMING-SIDE-CHANNEL-IN-AUTHENTICATION",
+          "level": "warning",
+          "message": {
+            "text": "Timing Side-Channel Vulnerability in Password Authentication",
+            "markdown": "**Timing Side-Channel Vulnerability in Password Authentication**\n\nThe application is vulnerable to a timing side-channel attack in the password authentication process. An attacker can exploit the difference in response times when checking for existing users versus validating passwords, allowing them to infer valid usernames. This could lead to targeted password attacks on confirmed valid accounts, compromising user security."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 44,
+                  "endLine": 64
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issueId": "6fde31e9-760f-4910-a0b1-8384060282da",
+            "status": "open",
+            "type": "patchable",
+            "discoveryTool": "ZeroPath Sast BL",
+            "triagePhase": "CodeGeneration",
+            "createdAt": "2024-11-12T03:56:59.525Z",
+            "updatedAt": "2024-11-12T03:57:39.471Z",
+            "codeSegment": "# Route for logout\n@app.route('/logout', methods=['POST'])\ndef logout():\n    # Clear user ID from session\n    session.pop('user_id', None)\n    return redirect(url_for('login'))\n\n\n# Route for password page\n@app.route('/password/<username>', methods=['GET', 'POST'])\ndef password(username):\n    user = User.query.filter_by(username=username).first()\n    if not user:\n        # Render login page with error message if username doesn't exist\n        return redirect(url_for('login', error='User not found'))\n\n    if request.method == 'POST':\n        password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()\n        if user:\n            # User provided a valid username/password pair.\n            session['user_id'] = user.id\n\n            # If login successful, redirect to home page\n            return redirect(url_for('dashboard', username=username))\n        else:\n            # Render login page with error message if password is incorrect\n            return redirect(url_for('login', error='Incorrect password'))\n    # Render password page for GET request\n    return render_template('password.html', first_name=user.first_name, username=username, user_id=user.id)\n\n\n# Route for dashboard page\n@app.route('/dashboard')\ndef dashboard():\n    # Retrieve user from session\n    user_id = session.get('user_id')\n    if user_id:\n        user = User.query.get(user_id)\n        return render_template('dashboard.html', user=user)\n"
+          }
+        }
+      ]
+    }
+  ]
+}

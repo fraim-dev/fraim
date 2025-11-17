@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "ZeroPath Security Scanner",
+          "version": "1.0.0",
+          "rules": [
+            {
+              "id": "ZEROPATH-CROSS-SITE-SCRIPTING-(XSS)",
+              "shortDescription": {
+                "text": "Cross Site Scripting (XSS)"
+              },
+              "fullDescription": {
+                "text": "The application is vulnerable to Cross-Site Scripting (XSS) due to the direct concatenation of user input into HTML content without proper encoding or validation. This can allow an attacker to inject malicious scripts, potentially compromising user data and application integrity. It is crucial to implement proper input validation and output encoding to mitigate this risk."
+              },
+              "help": {
+                "text": "The code contains a clear XSS vulnerability where user input (msg parameter) is incorporated into HTML content after minimal filtering. While there is a blacklist of dangerous terms (['script', 'onload', 'onmouseover', etc.]), the protection is insufficient as the input is still inserted directly into HTML after a '>' character without proper encoding. The application explicitly disables XSS protection headers and multiple attack vectors remain viable despite the blacklist. Though this appears to be an intentional vulnerability (likely part of a security training/CTF exercise), it represents a genuine XSS risk that could be exploited through various means such as unquoted HTML attributes or unlisted event handlers.",
+                "markdown": "## Description\nThe application is vulnerable to Cross-Site Scripting (XSS) due to the direct concatenation of user input into HTML content without proper encoding or validation. This can allow an attacker to inject malicious scripts, potentially compromising user data and application integrity. It is crucial to implement proper input validation and output encoding to mitigate this risk.\n\n## Technical Assessment\nThe code contains a clear XSS vulnerability where user input (msg parameter) is incorporated into HTML content after minimal filtering. While there is a blacklist of dangerous terms (['script', 'onload', 'onmouseover', etc.]), the protection is insufficient as the input is still inserted directly into HTML after a '>' character without proper encoding. The application explicitly disables XSS protection headers and multiple attack vectors remain viable despite the blacklist. Though this appears to be an intentional vulnerability (likely part of a security training/CTF exercise), it represents a genuine XSS risk that could be exploited through various means such as unquoted HTML attributes or unlisted event handlers.\n\n## Non-Technical Description\nOnce upon a time in a bustling digital town, there was a popular website where people shared their thoughts and ideas. This website allowed users to submit comments, which would then be displayed for everyone to see. The creators of the site wanted to make it easy for users to express themselves, so they designed a feature that would take what users typed and instantly show it on the page.\n\nHowever, there was a hidden problem. The website's creators had forgotten to put up a crucial safety barrier. They didn’t properly check or filter what users were submitting before displaying it on the website. This meant that anyone could type in anything, including sneaky and harmful code that could trick the site into doing things it shouldn't.\n\nOne day, a mischievous individual, let’s call them \"The Trickster,\" noticed this flaw. The Trickster decided to take advantage of the website's vulnerability. Instead of submitting a harmless comment, they typed in a clever piece of code disguised as a regular comment. When the website displayed this comment, it didn't recognize the danger and simply showed it to everyone, just like any other comment.\n\nAs a result, anyone visiting the website would unknowingly execute The Trickster’s code. This code could do all sorts of things: it could steal personal information, like passwords or credit card numbers, or even take control of users' accounts. The Trickster could watch as unsuspecting visitors clicked on links that led them to dangerous places, all because the website had failed to protect them.\n\nThe website's creators were devastated when they learned about this issue. They realized that they had not only put their users at risk but also tarnished the trust that people had in their platform. To fix this, they immediately set to work, putting up strong safety barriers to ensure that all user input was properly checked and cleaned before being displayed. They learned that while it’s important to allow people to share their thoughts, it’s equally important to protect them from harm.\n\nAnd so, the website became a safer place for everyone, where users could express themselves freely without the fear of falling victim to The Trickster or anyone else with ill intentions. From that day on, the creators made sure to prioritize security, ensuring that their digital town remained a safe haven for all."
+              },
+              "properties": {
+                "tags": [
+                  "CWE-79",
+                  "SAST",
+                  "Python"
+                ],
+                "precision": "high",
+                "security-severity": "9.9"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "ZEROPATH-CROSS-SITE-SCRIPTING-(XSS)",
+          "level": "error",
+          "message": {
+            "text": "Critical XSS Vulnerability in User Input Handling",
+            "markdown": "**Critical XSS Vulnerability in User Input Handling**\n\nThe application is vulnerable to Cross-Site Scripting (XSS) due to the direct concatenation of user input into HTML content without proper encoding or validation. This can allow an attacker to inject malicious scripts, potentially compromising user data and application integrity. It is crucial to implement proper input validation and output encoding to mitigate this risk."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/app.py"
+                },
+                "region": {
+                  "startLine": 74,
+                  "endLine": 77
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issueId": "82147c11-41ee-46b2-9df2-cdb9671d6dda",
+            "status": "open",
+            "type": "patchable",
+            "discoveryTool": "ZeroPath Sast",
+            "triagePhase": "CodeGeneration",
+            "createdAt": "2024-11-12T02:05:33.120Z",
+            "updatedAt": "2024-11-12T02:06:18.827Z",
+            "codeSegment": "    msg = request.args.get('name','')\n    blacklist = ['script', \"onload\", \"onmouseover\", \"onclick\", \"onbegin\", \"onerror\", \"svg\", \"'\"]\n    value =  \"\" if msg == \"\" else '> {0}'.format(msg)\n\n    for word in blacklist:\n        if word in msg.lower():\n            error_msg = \"\"\"<div class=\"solution-text\">Invalid input contains: '%s'</div>\"\"\" % word\n            value = \">\"\n            return XSS_CONTENT.format(\"21\",\"Star\",value,\"\",error_msg)\n\n    data = XSS_CONTENT.format(\"21\",\"Star\",value, \"\",\"\")\n    result = process_input(data,flags[0],msg,'challenge_medium')\n\n    response = make_response(XSS_CONTENT.format(\"21\",\"Star\",value, result, \"\"))\n    response.headers[\"X-XSS-Protection\"] = \"0\"\n    return response\n\nif __name__ == '__main__':\n    #app.run(host='0.0.0.0', port=5001, threaded=True)\n    app.run(debug=True)\n\n"
+          }
+        }
+      ]
+    }
+  ]
+}

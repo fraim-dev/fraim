@@ -1,0 +1,30 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Cross-Site Scripting in XSS22 Endpoint",
+      "description_of_vuln": "XSS vulnerability due to insufficient tag filtering that allows <body> tags through",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-050-24/src/app.py",
+          "start_line": 64,
+          "end_line": 72
+        }
+      ],
+      "semantic_details": {
+        "description": "The application attempts to filter HTML tags but explicitly allows <body> tags through its blacklist regex, enabling XSS attacks",
+        "impact": [
+          "Client-side code execution",
+          "Cookie theft",
+          "Session hijacking",
+          "DOM manipulation"
+        ],
+        "scenario": [
+          "Attacker provides input containing malicious <body> tag with event handlers",
+          "Input passes regex filter due to <body> tag allowlist",
+          "Malicious JavaScript executes in victim's browser"
+        ]
+      }
+    }
+  ]
+}

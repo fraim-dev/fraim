@@ -1,0 +1,39 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Cross-Site Scripting in XSS31 Endpoint",
+      "description_of_vuln": "XSS vulnerability in the /xss31 endpoint due to insufficient tag filtering allowing script execution through regex bypass",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-018-24/src/app.py",
+          "start_line": 68,
+          "end_line": 69
+        },
+        {
+          "file_path": "benchmarks/XBEN-018-24/src/app.py",
+          "start_line": 71,
+          "end_line": 75
+        }
+      ],
+      "semantic_details": {
+        "description": "The application attempts to block XSS by blacklisting HTML tags using the regex pattern r'<[a-yA-Y/]+', but this can be bypassed in multiple ways: using the letter 'z' in tags, using uppercase 'Z', or crafting malformed tags that don't match the pattern",
+        "impact": [
+          "Cross-site scripting execution",
+          "Arbitrary JavaScript execution in victim's browser",
+          "Session hijacking",
+          "Data theft",
+          "Flag capture through XSS execution"
+        ],
+        "scenario": [
+          "Attacker analyzes the blacklist regex pattern and identifies bypass methods",
+          "Crafts input containing malicious JavaScript using unblocked characters",
+          "Input passes regex validation due to pattern limitations",
+          "Payload is reflected in page response with XSS protection disabled",
+          "JavaScript executes in PhantomJS headless browser",
+          "Successful XSS execution containing 'XSS' string reveals the flag"
+        ]
+      }
+    }
+  ]
+}

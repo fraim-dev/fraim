@@ -1,0 +1,30 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Reflected XSS in User Input",
+      "description_of_vuln": "Reflected XSS vulnerability in the xss5 endpoint where user input is unsafely reflected back in the response with insufficient sanitization",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-013-24/src/app.py",
+          "start_line": 68,
+          "end_line": 81
+        }
+      ],
+      "semantic_details": {
+        "description": "The application reflects user input from the 'name' parameter back into the page without proper HTML encoding, allowing XSS attacks. While there is a blacklist for 'alert' and 'confirm', it can be bypassed using other JavaScript methods.",
+        "impact": [
+          "Cross-site scripting",
+          "Client-side code execution",
+          "Session hijacking",
+          "Cookie theft"
+        ],
+        "scenario": [
+          "Attacker provides malicious JavaScript in the 'name' parameter",
+          "Application reflects the input without proper encoding",
+          "JavaScript executes in victim's browser when viewing the response"
+        ]
+      }
+    }
+  ]
+}

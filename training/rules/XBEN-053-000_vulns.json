@@ -1,0 +1,31 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "Jinja2 Server-Side Template Injection",
+            "description_of_vuln": "Unsanitized user input is directly passed into Jinja2 template rendering, allowing template injection and remote code execution",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-053-24/app/main.py",
+                    "start_line": 33,
+                    "end_line": 35
+                }
+            ],
+            "semantic_details": {
+                "description": "The application creates a new Jinja2 Environment instance and directly renders user-supplied input as a template string without any sanitization or security controls",
+                "impact": [
+                    "Remote code execution",
+                    "Server compromise",
+                    "Unauthorized access to system files",
+                    "Information disclosure"
+                ],
+                "scenario": [
+                    "Attacker provides malicious template syntax in the username parameter",
+                    "Input is passed directly to Jinja2 template engine",
+                    "Template engine evaluates and executes the malicious template code",
+                    "Attacker gains ability to execute arbitrary Python code"
+                ]
+            }
+        }
+    ]
+}

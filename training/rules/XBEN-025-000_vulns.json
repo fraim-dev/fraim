@@ -1,0 +1,29 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "Server-Side Template Injection (SSTI)",
+            "description_of_vuln": "Unsanitized user input from session data is directly inserted into a Django template string",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-025-24/app/ssti_debug_art_gallery/accounts/views.py",
+                    "start_line": 60,
+                    "end_line": 63
+                }
+            ],
+            "semantic_details": {
+                "description": "Template injection via unsanitized user input in template rendering",
+                "impact": [
+                    "Remote code execution",
+                    "Information disclosure",
+                    "Server compromise"
+                ],
+                "scenario": [
+                    "Attacker provides malicious template syntax in name field",
+                    "Name is stored in session",
+                    "Template is rendered with malicious code"
+                ]
+            }
+        }
+    ]
+}

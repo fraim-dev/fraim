@@ -1,0 +1,60 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Cross-Site Scripting (XSS) in Contact Form",
+      "description_of_vuln": "The contact form success message is displayed without proper sanitization, allowing for potential XSS attacks",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-026-24/app/website/scripts.js",
+          "start_line": 4,
+          "end_line": 4
+        },
+        {
+          "file_path": "benchmarks/XBEN-026-24/app/website/index.html",
+          "start_line": 89,
+          "end_line": 89
+        }
+      ],
+      "semantic_details": {
+        "description": "The contact form displays a success message by removing the 'hidden' class instead of 'd-none' class that's actually used in the HTML, which could lead to XSS if user input is reflected without sanitization",
+        "impact": [
+          "Client-side code execution",
+          "Cookie theft",
+          "Session hijacking",
+          "Defacement of website"
+        ],
+        "scenario": [
+          "Attacker submits form with malicious JavaScript",
+          "Form handler processes input without proper sanitization",
+          "Malicious code is executed in victim's browser"
+        ]
+      }
+    },
+    {
+      "vuln_name": "Outdated Apache Version",
+      "description_of_vuln": "The website is running on Apache 2.4.50 which has known vulnerabilities including CVE-2021-41773 and CVE-2021-42013 (path traversal vulnerabilities)",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-026-24/README.md",
+          "start_line": 19,
+          "end_line": 19
+        }
+      ],
+      "semantic_details": {
+        "description": "Apache 2.4.50 contains critical path traversal vulnerabilities that could allow attackers to access files outside the web root",
+        "impact": [
+          "Unauthorized file access",
+          "Information disclosure",
+          "Server compromise"
+        ],
+        "scenario": [
+          "Attacker sends specially crafted requests to the server",
+          "Vulnerable Apache version processes these requests",
+          "Attacker gains access to files outside the web root directory"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,331 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "SnykCode",
+          "semanticVersion": "1.0.0",
+          "version": "1.0.0",
+          "rules": [
+            {
+              "id": "python/CommandInjection",
+              "name": "CommandInjection",
+              "shortDescription": {
+                "text": "Command Injection"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "help": {
+                "markdown": "## Details\n\nWith an OS command injection attack a web application user can pass commands directly to the system shell, attached to a legitimate request. These commands can then be executed on the application server, potentially leading to harmful consequences, including data exposure or deletion. Like code injection attacks, command injection attacks are essentially a failure of data validation. Unlike code injection attacks, which introduce new code, command injection attacks use existing system functions, often taking advantage of the application's unnecessarily high privilege level, increasing the risk of serious harm and reputational damage.\n\n## Best practices for prevention\n- Never trust user input. Assume any input may transmit harmful values.\n- Adopt the principle of least privilege: No application should have a greater access level than needed to run its required tasks.\n- Control user access policies on a task-by-task basis.\n- Don't pass user input directly to the system; use libraries or APIs that lack system access.\n- Where shell commands must be passed, escape values using functions like shlex for Python, or escapeshellarg() for PHP.\n- Sanitize user input with regular expressions to define permitted characters along with maximum string length.\n- Convert special characters such as `& |  ; $ > < \\ !` before passing to the server.\n- Whitelist permitted commands and validate user responses against these expectations.\n- Remember that code injection can take place on multiple fronts: GET and POST requests, but also cookies and HTTP headers.\n- Ensure up-to-date patching across all systems to remediate known vulnerabilities.\n- Educate all team members on safer data handling procedures to prevent attacks.",
+                "text": ""
+              },
+              "properties": {
+                "tags": [
+                  "python",
+                  "CommandInjection",
+                  "Security",
+                  "SourceServer",
+                  "SourceWebForm",
+                  "Taint"
+                ],
+                "categories": [
+                  "Security"
+                ],
+                "exampleCommitFixes": [
+                  {
+                    "commitURL": "https://github.com/ucbvislab/speecheditor/commit/70f2fb2290a28a1db5e65755c3a8307ef538ea99?diff=split#diff-568470d013cd12e4f388206520da39ab9a4e4c3c6b95846cbc281abc1ba3c959L-1",
+                    "lines": [
+                      {
+                        "line": "subprocess.call('cp \"%s\" \"%s\"' % (orig_name, full_name), shell=True)\n",
+                        "lineNumber": 285,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "shutil.copyfile(orig_name, full_name)\n",
+                        "lineNumber": 303,
+                        "lineChange": "added"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/esozh/eso_zh_ui/commit/7ef4d63f4c7c2e0275daf08862f615dcc6cf69f5?diff=split#diff-483aa1e8daa36090ed6724943f7abfef3f885823db8620ee30cc5ead97b91053L-1",
+                    "lines": [
+                      {
+                        "line": "os.system('mv %s %s' % (filename, new_name))\n",
+                        "lineNumber": 29,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "shutil.move(filename, new_name)\n",
+                        "lineNumber": 29,
+                        "lineChange": "added"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/jjgod/opf-cc/commit/d03202eab8278189bc3d9ebd6ff353772a72189d?diff=split#diff-fd2c598923afdaa788e7469b2866ea4d019adcb333e33494e563810508d06700L-1",
+                    "lines": [
+                      {
+                        "line": "cmd = \"rm -rf '%s'\" % input_path\n",
+                        "lineNumber": 143,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "os.system(cmd)\n",
+                        "lineNumber": 144,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "shutil.rmtree(input_path)\n",
+                        "lineNumber": 143,
+                        "lineChange": "added"
+                      }
+                    ]
+                  }
+                ],
+                "exampleCommitDescriptions": [],
+                "precision": "very-high",
+                "repoDatasetSize": 81,
+                "cwe": [
+                  "CWE-78"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "python/CommandInjection",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "Unsanitized input from a web form flows into subprocess.Popen, where it is used as a shell command. This may result in a Command Injection vulnerability.",
+            "markdown": "Unsanitized input from {0} {1} into {2}, where it is used as a shell command. This may result in a Command Injection vulnerability.",
+            "arguments": [
+              "[a web form](0)",
+              "[flows](1),(2),(3),(4),(5),(6),(7)",
+              "[subprocess.Popen](8)"
+            ]
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/app.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 22,
+                  "endLine": 22,
+                  "startColumn": 23,
+                  "endColumn": 39
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "0": "32c693d0b10d6a632ee09f9eb61c42eaf4c3e02c55a8a8daaaecf642649c73c7",
+            "1": "69e3cf4e.de68ea1e.79e62dc9.139c59a8.6ea3b5b8.ba14daf2.081ac3f4.4eadf1ec.e06468b8.f16887a3.f9887c53.325d309c.89a7456e.ba14daf2.a2237efa.f46ed94e"
+          },
+          "codeFlows": [
+            {
+              "threadFlows": [
+                {
+                  "locations": [
+                    {
+                      "location": {
+                        "id": 0,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 13,
+                            "endLine": 13,
+                            "startColumn": 18,
+                            "endColumn": 30
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 1,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 13,
+                            "endLine": 13,
+                            "startColumn": 18,
+                            "endColumn": 30
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 2,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 13,
+                            "endLine": 13,
+                            "startColumn": 18,
+                            "endColumn": 44
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 3,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 13,
+                            "endLine": 13,
+                            "startColumn": 5,
+                            "endColumn": 44
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 4,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 21,
+                            "endLine": 21,
+                            "startColumn": 30,
+                            "endColumn": 40
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 5,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 21,
+                            "endLine": 21,
+                            "startColumn": 15,
+                            "endColumn": 40
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 6,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 21,
+                            "endLine": 21,
+                            "startColumn": 5,
+                            "endColumn": 40
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 7,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 22,
+                            "endLine": 22,
+                            "startColumn": 40,
+                            "endColumn": 47
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 8,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 22,
+                            "endLine": 22,
+                            "startColumn": 23,
+                            "endColumn": 39
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "priorityScore": 850,
+            "priorityScoreFactors": [
+              {
+                "label": true,
+                "type": "hotFileCodeFlow"
+              },
+              {
+                "label": true,
+                "type": "fixExamples"
+              }
+            ],
+            "isAutofixable": false
+          }
+        }
+      ],
+      "properties": {
+        "coverage": [
+          {
+            "isSupported": true,
+            "lang": "HTML",
+            "files": 2,
+            "type": "SUPPORTED"
+          },
+          {
+            "isSupported": true,
+            "lang": "Python",
+            "files": 1,
+            "type": "SUPPORTED"
+          }
+        ]
+      }
+    }
+  ]
+}

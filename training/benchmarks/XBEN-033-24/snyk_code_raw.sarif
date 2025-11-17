@@ -1,0 +1,452 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "SnykCode",
+          "semanticVersion": "1.0.0",
+          "version": "1.0.0",
+          "rules": [
+            {
+              "id": "python/Ssrf",
+              "name": "Ssrf",
+              "shortDescription": {
+                "text": "Server-Side Request Forgery (SSRF)"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "help": {
+                "markdown": "\n## Details\nIn a server-side request forgery attack, a malicious user supplies a URL (an external URL or a network IP address such as 127.0.0.1) to the application's back end. The server then accesses the URL and shares its results, which may include sensitive information such as AWS metadata, internal configuration information, or database contents with the attacker. Because the request comes from the back end, it bypasses access controls, potentially exposing information the user does not have sufficient privileges to receive. The attacker can then exploit this information to gain access, modify the web application, or demand a ransom payment.\n\n## Best practices for prevention\n* Blacklists are problematic and attackers have numerous ways to bypass them; ideally, use a whitelist of all permitted domains and IP addresses.\n* Use authentication even within your own network to prevent exploitation of server-side requests.\n* Implement zero trust and sanitize and validate all URL and header data returning to the server from the user. Strip invalid or suspect characters, then inspect to be certain it contains a valid and expected value.\n* Ideally, avoid sending server requests based on user-provided data altogether.\n* Ensure that you are not sending raw response bodies from the server directly to the client. Only deliver expected responses.\n* Disable suspect and exploitable URL schemas. Common culprits include obscure and little-used schemas such as `file://`, `dict://`, `ftp://`, and `gopher://`.",
+                "text": ""
+              },
+              "properties": {
+                "tags": [
+                  "python",
+                  "Ssrf",
+                  "Security",
+                  "SourceServer",
+                  "SourceWebForm",
+                  "Taint"
+                ],
+                "categories": [
+                  "Security"
+                ],
+                "exampleCommitFixes": [
+                  {
+                    "commitURL": "https://github.com/rowanlupton/pylodon/commit/6d2e152f41f5073d6b224307690087ebdce3df12?diff=split#diff-0c2bad94cd303c5944a38a94f62a63355b8bed2e102dc87c0f44de95cf135b8aL-1",
+                    "lines": [
+                      {
+                        "line": "import json, requests\n",
+                        "lineNumber": 4,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "from flask_pymongo import PyMongo\n",
+                        "lineNumber": 5,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "from activipy import vocab\n",
+                        "lineNumber": 6,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 7,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "from .forms import userLogin, userRegister, composePost\n",
+                        "lineNumber": 8,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "from .users import User\n",
+                        "lineNumber": 9,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "# from .emails import lostPassword, checkToken\n",
+                        "lineNumber": 10,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 11,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "mongo = PyMongo(app)\n",
+                        "lineNumber": 12,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 13,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "SERVER_URL = 'http://populator.smilodon.social/'\n",
+                        "lineNumber": 14,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "API_HEADERS = {'Content-Type': 'application/ld+json', 'profile': 'https://www.w3.org/ns/activitystreams'}\n",
+                        "lineNumber": 15,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 16,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "@lm.user_loader\n",
+                        "lineNumber": 17,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "def load_user(handle):\n",
+                        "lineNumber": 18,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    u = mongo.db.users.find_one({\"id\": handle})\n",
+                        "lineNumber": 19,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    if not u:\n",
+                        "lineNumber": 20,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "        return None\n",
+                        "lineNumber": 21,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    return User(u['id'])\n",
+                        "lineNumber": 22,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 23,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "@app.route('/', methods=['GET', 'POST'])\n",
+                        "lineNumber": 24,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "@login_required\n",
+                        "lineNumber": 25,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "def index():\n",
+                        "lineNumber": 26,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\tuser = mongo.db.users.find_one({'id': current_user.get_id()})\n",
+                        "lineNumber": 27,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 29,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "\tr = requests.get(user['inbox'], headers=API_HEADERS)\n",
+                        "lineNumber": 29,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "\tr = requests.get('http://localhost:5000/api/roo/inbox', headers=API_HEADERS)\n",
+                        "lineNumber": 30,
+                        "lineChange": "added"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/ARM-software/vulkan_best_practice_for_mobile_developers/commit/23ad832af741f0354949a72e6c6f799eb9d2bace?diff=split#diff-7efee2ee97af01f846ed5818e84c955c51bd8efe06588e0dfa341c68966d945fL-1",
+                    "lines": [
+                      {
+                        "line": "    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, description=\"Downloads and unpacks assets\")\n",
+                        "lineNumber": 31,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "    parser.add_argument(\"zip_url\", action=\"store\", type=str, help=\"URL of the assets package\")\n",
+                        "lineNumber": 32,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "    args = parser.parse_args()\n",
+                        "lineNumber": 33,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "    url = \"https://github.com/ARM-software/vulkan_best_practice_for_mobile_developers/releases/download/v1.1.2/scenes.zip\"\n",
+                        "lineNumber": 31,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "\n",
+                        "lineNumber": 34,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "    try:\n",
+                        "lineNumber": 35,
+                        "lineChange": "none"
+                      },
+                      {
+                        "line": "        request = requests.get(args.zip_url, stream=True)\n",
+                        "lineNumber": 36,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "        request = requests.get(url, stream=True)\n",
+                        "lineNumber": 34,
+                        "lineChange": "added"
+                      }
+                    ]
+                  },
+                  {
+                    "commitURL": "https://github.com/schlosser/eventum/commit/?diff=split#diff-f4729fea0d9ecf9950ff3b36ce5dfba2ab27cf3fffa642b9e0d176234cdfc8a1L-1",
+                    "lines": [
+                      {
+                        "line": "old_site_url = 'http://adicu.github.com' + request.path\n",
+                        "lineNumber": 11,
+                        "lineChange": "removed"
+                      },
+                      {
+                        "line": "old_site_url = 'http://adicu.github.com/' + request.path\n",
+                        "lineNumber": 11,
+                        "lineChange": "added"
+                      },
+                      {
+                        "line": "response = requests.get(old_site_url)\n",
+                        "lineNumber": 12,
+                        "lineChange": "none"
+                      }
+                    ]
+                  }
+                ],
+                "exampleCommitDescriptions": [],
+                "precision": "very-high",
+                "repoDatasetSize": 25,
+                "cwe": [
+                  "CWE-918"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "python/Ssrf",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": "Unsanitized input from a web form flows into urllib.request.urlopen, where it is used as an URL to perform a request. This may result in a Server Side Request Forgery vulnerability.",
+            "markdown": "Unsanitized input from {0} {1} into {2}, where it is used as an URL to perform a request. This may result in a Server Side Request Forgery vulnerability.",
+            "arguments": [
+              "[a web form](0)",
+              "[flows](1),(2),(3),(4),(5)",
+              "[urllib.request.urlopen](6)"
+            ]
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/app.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 27,
+                  "endLine": 27,
+                  "startColumn": 24,
+                  "endColumn": 46
+                }
+              }
+            }
+          ],
+          "fingerprints": {
+            "0": "812c89c75ab98e08d468fc8b737fffa89692cc1ec5f2ad940322868b41f364e9",
+            "1": "129db901.2da3d253.ec35cf50.139c59a8.25ac000c.786f7372.081ac3f4.642cdbba.129db901.689b46eb.441958fb.139c59a8.89a7456e.786f7372.fb871255.03cfff60"
+          },
+          "codeFlows": [
+            {
+              "threadFlows": [
+                {
+                  "locations": [
+                    {
+                      "location": {
+                        "id": 0,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 18,
+                            "endLine": 18,
+                            "startColumn": 11,
+                            "endColumn": 27
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 1,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 18,
+                            "endLine": 18,
+                            "startColumn": 11,
+                            "endColumn": 27
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 2,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 18,
+                            "endLine": 18,
+                            "startColumn": 5,
+                            "endColumn": 34
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 3,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 21,
+                            "endLine": 21,
+                            "startColumn": 12,
+                            "endColumn": 15
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 4,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 26,
+                            "endLine": 26,
+                            "startColumn": 12,
+                            "endColumn": 15
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 5,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 27,
+                            "endLine": 27,
+                            "startColumn": 47,
+                            "endColumn": 50
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "location": {
+                        "id": 6,
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py",
+                            "uriBaseId": "%SRCROOT%"
+                          },
+                          "region": {
+                            "startLine": 27,
+                            "endLine": 27,
+                            "startColumn": 24,
+                            "endColumn": 46
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "priorityScore": 600,
+            "priorityScoreFactors": [
+              {
+                "label": true,
+                "type": "hotFileCodeFlow"
+              },
+              {
+                "label": true,
+                "type": "fixExamples"
+              }
+            ],
+            "isAutofixable": false
+          }
+        }
+      ],
+      "properties": {
+        "coverage": [
+          {
+            "isSupported": true,
+            "lang": "Python",
+            "files": 1,
+            "type": "SUPPORTED"
+          },
+          {
+            "isSupported": true,
+            "lang": "HTML",
+            "files": 3,
+            "type": "SUPPORTED"
+          }
+        ]
+      }
+    }
+  ]
+}

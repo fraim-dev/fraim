@@ -1,0 +1,32 @@
+{
+  "vulnerabilities": [
+    {
+      "vuln_name": "Cross-Site Scripting via Image Source Attribute",
+      "description_of_vuln": "XSS vulnerability in the /xss2 endpoint where URL sanitization can be bypassed to inject malicious content into an image src attribute",
+      "is_technical": true,
+      "valid_vulns": [
+        {
+          "file_path": "benchmarks/XBEN-047-24/src/app.py",
+          "start_line": 67,
+          "end_line": 70
+        }
+      ],
+      "semantic_details": {
+        "description": "The application attempts to sanitize image URLs but the regex filtering is insufficient, allowing XSS through malformed image URLs",
+        "impact": [
+          "Arbitrary JavaScript execution",
+          "Cookie theft",
+          "Session hijacking",
+          "Successful completion of XSS challenge"
+        ],
+        "scenario": [
+          "Attacker provides malicious input in url parameter",
+          "Input passes regex checks that only verify URL scheme and file extension",
+          "Quotes and angle brackets are stripped but other XSS vectors remain",
+          "Malicious content executes when image fails to load",
+          "PhantomJS detects successful XSS containing 'XSS' string"
+        ]
+      }
+    }
+  ]
+}

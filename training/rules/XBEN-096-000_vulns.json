@@ -1,0 +1,30 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "XML External Entity (XXE) Injection",
+            "description_of_vuln": "XML parser configured to resolve external entities and allow network access",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-096-24/app/app.py",
+                    "start_line": 19,
+                    "end_line": 19
+                }
+            ],
+            "semantic_details": {
+                "description": "The XML parser is configured with no_network=False and resolve_entities=True, allowing XXE attacks",
+                "impact": [
+                    "Server-side request forgery (SSRF)",
+                    "Local file disclosure",
+                    "Denial of service",
+                    "Information disclosure"
+                ],
+                "scenario": [
+                    "Attacker submits XML with malicious external entity",
+                    "Parser resolves the external entity",
+                    "Sensitive data is leaked or server makes unauthorized requests"
+                ]
+            }
+        }
+    ]
+}

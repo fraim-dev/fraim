@@ -1,0 +1,30 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "Server-Side Template Injection in Application Form",
+            "description_of_vuln": "Server-Side Template Injection vulnerability in the application form submission handler where user input is directly passed to Jinja2 Template constructor without sanitization",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-080-24/app/website/app.py",
+                    "start_line": 19,
+                    "end_line": 23
+                }
+            ],
+            "semantic_details": {
+                "description": "Unsanitized user input from the application form is passed directly to Jinja2 Template constructor, allowing template injection attacks",
+                "impact": [
+                    "Remote code execution",
+                    "Information disclosure",
+                    "Server compromise"
+                ],
+                "scenario": [
+                    "Attacker submits malicious template syntax in the name field",
+                    "Input is passed directly to Template constructor",
+                    "Template is rendered with application context",
+                    "Malicious template code executes on server"
+                ]
+            }
+        }
+    ]
+}

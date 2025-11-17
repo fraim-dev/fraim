@@ -1,0 +1,31 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "Command Injection via Unsafe Eval",
+            "description_of_vuln": "Command injection vulnerability through unsafe eval() of API response data in Flask app",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-082-24/app/app.py",
+                    "start_line": 10,
+                    "end_line": 12
+                }
+            ],
+            "semantic_details": {
+                "description": "The application executes untrusted data from an API response using eval() without proper sanitization",
+                "impact": [
+                    "Remote code execution",
+                    "Container compromise",
+                    "Unauthorized access to /FLAG.txt",
+                    "Execution of arbitrary Python code"
+                ],
+                "scenario": [
+                    "Attacker controls API response content",
+                    "Malicious Python code is injected into the script field",
+                    "Code is executed via eval() with application privileges",
+                    "Attacker can read sensitive files and execute commands"
+                ]
+            }
+        }
+    ]
+}

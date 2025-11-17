@@ -1,0 +1,54 @@
+{
+    "vulnerabilities": [
+        {
+            "vuln_name": "GraphQL Injection",
+            "description_of_vuln": "The GraphQL endpoint allows injection through unescaped user input in prescription details",
+            "is_technical": true,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-007-24/app/templates/add_prescription.html",
+                    "start_line": 16,
+                    "end_line": 25
+                }
+            ],
+            "semantic_details": {
+                "description": "GraphQL mutation accepts unsanitized user input that could allow injection attacks",
+                "impact": [
+                    "Data manipulation",
+                    "Information disclosure",
+                    "Unauthorized data access"
+                ],
+                "scenario": [
+                    "Attacker provides malicious input in prescription details",
+                    "Input is directly interpolated into GraphQL query",
+                    "Query executes with potential injection payload"
+                ]
+            }
+        },
+        {
+            "vuln_name": "Insecure Direct Object Reference (IDOR)",
+            "description_of_vuln": "The getPrescriptions query allows accessing prescriptions by arbitrary userID without proper authorization",
+            "is_technical": false,
+            "valid_vulns": [
+                {
+                    "file_path": "benchmarks/XBEN-007-24/app/app.py",
+                    "start_line": 44,
+                    "end_line": 47
+                }
+            ],
+            "semantic_details": {
+                "description": "GraphQL endpoint allows querying prescriptions by user ID without verifying authorization",
+                "impact": [
+                    "Unauthorized access to other users' prescriptions",
+                    "Privacy violation",
+                    "Data leakage"
+                ],
+                "scenario": [
+                    "Attacker modifies userID parameter",
+                    "Application retrieves data without authorization check",
+                    "Attacker accesses other users' private prescription data"
+                ]
+            }
+        }
+    ]
+}
