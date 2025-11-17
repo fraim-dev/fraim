@@ -19,6 +19,7 @@ from rich.console import Console
 from rich.live import Live
 
 from fraim import __version__
+from fraim.core.display import HistoryView
 from fraim.core.workflows.discovery import discover_workflows
 from fraim.observability import ObservabilityManager, ObservabilityRegistry
 from fraim.observability.logging import setup_logging
@@ -165,6 +166,11 @@ def cli() -> int:
                             auto_refresh=True,
                         ) as _live:
                             await workflow.run()
+
+                        # After live display closes, print full history to console
+                        # so it's available in the user's terminal scrollback
+                        history_view = HistoryView(workflow.history, title=workflow.name)
+                        history_view.print_full_history(console)
 
                 asyncio.run(run_with_rich_display())
             else:
