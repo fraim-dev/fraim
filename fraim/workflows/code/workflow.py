@@ -99,7 +99,7 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
 
         # Configure the threat model step with filesystem tools
         threat_model_tools = FilesystemTools(self.project.project_path)
-        threat_model_llm = self.llm.with_tools(threat_model_tools)
+        threat_model_llm = self.llm.with_tools(threat_model_tools, 50)
         threat_model_parser = TextOutputParser(THREAT_MODEL["output_format"].render({})[0])
         self.threat_model_step: LLMStep[dict, str] = LLMStep(
             threat_model_llm,

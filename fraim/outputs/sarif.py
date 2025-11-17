@@ -150,13 +150,22 @@ class RunResults(BaseSchema):
 
     results: list[Result] = Field(description="The set of results contained in a SARIF log.")
 
+class SecurityScoreProperties(BaseSchema):
+    """Key/value pairs that provide additional information about the security score."""
+
+    securityScore: int = Field(ge=1, le=100, description="The security score of the repository from 1-100.")
+    securityScoreReasoning: str | None = Field(default=None, description="The reasoning for the security score.")
+    securityScoreKeyFactors: list[str] | None = Field(default=None, description="The key factors that influenced the security score.")
+    securityScoreRecommendations: list[str] | None = Field(default=None, description="The recommendations for improving the security score.")
+
 
 class RunProperties(BaseSchema):
     """Properties of a run."""
 
     repo_name: str = Field(description="Name of the repository where the results were found.")
     total_cost: float | None = Field(default=None, description="Total cost in USD for all LLM operations in this run")
-
+    repo_name: str | None = Field(default=None, description="The name of the repository being scanned.")
+    securityScoreProperties: SecurityScoreProperties | None = Field(default=None, description="The security score properties of the repository.")
 
 class Run(RunResults):
     """Describes a single run of an analysis tool, and contains the reported output of that run."""
@@ -179,9 +188,7 @@ class SarifReport(BaseSchema):
     runs: list[Run] = Field(description="The set of runs contained in a SARIF log.")
 
 
-def create_sarif_report(
-    results: list[Result], tool_version: str, repo_name: str, total_cost: float | None = None
-) -> SarifReport:
+def create_sarif_report(results: list[Result], tool_version: str, total_cost: float | None = None, security_score_properties: SecurityScoreProperties | None = None) -> SarifReport:
     """
     Create a complete SARIF report from a list of results.
 
@@ -189,10 +196,14 @@ def create_sarif_report(
         results: List of SARIF Result objects
         tool_version: Version of the scanning tool
         total_cost: Optional total cost in USD for all LLM operations in this run
-
+        security_score_properties: Optional security score properties of the repository
     Returns:
         Complete SARIF report
     """
+    run_properties = RunProperties()
+    
+    run_properties.total_cost = total_cost if total_cost is not None else None
+    run_properties.securityScoreProperties = security_score_properties if security_score_properties is not None else None
     return SarifReport(
         runs=[
             Run(
