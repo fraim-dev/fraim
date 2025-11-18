@@ -123,6 +123,7 @@ class ChunkProcessor(Generic[T]):
         history: History,
         project: ProjectInput,
         chunk_processor: Callable[[History, CodeChunk], Awaitable[list[T]]],
+        on_result: None | Callable[[History, list[T], list[T]], Awaitable[None]] = None,
         max_concurrent_chunks: int = 5,
     ) -> list[T]:
         """
@@ -132,6 +133,7 @@ class ChunkProcessor(Generic[T]):
             history: History instance for tracking
             project: ProjectInput instance to iterate over
             chunk_processor: Async function that processes a single chunk and returns a list of results
+            result_processor: Async function that is called when every a new result is found. Example: func(history, new_results, all_results)
             max_concurrent_chunks: Maximum concurrent chunk processing
 
         Returns:
@@ -158,7 +160,11 @@ class ChunkProcessor(Generic[T]):
                 chunk_results = await chunk_processor(task_record.history, chunk)
 
                 task_record.history.append_record(EventRecord(description=f"Done. Found {len(chunk_results)} results."))
+
                 self._results.extend(chunk_results)
+                if on_result:
+                    await on_result(history, chunk_results, self._results)
+
                 self._processed_chunks += 1
 
                 return chunk_results
