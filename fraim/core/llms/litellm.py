@@ -15,7 +15,7 @@ from litellm.types.utils import ChatCompletionMessageToolCall
 from fraim.core.history import EventRecord, History
 from fraim.core.llms.base import BaseLLM
 from fraim.core.llms.cache import LLMCache
-from fraim.core.messages import AssistantMessage, Function, Message, ToolCall
+from fraim.core.messages import AssistantMessage, Function, Message, SystemMessage, ToolCall, UserMessage
 from fraim.core.tools import BaseTool, execute_tool_calls
 from fraim.core.utils.retry.http import should_retry_request as should_retry_http_request
 from fraim.core.utils.retry.tenacity import with_retry
@@ -111,6 +111,175 @@ class LiteLLM(BaseLLM):
             max_delay=self.max_delay,
         )
 
+    def _count_tokens(self, messages: list[Message]) -> int:
+        """Count the number of tokens in the given messages.
+        
+        Args:
+            messages: List of messages to count tokens for
+            
+        Returns:
+            Number of tokens in the messages
+        """
+        try:
+            messages_dict = [message.model_dump() for message in messages]
+            return litellm.token_counter(model=self.model, messages=messages_dict)
+        except Exception as e:
+            logging.getLogger().warning(f"Failed to count tokens: {e!s}")
+            # Fallback: rough estimate of 4 characters per token
+            total_chars = sum(len(msg.content or "") for msg in messages)
+            return total_chars // 4
+
+    def _get_context_limit(self) -> int:
+        """Get the context limit for the current model.
+        
+        Returns:
+            Maximum number of tokens the model can handle
+        """
+        try:
+            return litellm.get_max_tokens(self.model)
+        except Exception as e:
+            logging.getLogger().warning(f"Failed to get context limit for model {self.model}: {e!s}")
+            # Fallback to common defaults
+            if "gpt-4" in self.model.lower():
+                return 128000  # GPT-4 Turbo default
+            elif "gpt-3.5" in self.model.lower():
+                return 16385
+            elif "claude" in self.model.lower():
+                return 200000  # Claude default
+            elif "gemini" in self.model.lower():
+                return 1000000  # Gemini default
+            else:
+                return 8192  # Conservative default
+
+    async def _consolidate_context(self, history: History, messages: list[Message]) -> list[Message]:
+        """Consolidate the conversation context when approaching the token limit.
+        
+        Args:
+            history: History object for tracking
+            messages: Current list of messages
+            
+        Returns:
+            Consolidated list of messages with reduced token count
+        """
+        consolidation_record = EventRecord(description="Consolidating context to fit within token limit...")
+        history.append_record(consolidation_record)
+        
+        logging.getLogger().info("Context approaching token limit, consolidating messages...")
+        
+        # Separate system messages from conversation messages
+        system_messages = [msg for msg in messages if isinstance(msg, SystemMessage)]
+        conversation_messages = [msg for msg in messages if not isinstance(msg, SystemMessage)]
+        
+        if len(conversation_messages) <= 2:
+            # Can't consolidate further - just return as-is
+            consolidation_record.description = "Context consolidation skipped (too few messages)."
+            return messages
+        
+        # Create consolidation prompt
+        # Convert messages to a readable format for the LLM
+        conversation_text = "\n\n".join([
+            f"[{msg.role.upper()}]: {msg.content or '(tool calls)'}"
+            for msg in conversation_messages
+        ])
+        
+        consolidation_prompt = [
+            SystemMessage(
+                content="You are a helpful assistant that consolidates conversation history. "
+                "Your task is to take a long conversation and create a concise summary that preserves "
+                "all important information, decisions, and context needed to continue the conversation. "
+                "Focus on: key findings, important details, unresolved issues, and the current state. "
+                "Omit: redundant information, completed tasks, and verbose explanations."
+            ),
+            UserMessage(
+                content=f"Please consolidate the following conversation into a much more concise format "
+                f"while preserving all critical information:\n\n{conversation_text}\n\n"
+                f"Provide a consolidated summary that captures the essence and important details."
+            ),
+        ]
+        
+        # Call LLM to consolidate (without tools)
+        consolidation_params = self._prepare_completion_params(messages=consolidation_prompt, use_tools=False)
+        
+        try:
+            consolidation_fn = with_retry(
+                acompletion_text,
+                max_retries=self.max_retries,
+                base_delay=self.base_delay,
+                max_delay=self.max_delay,
+                retry_predicate=should_retry_acompletion,
+            )
+            response = await consolidation_fn(**consolidation_params)
+            
+            # Calculate cost for consolidation
+            try:
+                cost = litellm.completion_cost(completion_response=response)  # type: ignore
+                async with self._cost_lock:
+                    self.total_cost += cost
+                await history.add_cost(cost)
+            except Exception:
+                pass  # Cost tracking is non-critical
+            
+            consolidated_content = response.choices[0].message.content or ""  # type: ignore
+            
+            # Create new message list with system messages + consolidated context
+            consolidated_messages = system_messages + [
+                UserMessage(
+                    content=f"[CONSOLIDATED CONTEXT FROM PREVIOUS CONVERSATION]\n\n{consolidated_content}"
+                )
+            ]
+            
+            old_tokens = self._count_tokens(messages)
+            new_tokens = self._count_tokens(consolidated_messages)
+            
+            consolidation_record.description = (
+                f"Context consolidated: {old_tokens} tokens → {new_tokens} tokens "
+                f"({consolidation_record.elapsed_seconds():.0f}s)"
+            )
+            
+            logging.getLogger().info(
+                f"Context consolidation complete: {old_tokens} → {new_tokens} tokens"
+            )
+            
+            return consolidated_messages
+            
+        except Exception as e:
+            logging.getLogger().error(f"Failed to consolidate context: {e!s}")
+            consolidation_record.description = f"Context consolidation failed: {e!s}"
+            # Return original messages if consolidation fails
+            return messages
+
+    async def _check_and_consolidate_if_needed(
+        self, history: History, messages: list[Message]
+    ) -> list[Message]:
+        """Check if context is approaching limit and consolidate if necessary.
+        
+        Args:
+            history: History object for tracking
+            messages: Current list of messages
+            
+        Returns:
+            Original or consolidated messages depending on token usage
+        """
+        token_count = self._count_tokens(messages)
+        context_limit = self._get_context_limit()
+        
+        # Reserve tokens for the response (estimate ~2000 tokens for response + tool calls)
+        effective_limit = context_limit - 2000
+        threshold = int(effective_limit * 0.8)  # 80% threshold
+        
+        logging.getLogger().info(
+            f"Token usage: {token_count}/{context_limit} "
+            f"(threshold: {threshold}, {token_count/effective_limit*100:.1f}% of effective limit)"
+        )
+        
+        if token_count >= threshold:
+            logging.getLogger().warning(
+                f"Context at {token_count/effective_limit*100:.1f}% of limit, consolidating..."
+            )
+            return await self._consolidate_context(history, messages)
+        
+        return messages
+
     async def _run_once(
         self, history: History, messages: list[Message], use_tools: bool
     ) -> tuple[ModelResponse, list[Message], bool]:
@@ -119,6 +288,9 @@ class LiteLLM(BaseLLM):
         Returns:
             Tuple of (response, updated_messages, tools_executed)
         """
+        # Check if we're approaching the context limit and consolidate if needed
+        messages = await self._check_and_consolidate_if_needed(history, messages)
+        
         completion_params = self._prepare_completion_params(messages=messages, use_tools=use_tools)
 
         logging.getLogger().debug(f"LLM request: {completion_params}")

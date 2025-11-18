@@ -103,6 +103,7 @@ def run_fraim(benchmark_path: Path, output_dir: Path, model: Optional[str] = Non
     cmd = [
         "uv", "run", "fraim",
         "--show-rich-display",
+        "--debug",
         "run", "code",
         "--location", str(benchmark_path),
         "--output", str(output_dir),
