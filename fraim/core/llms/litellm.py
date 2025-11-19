@@ -9,13 +9,14 @@ from collections.abc import Iterable
 from typing import Any, Protocol, Self, cast
 
 import litellm
-from litellm import CustomStreamWrapper, ModelResponse
+from litellm import ChatCompletionThinkingBlock, CustomStreamWrapper, ModelResponse
 from litellm.types.utils import ChatCompletionMessageToolCall
 
 from fraim.core.history import EventRecord, History
 from fraim.core.llms.base import BaseLLM
 from fraim.core.llms.cache import LLMCache
 from fraim.core.messages import AssistantMessage, Function, Message, ToolCall
+from fraim.core.messages.message import ThinkingBlock
 from fraim.core.tools import BaseTool, execute_tool_calls
 from fraim.core.utils.retry.http import should_retry_request as should_retry_http_request
 from fraim.core.utils.retry.tenacity import with_retry
@@ -153,7 +154,8 @@ class LiteLLM(BaseLLM):
 
         logging.getLogger().debug(f"LLM response: {message_content}")
 
-        tool_calls = _convert_tool_calls(message.tool_calls)
+        thinking_blocks = _convert_thinking_blocks(getattr(message, "thinking_blocks", []))
+        tool_calls = _convert_tool_calls(getattr(message, "tool_calls", []))
 
         if len(tool_calls) == 0:
             # Final response. Don't log to history.
@@ -166,7 +168,9 @@ class LiteLLM(BaseLLM):
         tool_messages = await execute_tool_calls(history, tool_calls, self.tools_dict)
 
         # Create assistant message with tool calls
-        assistant_message = AssistantMessage(content=message_content, tool_calls=tool_calls)
+        assistant_message = AssistantMessage(
+            content=message_content, tool_calls=tool_calls, thinking_blocks=thinking_blocks
+        )
 
         # Add assistant message and tool responses to conversation
         updated_messages = messages + [assistant_message] + tool_messages
@@ -211,6 +215,16 @@ class LiteLLM(BaseLLM):
             params["tool_choice"] = "none"
 
         return params
+
+
+def _convert_thinking_blocks(raw_thinking_blocks: list[ChatCompletionThinkingBlock] | None) -> list[ThinkingBlock]:
+    """Convert raw LiteLLM thinking blocks to our Pydantic ThinkingBlock models."""
+    if raw_thinking_blocks is None:
+        return []
+
+    return [
+        ThinkingBlock(type=tb["type"], thinking=tb["thinking"], signature=tb["signature"]) for tb in raw_thinking_blocks
+    ]
 
 
 def _convert_tool_calls(raw_tool_calls: list[ChatCompletionMessageToolCall] | None) -> list[ToolCall]:

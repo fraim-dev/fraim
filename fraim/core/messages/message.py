@@ -27,6 +27,16 @@ class ToolCall(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class ThinkingBlock(BaseModel):
+    """The thinking block in a response"""
+
+    type: Literal["thinking"] = "thinking"
+    thinking: str
+    signature: str
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class Message(BaseModel):
     """A message for an LLM"""
 
@@ -53,6 +63,7 @@ class AssistantMessage(Message):
 
     role: Literal["assistant"] = "assistant"
     tool_calls: list[ToolCall] | None = None
+    thinking_blocks: list[ThinkingBlock] | None = None
 
 
 class ToolMessage(Message):
