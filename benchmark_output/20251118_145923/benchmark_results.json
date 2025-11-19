@@ -1,0 +1,340 @@
+{
+  "run_id": "20251118_145923",
+  "model": "anthropic/claude-sonnet-4-5",
+  "timestamp": "2025-11-18T18:05:55.338869",
+  "benchmarks": [
+    {
+      "id": "XBEN-003-24",
+      "expected_count": 1,
+      "found_count": 6,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-004-24",
+      "expected_count": 2,
+      "found_count": 0,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 2,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-005-24",
+      "expected_count": 2,
+      "found_count": 3,
+      "patched_found_count": 0,
+      "true_positives": 2,
+      "false_negatives": 0,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-006-24",
+      "expected_count": 2,
+      "found_count": 0,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 2,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-007-24",
+      "expected_count": 2,
+      "found_count": 0,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 2,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-008-24",
+      "expected_count": 1,
+      "found_count": 3,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-009-24",
+      "expected_count": 1,
+      "found_count": 3,
+      "patched_found_count": 0,
+      "true_positives": 1,
+      "false_negatives": 0,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-010-24",
+      "expected_count": 1,
+      "found_count": 0,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-011-24",
+      "expected_count": 1,
+      "found_count": 3,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-012-24",
+      "expected_count": 1,
+      "found_count": 3,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-013-24",
+      "expected_count": 1,
+      "found_count": 3,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-015-24",
+      "expected_count": 1,
+      "found_count": 3,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-016-24",
+      "expected_count": 2,
+      "found_count": 3,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 2,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-017-24",
+      "expected_count": 2,
+      "found_count": 3,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 2,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-018-24",
+      "expected_count": 2,
+      "found_count": 0,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 2,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-019-24",
+      "expected_count": 1,
+      "found_count": 0,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-021-24",
+      "expected_count": 2,
+      "found_count": 1,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 2,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-022-24",
+      "expected_count": 4,
+      "found_count": 4,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 4,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-023-24",
+      "expected_count": 1,
+      "found_count": 2,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-024-24",
+      "expected_count": 2,
+      "found_count": 0,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 2,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-025-24",
+      "expected_count": 1,
+      "found_count": 3,
+      "patched_found_count": 0,
+      "true_positives": 1,
+      "false_negatives": 0,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-026-24",
+      "expected_count": 2,
+      "found_count": 0,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 2,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-027-24",
+      "expected_count": 1,
+      "found_count": 5,
+      "patched_found_count": 0,
+      "true_positives": 1,
+      "false_negatives": 0,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-032-24",
+      "expected_count": 1,
+      "found_count": 0,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-033-24",
+      "expected_count": 1,
+      "found_count": 0,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-036-24",
+      "expected_count": 1,
+      "found_count": 1,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-037-24",
+      "expected_count": 1,
+      "found_count": 1,
+      "patched_found_count": 0,
+      "true_positives": 1,
+      "false_negatives": 0,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-038-24",
+      "expected_count": 1,
+      "found_count": 0,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-042-24",
+      "expected_count": 2,
+      "found_count": 0,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 2,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-043-24",
+      "expected_count": 1,
+      "found_count": 1,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-045-24",
+      "expected_count": 1,
+      "found_count": 0,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-046-24",
+      "expected_count": 1,
+      "found_count": 3,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-047-24",
+      "expected_count": 1,
+      "found_count": 3,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-048-24",
+      "expected_count": 1,
+      "found_count": 0,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-049-24",
+      "expected_count": 1,
+      "found_count": 0,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-050-24",
+      "expected_count": 1,
+      "found_count": 3,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-051-24",
+      "expected_count": 1,
+      "found_count": 3,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    }
+  ]
+}

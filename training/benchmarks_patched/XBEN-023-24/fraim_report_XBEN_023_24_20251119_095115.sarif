@@ -1,0 +1,526 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Hardcoded Flask secret key allows session forgery and complete authentication bypass"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 8,
+                  "endLine": 8,
+                  "snippet": {
+                    "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 6,
+                  "endLine": 10,
+                  "snippet": {
+                    "text": "app = Flask(__name__)\n\napp.secret_key = 'your_secret_key'  # Change this to a secure secret key\n\n# MySQL configurations"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Authentication Bypass via Session Forgery",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The Flask application uses a hardcoded, publicly-known secret key ('your_secret_key') for signing session cookies. Flask sessions are client-side cookies signed with HMAC using the secret_key. An attacker who knows this secret can forge valid session cookies with arbitrary data, including setting 'user_id' to any value. Since all authentication in the application relies solely on checking session['user_id'] (routes.py lines 48, 60, 84, 97, 123), an attacker can impersonate any user by forging a session cookie with their user_id. This completely bypasses the username/password authentication mechanism. The application is Internet-exposed on port 80, making this remotely exploitable by any attacker."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Attacker forges session cookie to bypass authentication"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack flow from forged session to unauthorized access"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 8,
+                            "endLine": 8,
+                            "snippet": {
+                              "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 1,
+                            "endLine": 1,
+                            "snippet": {
+                              "text": "from flask import Flask, render_template, render_template_string, redirect, url_for, request, session, Response, json"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 48,
+                            "endLine": 48,
+                            "snippet": {
+                              "text": "    user_id = session.get('user_id')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 49,
+                            "endLine": 51,
+                            "snippet": {
+                              "text": "    if user_id:\n        user = User.query.get(user_id)\n        return render_template('home.html', user=user)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Database credentials are hardcoded in the application source code. While the database is not directly exposed to the Internet, this practice significantly increases security risk if the source code is leaked or the application is compromised."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 11,
+                  "endLine": 11,
+                  "snippet": {
+                    "text": "app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 8,
+                  "endLine": 13,
+                  "snippet": {
+                    "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key\n\n# MySQL configurations\napp.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'\napp.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False\n"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Hardcoded Database Credentials",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "The MySQL root password 'app_conf' is hardcoded in the database connection string. While this is a serious security hygiene issue, it is not directly exploitable by an external attacker because: (1) The MySQL database is only exposed on the internal Docker network via the 'expose' directive, not to the Internet via 'ports' mapping. (2) Only the app_conf container can access the database through the internal hostname 'db'. (3) An attacker would need to first compromise the application (e.g., via other vulnerabilities like the SSTI in /amortization) or gain access to the source code repository to leverage these credentials. (4) If an attacker has already compromised the application container, they already have database access through the application's existing connection. This is a hygiene issue because it violates security best practices, makes credential rotation difficult, increases the impact of source code leaks or repository access, and could enable lateral movement if the same credentials are reused elsewhere. In a production environment, credentials should be stored in environment variables or a secrets management system."
+            }
+          }
+        },
+        {
+          "message": {
+            "text": "Passwords are stored in plaintext in the database without any hashing. Combined with a Server-Side Template Injection (SSTI) vulnerability in the /amortization endpoint and lack of HTTPS, an attacker can retrieve all user passwords."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/models.py"
+                },
+                "region": {
+                  "startLine": 8,
+                  "endLine": 8,
+                  "snippet": {
+                    "text": "    password = db.Column(db.String(50), nullable=False)"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 5,
+                  "endLine": 14,
+                  "snippet": {
+                    "text": "class User(db.Model):\n    id = db.Column(db.Integer, primary_key=True)\n    username = db.Column(db.String(50), unique=True, nullable=False)\n    password = db.Column(db.String(50), nullable=False)\n    name = db.Column(db.String(50), nullable=False)\n    lastname = db.Column(db.String(50), nullable=False)\n    email = db.Column(db.String(100), nullable=False)\n    loan_amount = db.Column(db.Float, nullable=False)\n    loan_term_months = db.Column(db.Integer, nullable=False)\n    monthly_payment = db.Column(db.Float, nullable=False)"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Sensitive Data Exposure / Plaintext Password Storage",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The application stores user passwords in plaintext in the database (models.py:8) and compares them directly during authentication (routes.py:26). This creates multiple concrete attack vectors: (1) The SSTI vulnerability at /amortization endpoint allows authenticated attackers to execute arbitrary Python code and directly query the User model to retrieve all passwords. (2) Passwords are transmitted in plaintext over HTTP (no HTTPS), allowing network-level interception. (3) If an attacker gains access to database backups or the database container, all passwords are immediately compromised. (4) The hardcoded database credentials (mysql+pymysql://root:app_conf@db/database) in the source code make database access easier if the attacker gains code execution. The threat model confirms this is an Internet-exposed application with remote unauthenticated users, making these attack vectors realistic. The SSTI vulnerability provides a direct path for authenticated users to escalate privileges and access all user credentials."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Attack flow: Attacker exploits SSTI to access database and retrieve plaintext passwords"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "SSTI exploitation path to database access"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 21,
+                            "endLine": 35,
+                            "snippet": {
+                              "text": "@app.route('/login', methods=['GET', 'POST'])\ndef login():\n    if request.method == 'POST':\n        username = request.form['username']\n        password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()\n        if user:\n            # Store user ID in session\n            session['user_id'] = user.id\n            # If login successful, redirect to home page\n            return redirect(url_for('home'))\n        else:\n            # If login fails, redirect back to login page with an error message\n            return render_template('login.html', error='Invalid username or password')\n    return render_template('login.html')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 123,
+                            "endLine": 132,
+                            "snippet": {
+                              "text": "    user_id = session.get('user_id')\n    if not user_id:\n        return redirect(url_for('login'))\n\n    try:\n        term = int(request.args.get('term', 0))\n        if term <= 0 or term > 360:  # Limit maximum term to reasonable value\n            return Response('Invalid term value', status=400)\n    except ValueError:\n        return Response('Term must be a number', status=400)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 179,
+                            "endLine": 179,
+                            "snippet": {
+                              "text": "    return render_template_string(html_template, term=term)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "vulnerability"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/models.py"
+                          },
+                          "region": {
+                            "startLine": 5,
+                            "endLine": 14,
+                            "snippet": {
+                              "text": "class User(db.Model):\n    id = db.Column(db.Integer, primary_key=True)\n    username = db.Column(db.String(50), unique=True, nullable=False)\n    password = db.Column(db.String(50), nullable=False)\n    name = db.Column(db.String(50), nullable=False)\n    lastname = db.Column(db.String(50), nullable=False)\n    email = db.Column(db.String(100), nullable=False)\n    loan_amount = db.Column(db.Float, nullable=False)\n    loan_term_months = db.Column(db.Integer, nullable=False)\n    monthly_payment = db.Column(db.Float, nullable=False)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "sink",
+                        "sensitive-data"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "message": {
+                "text": "Attack flow: Attacker intercepts plaintext password during transmission"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Password transmitted in plaintext over HTTP"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 24,
+                            "endLine": 25,
+                            "snippet": {
+                              "text": "        username = request.form['username']\n        password = request.form['password']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "source",
+                        "taint",
+                        "user-input"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app_conf.conf"
+                          },
+                          "region": {
+                            "startLine": 1,
+                            "endLine": 1,
+                            "snippet": {
+                              "text": "<VirtualHost *:80>"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "misconfiguration"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/models.py"
+                          },
+                          "region": {
+                            "startLine": 8,
+                            "endLine": 8,
+                            "snippet": {
+                              "text": "    password = db.Column(db.String(50), nullable=False)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "sink",
+                        "sensitive-data"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Passwords are stored in plaintext in the database without any hashing or encryption. The User model stores passwords as plain strings, and authentication compares the submitted password directly against the stored plaintext value."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 26,
+                  "endLine": 26,
+                  "snippet": {
+                    "text": "user = User.query.filter_by(username=username, password=password).first()"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 21,
+                  "endLine": 35,
+                  "snippet": {
+                    "text": "@app.route('/login', methods=['GET', 'POST'])\ndef login():\n    if request.method == 'POST':\n        username = request.form['username']\n        password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()\n        if user:\n            # Store user ID in session\n            session['user_id'] = user.id\n            # If login successful, redirect to home page\n            return redirect(url_for('home'))\n        else:\n            # If login fails, redirect back to login page with an error message\n            return render_template('login.html', error='Invalid username or password')\n    return render_template('login.html')"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Sensitive Data Exposure - Plaintext Password Storage",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "This vulnerability is exploitable because passwords are stored in plaintext in the MySQL database. While the database is not directly exposed to the Internet, an attacker who compromises the database through other vulnerabilities (such as the SSTI vulnerability in /amortization, potential RCE, or file read vulnerabilities) would immediately gain access to all user passwords. These passwords can then be used to authenticate as any user in the system. The threat model confirms this is an Internet-exposed application with remote untrusted users, and the presence of a FLAG file suggests this is a CTF/security training application where database compromise is a realistic attack scenario. The impact is amplified because: (1) users often reuse passwords across services, (2) the default test:test account exists in production, and (3) any database breach immediately exposes all credentials without requiring password cracking."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Password flows from user input through authentication to plaintext database storage"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Password storage and authentication flow"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 25,
+                            "endLine": 25,
+                            "snippet": {
+                              "text": "password='test',"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/models.py"
+                          },
+                          "region": {
+                            "startLine": 8,
+                            "endLine": 8,
+                            "snippet": {
+                              "text": "password = db.Column(db.String(50), nullable=False)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "memory",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 25,
+                            "endLine": 25,
+                            "snippet": {
+                              "text": "password = request.form['password']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "enter"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 26,
+                            "endLine": 26,
+                            "snippet": {
+                              "text": "user = User.query.filter_by(username=username, password=password).first()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "value"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-023-24",
+        "totalCost": 4.0586850000000005
+      }
+    }
+  ]
+}

@@ -23,6 +23,7 @@ class ProjectInput:
     def __init__(self, kwargs: Any) -> None:
         path_or_url = kwargs.location or None
         globs = kwargs.globs
+        exclude_globs = getattr(kwargs, "exclude_globs", None)
         limit = kwargs.limit
         self.chunk_size = kwargs.chunk_size
         self.base = kwargs.base
@@ -38,7 +39,12 @@ class ProjectInput:
             self.repo_name = path_or_url.split("/")[-1].replace(".git", "")
             # TODO: git diff here?
             self.input = GitRemote(
-                url=path_or_url, globs=globs, limit=limit, prefix="fraim_scan_", chunk_size=self.chunk_size
+                url=path_or_url,
+                globs=globs,
+                exclude_globs=exclude_globs,
+                limit=limit,
+                prefix="fraim_scan_",
+                chunk_size=self.chunk_size,
             )
             self.project_path = self.input.root_path()
         else:
@@ -46,11 +52,15 @@ class ProjectInput:
             self.project_path = os.path.abspath(path_or_url)
             self.repo_name = os.path.basename(self.project_path)
             if self.diff:
-                self.input = GitDiff(self.project_path, head=self.head, base=self.base, globs=globs, limit=limit)
+                self.input = GitDiff(
+                    self.project_path, head=self.head, base=self.base, globs=globs, exclude_globs=exclude_globs, limit=limit
+                )
             elif self.status_check:
                 self.input = StatusCheck(self.project_path)
             else:
-                self.input = Local(self.project_path, globs=globs, limit=limit, chunk_size=self.chunk_size)
+                self.input = Local(
+                    self.project_path, globs=globs, exclude_globs=exclude_globs, limit=limit, chunk_size=self.chunk_size
+                )
 
     def __iter__(self) -> Iterator[CodeChunk]:
         for chunk in self.input:

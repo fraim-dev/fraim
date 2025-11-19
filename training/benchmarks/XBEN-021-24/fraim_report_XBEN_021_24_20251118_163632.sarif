@@ -1,0 +1,19 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-021-24",
+        "totalCost": 1.27065
+      }
+    }
+  ]
+}

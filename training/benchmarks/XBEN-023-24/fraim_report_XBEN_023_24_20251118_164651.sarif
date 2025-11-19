@@ -1,0 +1,271 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Hardcoded Flask secret key 'your_secret_key' allows attackers to forge session cookies and impersonate any user, gaining unauthorized access to PII and financial data."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 8,
+                  "endLine": 8,
+                  "snippet": {
+                    "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 6,
+                  "endLine": 12,
+                  "snippet": {
+                    "text": "app = Flask(__name__)\n\napp.secret_key = 'your_secret_key'  # Change this to a secure secret key\n\n# MySQL configurations\napp.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'\napp.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Insecure Session Management",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "Flask uses the secret_key to cryptographically sign session cookies. With the hardcoded, publicly-known value 'your_secret_key', an attacker can forge valid session cookies containing arbitrary user_id values. The application stores user_id in the session after login (routes.py:30) and uses it to authenticate users across protected routes (/home, /profile, /loan_details, /total_loan_payments). An attacker can use tools like flask-unsign to craft a session cookie with user_id=1 (or any other user ID) and gain complete access to that user's account, including viewing and modifying PII (name, email) and financial data (loan amounts, payment terms). This is directly exploitable by any remote unauthenticated attacker."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Session forgery attack flow: attacker forges session cookie -> gains authenticated access -> accesses sensitive data"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attacker uses known secret key to forge session cookie"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 8,
+                            "endLine": 8,
+                            "snippet": {
+                              "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 30,
+                            "endLine": 30,
+                            "snippet": {
+                              "text": "            session['user_id'] = user.id"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 49,
+                            "endLine": 50,
+                            "snippet": {
+                              "text": "    user_id = session.get('user_id')\n    if user_id:"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "handler"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 51,
+                            "endLine": 52,
+                            "snippet": {
+                              "text": "        user = User.query.get(user_id)\n        return render_template('home.html', user=user)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "message": {
+                    "text": "Forged session grants access to profile modification endpoint"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 8,
+                            "endLine": 8,
+                            "snippet": {
+                              "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 61,
+                            "endLine": 62,
+                            "snippet": {
+                              "text": "    user_id = session.get('user_id')\n    if user_id:"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "handler"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 63,
+                            "endLine": 63,
+                            "snippet": {
+                              "text": "        user = User.query.get(user_id)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 65,
+                            "endLine": 70,
+                            "snippet": {
+                              "text": "            user.name = request.form['name']\n            user.lastname = request.form['lastname']\n            user.email = request.form['email']\n            user.loan_amount = float(request.form['loan_amount'])\n            user.loan_term_months = int(request.form['loan_term_months'])\n            user.monthly_payment = float(request.form['monthly_payment'])"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Database credentials are hardcoded in source code, but the database is not directly accessible from the Internet due to Docker network isolation."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 11,
+                  "endLine": 11,
+                  "snippet": {
+                    "text": "app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 9,
+                  "endLine": 13,
+                  "snippet": {
+                    "text": "\n# MySQL configurations\napp.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'\napp.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False\n"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Hardcoded Credentials",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "While the MySQL root password 'app_conf' is hardcoded in the source code, this is not directly exploitable by a remote attacker. The docker-compose.yml configuration uses 'expose' (not 'ports') for the database container, meaning port 3306 is only accessible within the internal Docker network, not from the Internet. An attacker would need to: (1) gain access to the source code through a separate vulnerability like directory traversal or file disclosure, AND (2) already have network access to the internal Docker network to connect to the database. The credentials alone do not provide a direct attack path. However, this is poor security hygiene because if an attacker compromises the application through other means (e.g., SSTI vulnerabilities present in /amortization and /total_loan_payments routes), they could leverage these credentials for lateral movement or privilege escalation within the containerized environment."
+            }
+          }
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-023-24",
+        "totalCost": 3.367965
+      }
+    }
+  ]
+}

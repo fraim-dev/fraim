@@ -1,0 +1,283 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Passwords are stored in plaintext without hashing. While this is a serious security anti-pattern, it is not directly exploitable by remote attackers without first gaining database access through other vulnerabilities (none found in current codebase)."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 52,
+                  "endLine": 54,
+                  "snippet": {
+                    "text": "password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()\n        if user:"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 50,
+                  "endLine": 60,
+                  "snippet": {
+                    "text": "    if request.method == 'POST':\n        password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()\n        if user:\n            # User provided a valid username/password pair.\n            session['user_id'] = user.id\n\n            # If login successful, redirect to home page\n            return redirect(url_for('dashboard', username=username))\n        else:\n            # Render login page with error message if password is incorrect"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Plaintext Password Storage",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "The application stores passwords in plaintext in the database (User model, password field) and performs direct string comparison for authentication. However, this is not directly exploitable by remote attackers. Analysis of the codebase shows: (1) All database queries use SQLAlchemy ORM with parameterized queries, preventing SQL injection; (2) render_template_string is imported but never used, preventing SSTI; (3) The database runs on an internal Docker network not exposed to the Internet; (4) No database export, backup, or admin endpoints exist. For this weakness to be exploited, an attacker would need to first compromise the database through infrastructure-level attacks, container escape, backup exposure, or insider access - none of which are vulnerabilities in the application code itself. This represents a defense-in-depth failure rather than a concrete exploit path."
+            }
+          }
+        },
+        {
+          "message": {
+            "text": "Insecure Direct Object Reference (IDOR) in order archive endpoint allows any authenticated user to archive any order and gain access to its receipt, including a flag-containing order with no creator."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 128,
+                  "endLine": 143,
+                  "snippet": {
+                    "text": "@app.route('/order/<int:order_id>/archive')\ndef order_archive(order_id):\n    # Retrieve user from session\n    user_id = session.get('user_id')\n    if user_id:\n        user = User.query.filter(User.id == user_id).first()\n\n        # Process the order status change\n        order = Order.query.filter(Order.id == order_id).first_or_404()\n        order.archiver = user\n        order.archived = True\n        db.session.commit()\n        \n        active_orders = Order.query.filter(Order.creator == user).filter(Order.archived == False).all()\n        return render_template('orders.html', orders=active_orders)\n    else:\n        # If user not in session, redirect to login"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Insecure Direct Object Reference (IDOR)",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The order_archive endpoint at line 128 accepts an order_id parameter and archives the order without verifying that the authenticated user is the creator of that order. This allows any authenticated user to archive any order by manipulating the order_id in the URL. The vulnerability is directly exploitable to access the flag stored in order 300198's receipt. Attack chain: (1) Authenticate as test:test or any user, (2) Call GET /order/300198/archive to become the archiver of the flag order, (3) Call GET /order/300198/receipt which now succeeds because the attacker is the archiver, (4) Extract flag from receipt. The receipt endpoint at line 102 checks 'Order.creator == user OR Order.archiver == user', so by exploiting the IDOR to become an archiver, the attacker bypasses the receipt authorization."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "IDOR vulnerability allows authenticated attacker to archive arbitrary orders and gain access to their receipts, including the flag-containing order 300198"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack flow from authentication to flag extraction via IDOR"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 20,
+                            "endLine": 33,
+                            "snippet": {
+                              "text": "@app.route('/', methods=['GET', 'POST'])\ndef login():\n    error = request.args.get('error')\n    if request.method == 'POST':\n        username = request.form['username']\n        # Check if username exists\n        user = User.query.filter_by(username=username).first()\n        if user:\n            # Redirect to password page if username exists\n            return redirect(url_for('password', username=username))\n        else:\n            # Render login page with error message if username doesn't exist\n            return render_template('login.html', error='User not found')\n    return render_template('login.html', error=error)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "enter",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 52,
+                            "endLine": 57,
+                            "snippet": {
+                              "text": "password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()\n        if user:\n            # User provided a valid username/password pair.\n            session['user_id'] = user.id\n\n            # If login successful, redirect to home page"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 128,
+                            "endLine": 129,
+                            "snippet": {
+                              "text": "@app.route('/order/<int:order_id>/archive')\ndef order_archive(order_id):"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "enter",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 134,
+                            "endLine": 134,
+                            "snippet": {
+                              "text": "order = Order.query.filter(Order.id == order_id).first_or_404()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 135,
+                            "endLine": 137,
+                            "snippet": {
+                              "text": "order.archiver = user\n        order.archived = True\n        db.session.commit()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 96,
+                            "endLine": 97,
+                            "snippet": {
+                              "text": "@app.route('/order/<int:order_id>/receipt')\ndef order_receipt(order_id):"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "enter",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 102,
+                            "endLine": 102,
+                            "snippet": {
+                              "text": "order = Order.query.filter(Order.id == order_id).filter(or_(Order.creator == user, Order.archiver == user)).first()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 97,
+                            "endLine": 106,
+                            "snippet": {
+                              "text": "order = Order(\n        id='300198',\n        date='05/16/2024',\n        ticker='DEMO',\n        operation_type='SELL',\n        quantity='1',\n        price='1.00',\n        archived=False,\n        receipt=flag_content\n    )"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 104,
+                            "endLine": 104,
+                            "snippet": {
+                              "text": "return render_template('receipt.html', order=order)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "return",
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-002-24",
+        "totalCost": 2.8299090000000002
+      }
+    }
+  ]
+}

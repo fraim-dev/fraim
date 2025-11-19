@@ -20,11 +20,13 @@ class GitRemote(Input):
         url: str,
         chunk_size: int,
         globs: list[str] | None = None,
+        exclude_globs: list[str] | None = None,
         limit: int | None = None,
         prefix: str | None = None,
     ):
         self.url = url
         self.globs = globs
+        self.exclude_globs = exclude_globs
         self.limit = limit
         self.chunk_size = chunk_size
         self.tempdir = TemporaryDirectory(prefix=prefix)
@@ -46,7 +48,13 @@ class GitRemote(Input):
 
         # Clone remote repository to a local directory, delegate to file iterator.
         self._clone_to_path()
-        for chunk in Local(path=self.path, chunk_size=self.chunk_size, globs=self.globs, limit=self.limit):
+        for chunk in Local(
+            path=self.path,
+            chunk_size=self.chunk_size,
+            globs=self.globs,
+            exclude_globs=self.exclude_globs,
+            limit=self.limit,
+        ):
             yield chunk
 
     def _clone_to_path(self) -> None:

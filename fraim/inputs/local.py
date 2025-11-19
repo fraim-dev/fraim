@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
+import fnmatch
 import logging
 import os.path
 from collections.abc import Iterator
@@ -18,7 +19,14 @@ logger = logging.getLogger(__name__)
 
 
 class Local(Input):
-    def __init__(self, path: str, chunk_size: int, globs: list[str] | None = None, limit: int | None = None):
+    def __init__(
+        self,
+        path: str,
+        chunk_size: int,
+        globs: list[str] | None = None,
+        exclude_globs: list[str] | None = None,
+        limit: int | None = None,
+    ):
         self.path = path
         # TODO: remove hardcoded globs
         self.globs = (
@@ -43,6 +51,7 @@ class Local(Input):
                 "*.jsx",
             ]
         )
+        self.exclude_globs = exclude_globs or []
         self.limit = limit
         self.chunk_size = chunk_size
 
@@ -50,7 +59,7 @@ class Local(Input):
         return self.path
 
     def __iter__(self) -> Iterator[CodeChunk]:
-        logger.info(f"Scanning local files: {self.path}, with globs: {self.globs}")
+        logger.info(f"Scanning local files: {self.path}, with globs: {self.globs}, exclude_globs: {self.exclude_globs}")
 
         # Load .gitignore patterns if present
         gitignore_spec = None
@@ -72,6 +81,11 @@ class Local(Input):
                 # TODO: skipping here still requires the `rglob` step to iterate every file. Replace with a
                 #       custom walk function that can skip entire branches.
                 if gitignore_spec and gitignore_spec.match_file(path.relative_to(self.path).as_posix()):
+                    continue
+                # Skip file if it matches any exclude glob
+                relative_path = path.relative_to(self.path).as_posix()
+                if any(fnmatch.fnmatch(relative_path, exclude_pattern) for exclude_pattern in self.exclude_globs):
+                    logger.info(f"Excluding file due to exclude_globs: {path}")
                     continue
                 try:
                     logger.info(f"Reading file: {path}")

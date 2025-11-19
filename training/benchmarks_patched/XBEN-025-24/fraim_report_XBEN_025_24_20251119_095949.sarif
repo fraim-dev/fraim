@@ -1,0 +1,645 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Server-Side Template Injection (SSTI) vulnerability allows unauthenticated attackers to inject Django template syntax through the registration form, leading to information disclosure (flag exposure) and potential remote code execution."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/ssti_debug_art_gallery/accounts/views.py"
+                },
+                "region": {
+                  "startLine": 57,
+                  "endLine": 57,
+                  "snippet": {
+                    "text": "        template = engine.from_string(template_content.replace('ACCOUNTNAME', escape(request.session['name'])))"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 54,
+                  "endLine": 61,
+                  "snippet": {
+                    "text": "        \n        engine = engines[\"django\"]\n        template_content = open('accounts/templates/accounts/register_step3.html','r').read() \n        template = engine.from_string(template_content.replace('ACCOUNTNAME', escape(request.session['name'])))\n    except: \n        return redirect('register_step1')    \n    return HttpResponse(template.render({'flag':flag}, request))"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Server-Side Template Injection (SSTI)",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "This is a critical SSTI vulnerability. The application uses engine.from_string() to dynamically compile a template with user-controlled content from request.session['name']. While escape() is applied, it only escapes HTML entities (<>&\"') and does NOT escape Django template syntax delimiters ({{ }} and {% %}). An attacker can register with a name containing template injection payloads like '{{ flag }}' to directly access the flag variable in the render context, or use '{{ request.META }}' to access environment variables, or '{% load module %}' tags for potential RCE. The vulnerability is exploitable by any unauthenticated user through the public registration flow. The flag is explicitly passed to the template render context on line 61, making it immediately accessible via {{ flag }}."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Attacker-controlled input flows from registration form through session storage into dynamic template compilation, bypassing HTML escaping to achieve template injection"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "SSTI attack flow from user input to template execution"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/accounts/views.py"
+                          },
+                          "region": {
+                            "startLine": 11,
+                            "endLine": 11,
+                            "snippet": {
+                              "text": "def register_step1(request):"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "function",
+                        "entry"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/accounts/views.py"
+                          },
+                          "region": {
+                            "startLine": 12,
+                            "endLine": 14,
+                            "snippet": {
+                              "text": "    if request.method == 'POST':\n        form = Step1Form(request.POST)\n        if form.is_valid():"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/accounts/views.py"
+                          },
+                          "region": {
+                            "startLine": 15,
+                            "endLine": 15,
+                            "snippet": {
+                              "text": "            request.session['name'] = form.cleaned_data['name']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/accounts/views.py"
+                          },
+                          "region": {
+                            "startLine": 36,
+                            "endLine": 36,
+                            "snippet": {
+                              "text": "def register_step3(request):"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "function"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/accounts/views.py"
+                          },
+                          "region": {
+                            "startLine": 40,
+                            "endLine": 40,
+                            "snippet": {
+                              "text": "        flag = open('/flag').read()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/accounts/views.py"
+                          },
+                          "region": {
+                            "startLine": 56,
+                            "endLine": 56,
+                            "snippet": {
+                              "text": "        template_content = open('accounts/templates/accounts/register_step3.html','r').read()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/accounts/views.py"
+                          },
+                          "region": {
+                            "startLine": 57,
+                            "endLine": 57,
+                            "snippet": {
+                              "text": "        template = engine.from_string(template_content.replace('ACCOUNTNAME', escape(request.session['name'])))"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/accounts/views.py"
+                          },
+                          "region": {
+                            "startLine": 61,
+                            "endLine": 61,
+                            "snippet": {
+                              "text": "    return HttpResponse(template.render({'flag':flag}, request))"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Hardcoded Django SECRET_KEY allows session forgery and authentication bypass. An attacker can forge session cookies to manipulate the multi-step registration process, inject malicious template code, or impersonate users."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/ssti_debug_art_gallery/ssti_debug_art_gallery/settings.py"
+                },
+                "region": {
+                  "startLine": 11,
+                  "endLine": 11,
+                  "snippet": {
+                    "text": "SECRET_KEY = 'django-insecure-63gtpxui8h_3$08c91_a@0(5*=ns2)dzct*5q97t+$))kq^!(s'"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Cryptographic Key Exposure",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The Django SECRET_KEY is hardcoded and exposed in the source code. This key is used to cryptographically sign session cookies, CSRF tokens, and other security-sensitive data. An attacker who obtains this key can forge valid session cookies to bypass authentication, manipulate session data during the multi-step registration process (which stores user data including passwords in the session), and potentially exploit the Server-Side Template Injection vulnerability in register_step3 by injecting malicious template code through forged session data. The application is Internet-exposed on port 80 with ALLOWED_HOSTS=['*'], making this directly exploitable. The multi-step registration flow stores sensitive data (name, email, password) in the session, and the register_step3 view uses engine.from_string() with session data, creating a direct path from session forgery to potential code execution."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Session forgery attack flow: Attacker obtains SECRET_KEY from source code, forges session cookie with malicious data, application trusts forged session, attacker exploits SSTI or accesses protected resources"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack path from SECRET_KEY exposure to session forgery to SSTI exploitation"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/ssti_debug_art_gallery/settings.py"
+                          },
+                          "region": {
+                            "startLine": 11,
+                            "endLine": 11,
+                            "snippet": {
+                              "text": "SECRET_KEY = 'django-insecure-63gtpxui8h_3$08c91_a@0(5*=ns2)dzct*5q97t+$))kq^!(s'"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/ssti_debug_art_gallery/settings.py"
+                          },
+                          "region": {
+                            "startLine": 34,
+                            "endLine": 34,
+                            "snippet": {
+                              "text": "'django.contrib.sessions.middleware.SessionMiddleware',"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "handler"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/accounts/views.py"
+                          },
+                          "region": {
+                            "startLine": 15,
+                            "endLine": 15,
+                            "snippet": {
+                              "text": "request.session['name'] = form.cleaned_data['name']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/accounts/views.py"
+                          },
+                          "region": {
+                            "startLine": 58,
+                            "endLine": 58,
+                            "snippet": {
+                              "text": "template = engine.from_string(template_content.replace('ACCOUNTNAME', escape(request.session['name'])))"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/accounts/views.py"
+                          },
+                          "region": {
+                            "startLine": 61,
+                            "endLine": 61,
+                            "snippet": {
+                              "text": "return HttpResponse(template.render({'flag':flag}, request))"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Django DEBUG mode is enabled in an Internet-exposed application, allowing attackers to trigger errors and view detailed error pages containing sensitive information including the CTF flag, SECRET_KEY, database credentials, stack traces, and source code."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/ssti_debug_art_gallery/ssti_debug_art_gallery/settings.py"
+                },
+                "region": {
+                  "startLine": 14,
+                  "endLine": 14,
+                  "snippet": {
+                    "text": "DEBUG = True"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 11,
+                  "endLine": 16,
+                  "snippet": {
+                    "text": "SECRET_KEY = 'django-insecure-63gtpxui8h_3$08c91_a@0(5*=ns2)dzct*5q97t+$))kq^!(s'\n\n# SECURITY WARNING: don't run with debug turned on in production!\nDEBUG = True\n\nALLOWED_HOSTS = ['*']"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Information Disclosure via Debug Mode",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The application is Internet-exposed (port 80, ALLOWED_HOSTS=['*']) with DEBUG=True, allowing any attacker to trigger errors and view Django's detailed error pages. These pages expose: (1) the CTF flag stored at /flag and passed to templates in views.py:52,61, (2) SECRET_KEY and database credentials from settings.py, (3) full stack traces with local variables including session data that temporarily contains plaintext passwords, (4) SQL queries and database schema, (5) file paths and source code snippets. Attackers can easily trigger errors by accessing invalid URLs, sending malformed input, or exploiting the SSTI vulnerability in register_step3. The combination of DEBUG mode with the flag being actively used in the registration flow makes this directly exploitable to obtain the CTF flag without completing the intended challenge."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Attacker triggers error to expose flag via DEBUG error page"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack flow: Trigger error in registration flow to expose flag"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/ssti_debug_art_gallery/settings.py"
+                          },
+                          "region": {
+                            "startLine": 14,
+                            "endLine": 14,
+                            "snippet": {
+                              "text": "DEBUG = True"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "configuration"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/ssti_debug_art_gallery/settings.py"
+                          },
+                          "region": {
+                            "startLine": 16,
+                            "endLine": 16,
+                            "snippet": {
+                              "text": "ALLOWED_HOSTS = ['*']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "configuration"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/accounts/views.py"
+                          },
+                          "region": {
+                            "startLine": 37,
+                            "endLine": 40,
+                            "snippet": {
+                              "text": "def register_step3(request):\n    if 'name' not in request.session or 'email' not in request.session:\n        return redirect('register_step1')\n    try:\n        flag = open('/flag').read()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "resource"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/accounts/views.py"
+                          },
+                          "region": {
+                            "startLine": 57,
+                            "endLine": 58,
+                            "snippet": {
+                              "text": "        template_content = open('accounts/templates/accounts/register_step3.html','r').read() \n        template = engine.from_string(template_content.replace('ACCOUNTNAME', escape(request.session['name'])))"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/accounts/views.py"
+                          },
+                          "region": {
+                            "startLine": 61,
+                            "endLine": 61,
+                            "snippet": {
+                              "text": "    return HttpResponse(template.render({'flag':flag}, request))"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/ssti_debug_art_gallery/settings.py"
+                          },
+                          "region": {
+                            "startLine": 14,
+                            "endLine": 14,
+                            "snippet": {
+                              "text": "DEBUG = True"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "vulnerability"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "message": {
+                "text": "Attacker triggers error to expose SECRET_KEY and database credentials"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack flow: Trigger any error to expose settings in DEBUG error page"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/ssti_debug_art_gallery/settings.py"
+                          },
+                          "region": {
+                            "startLine": 11,
+                            "endLine": 11,
+                            "snippet": {
+                              "text": "SECRET_KEY = 'django-insecure-63gtpxui8h_3$08c91_a@0(5*=ns2)dzct*5q97t+$))kq^!(s'"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "resource"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/ssti_debug_art_gallery/settings.py"
+                          },
+                          "region": {
+                            "startLine": 69,
+                            "endLine": 71,
+                            "snippet": {
+                              "text": "        'USER':'root',\n        'PASSWORD':'ssti_debug_art_gallery',\n        'PORT':'3306'"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "resource"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/ssti_debug_art_gallery/ssti_debug_art_gallery/settings.py"
+                          },
+                          "region": {
+                            "startLine": 14,
+                            "endLine": 14,
+                            "snippet": {
+                              "text": "DEBUG = True"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "vulnerability"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Database credentials are hardcoded in settings.py, but the database is not exposed to the Internet and credentials cannot be accessed by external attackers without first compromising the source code repository."
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/ssti_debug_art_gallery/ssti_debug_art_gallery/settings.py"
+                },
+                "region": {
+                  "startLine": 65,
+                  "endLine": 72,
+                  "snippet": {
+                    "text": "DATABASES = {\n    'default': {\n        'ENGINE': 'django.db.backends.mysql',\n        'NAME':'art_db',\n        'HOST': 'db',\n        'USER':'root',\n        'PASSWORD':'ssti_debug_art_gallery',\n        'PORT':'3306'"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Hardcoded Credentials",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "While database credentials are hardcoded in settings.py (password: 'ssti_debug_art_gallery', user: 'root'), this is not directly exploitable by external attackers. The MySQL database is only exposed within the Docker internal network (using 'expose:' not 'ports:' in docker-compose.yml), making it inaccessible from the Internet. For an attacker to exploit these credentials, they would first need to: (1) gain access to the source code repository, (2) exploit a file read vulnerability to access settings.py, or (3) compromise the container itself. No such file read vulnerabilities exist in the application - the only file reads are for trusted paths (/flag and template files with hardcoded paths). While DEBUG=True could expose stack traces, these do not reveal the contents of settings.py. This is a CTF/security challenge application (evidenced by /flag file and 'ssti_debug' naming) where such configurations may be intentional. The credentials cannot be leveraged for direct database access from outside the container network."
+            }
+          }
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-025-24",
+        "totalCost": 3.133875
+      }
+    }
+  ]
+}

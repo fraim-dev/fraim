@@ -1,0 +1,239 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Hardcoded Flask secret key allows session forgery to access flag user account"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 11,
+                  "endLine": 11,
+                  "snippet": {
+                    "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 9,
+                  "endLine": 13,
+                  "snippet": {
+                    "text": "app = Flask(__name__)\n\napp.secret_key = 'your_secret_key'  # Change this to a secure secret key\n\n# MySQL configurations"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Session Forgery via Hardcoded Secret Key",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The Flask application uses a hardcoded secret key 'your_secret_key' for signing session cookies. Flask sessions are client-side signed cookies, meaning an attacker who knows the secret key can forge arbitrary session data. The application stores user_id in the session after authentication (routes.py:56) and uses it to identify users on the dashboard (routes.py:71,86). An attacker can forge a session cookie with user_id=10052 (the flag user's ID) and access the dashboard to retrieve the flag stored in the flag user's last_name field. This requires no authentication and can be done with publicly available tools like flask-unsign."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Attacker forges session cookie to impersonate flag user and retrieve secret flag"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack flow from hardcoded secret key to flag disclosure"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 11,
+                            "endLine": 11,
+                            "snippet": {
+                              "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 36,
+                            "endLine": 37,
+                            "snippet": {
+                              "text": "with open('/flag') as flag_file:\n    flag_content = flag_file.read()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 42,
+                            "endLine": 50,
+                            "snippet": {
+                              "text": "    flag = User(\n        id='10052',\n        username='flag',\n        password=''.join(random.choices(string.ascii_uppercase + string.digits, k=100)),\n        first_name='Flag',\n        last_name=flag_content,\n        email='flag@example.com',\n    )\n    db.session.add(flag)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 71,
+                            "endLine": 71,
+                            "snippet": {
+                              "text": "    user_id = session.get('user_id')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 86,
+                            "endLine": 86,
+                            "snippet": {
+                              "text": "        user = User.query.get(user_id)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 87,
+                            "endLine": 87,
+                            "snippet": {
+                              "text": "        return render_template('dashboard.html', user=user)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/templates/dashboard.html"
+                          },
+                          "region": {
+                            "startLine": 44,
+                            "endLine": 44,
+                            "snippet": {
+                              "text": "                        <h5 class=\"card-title\">Welcome, {{ user.first_name }} {{ user.last_name }}</h5>"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Passwords are stored in plaintext in the database without hashing, violating security best practices."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 52,
+                  "endLine": 53,
+                  "snippet": {
+                    "text": "password = request.form['password']\nuser = User.query.filter_by(username=username, password=password).first()"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Broken Authentication - Plaintext Password Storage",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "The application stores passwords in plaintext in the database and compares them directly without hashing. While this is a serious security weakness that violates best practices, it is not directly exploitable by an untrusted Internet attacker in the current deployment context. The MySQL database is only accessible within the Docker internal network and is not exposed to the Internet. There are no SQL injection vulnerabilities (SQLAlchemy uses parameterized queries) or database dump endpoints that would allow an attacker to read the plaintext passwords remotely. For this weakness to be exploited, an attacker would first need to compromise the database server, application server, or exploit a separate vulnerability to gain database access. This represents a defense-in-depth failure rather than a directly exploitable vulnerability."
+            }
+          }
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-003-24",
+        "totalCost": 0.0
+      }
+    }
+  ]
+}

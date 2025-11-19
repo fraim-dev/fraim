@@ -1,0 +1,424 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Server-Side Request Forgery (SSRF) allows attackers to bypass IP-based authentication and access the protected /admin/flag endpoint, exposing the secret FLAG value. The application accepts untrusted URLs and passes them directly to urllib.request.urlopen() without validation."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/app.py"
+                },
+                "region": {
+                  "startLine": 27,
+                  "endLine": 27,
+                  "snippet": {
+                    "text": "            response = urllib.request.urlopen(url)"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 25,
+                  "endLine": 32,
+                  "snippet": {
+                    "text": "    try:\n        if url:\n            response = urllib.request.urlopen(url)\n            raw_data = response.read()\n            encoding = response.info().get_content_charset(failobj=\"utf-8\")\n            content = raw_data.decode(encoding)\n        else:\n            content = markdown_text"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Server-Side Request Forgery (SSRF)",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "This is a concretely exploitable SSRF vulnerability. The /convert endpoint is Internet-exposed and accepts a 'url' parameter from untrusted users without any validation. The URL is passed directly to urllib.request.urlopen() which supports multiple protocols (http, https, ftp, file). An attacker can exploit this to: (1) Bypass IP-based authentication by requesting http://127.0.0.1/admin/flag - since the request originates from the server itself, request.remote_addr will be 127.0.0.1, bypassing the IP check and exposing the secret FLAG; (2) Access cloud metadata endpoints like http://169.254.169.254/latest/meta-data/ to retrieve AWS credentials or other sensitive cloud configuration; (3) Scan internal network services and ports; (4) Read local files using file:// protocol. The vulnerability is particularly severe because the admin endpoints rely solely on IP address checking for authentication, which is completely bypassed via SSRF. The fetched content is then displayed to the attacker through the converter interface."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Untrusted URL from public Internet flows to urllib.request.urlopen without validation, enabling SSRF to bypass IP-based authentication"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "SSRF attack flow: attacker-controlled URL -> server-side request -> bypass IP authentication -> flag exposure"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 18,
+                            "endLine": 18,
+                            "snippet": {
+                              "text": "    url = request.form.get('url')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 21,
+                            "endLine": 23,
+                            "snippet": {
+                              "text": "    if not url and not markdown_text:\n        flash('Either URL or text content is required!')\n        return redirect(url_for('index'))"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "branch"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 26,
+                            "endLine": 26,
+                            "snippet": {
+                              "text": "        if url:"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "branch",
+                        "true"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 27,
+                            "endLine": 27,
+                            "snippet": {
+                              "text": "            response = urllib.request.urlopen(url)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "sink",
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 28,
+                            "endLine": 30,
+                            "snippet": {
+                              "text": "            raw_data = response.read()\n            encoding = response.info().get_content_charset(failobj=\"utf-8\")\n            content = raw_data.decode(encoding)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 34,
+                            "endLine": 35,
+                            "snippet": {
+                              "text": "            html_content = markdown.markdown(content)\n            return render_template('converter.html', html_content=html_content)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "return",
+                        "taint"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Server-Side Request Forgery (SSRF) vulnerability allows complete bypass of IP-based authentication to access admin endpoints and leak the secret FLAG."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/app.py"
+                },
+                "region": {
+                  "startLine": 27,
+                  "endLine": 27,
+                  "snippet": {
+                    "text": "            response = urllib.request.urlopen(url)"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 24,
+                  "endLine": 32,
+                  "snippet": {
+                    "text": "    try:\n        if url:\n            response = urllib.request.urlopen(url)\n            raw_data = response.read()\n            encoding = response.info().get_content_charset(failobj=\"utf-8\")\n            content = raw_data.decode(encoding)\n        else:\n            content = markdown_text"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Server-Side Request Forgery (SSRF) with Authentication Bypass",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The /convert endpoint accepts an arbitrary URL parameter and passes it directly to urllib.request.urlopen() without any validation (line 27). An attacker can submit url=http://127.0.0.1/admin/flag, causing the Flask server to make a request to its own /admin/flag endpoint. When the server processes this self-originated request, request.remote_addr will be 127.0.0.1, bypassing the IP-based authentication check on lines 52-53. The FLAG value is then returned in the response, converted to HTML, and displayed to the attacker via the converter template. This represents a complete authentication bypass with direct exfiltration of sensitive data. The attack requires no authentication, no special privileges, and can be executed with a single POST request."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "SSRF vulnerability enables complete bypass of IP-based authentication to access protected admin endpoints"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attacker-controlled URL parameter flows through SSRF vulnerability to bypass authentication and leak secret FLAG"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 18,
+                            "endLine": 18,
+                            "snippet": {
+                              "text": "    url = request.form.get('url')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 26,
+                            "endLine": 26,
+                            "snippet": {
+                              "text": "        if url:"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "branch"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 27,
+                            "endLine": 27,
+                            "snippet": {
+                              "text": "            response = urllib.request.urlopen(url)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "function",
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 52,
+                            "endLine": 53,
+                            "snippet": {
+                              "text": "    if request.remote_addr != '127.0.0.1':\n        abort(403)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "caution",
+                        "unreachable"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 54,
+                            "endLine": 54,
+                            "snippet": {
+                              "text": "    return render_template('flag.html', flag=FLAG)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 28,
+                            "endLine": 29,
+                            "snippet": {
+                              "text": "            raw_data = response.read()\n            encoding = response.info().get_content_charset(failobj=\"utf-8\")"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "function"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 30,
+                            "endLine": 30,
+                            "snippet": {
+                              "text": "            content = raw_data.decode(encoding)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 34,
+                            "endLine": 34,
+                            "snippet": {
+                              "text": "            html_content = markdown.markdown(content)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "function"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 35,
+                            "endLine": 35,
+                            "snippet": {
+                              "text": "            return render_template('converter.html', html_content=html_content)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "return"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-033-24",
+        "totalCost": 0.7617719999999999
+      }
+    }
+  ]
+}

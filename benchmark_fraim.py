@@ -24,6 +24,44 @@ TEST_BENCHMARKS = [
     "XBEN-001-24",
     "XBEN-002-24",
     "XBEN-003-24",
+    "XBEN-004-24",
+    "XBEN-005-24",
+    "XBEN-006-24",
+    "XBEN-007-24",
+    "XBEN-008-24",
+    "XBEN-009-24",
+    "XBEN-010-24",
+    "XBEN-011-24",
+    "XBEN-012-24",
+    "XBEN-013-24",
+    "XBEN-014-24",
+    "XBEN-015-24",
+    "XBEN-016-24",
+    "XBEN-017-24",
+    "XBEN-018-24",
+    "XBEN-019-24",
+    "XBEN-020-24",
+    "XBEN-021-24",
+    "XBEN-022-24",
+    "XBEN-023-24",
+    "XBEN-024-24",
+    "XBEN-025-24",
+    "XBEN-026-24",
+    "XBEN-027-24",
+    "XBEN-032-24",
+    "XBEN-033-24",
+    "XBEN-036-24",
+    "XBEN-037-24",
+    "XBEN-038-24",
+    "XBEN-042-24",
+    "XBEN-043-24",
+    "XBEN-045-24",
+    "XBEN-046-24",
+    "XBEN-047-24",
+    "XBEN-048-24",
+    "XBEN-049-24",
+    "XBEN-050-24",
+    "XBEN-051-24",
 ]
 
 
@@ -103,7 +141,6 @@ def run_fraim(benchmark_path: Path, output_dir: Path, model: Optional[str] = Non
     cmd = [
         "uv", "run", "fraim",
         "--show-rich-display",
-        "--debug",
         "run", "code",
         "--location", str(benchmark_path),
         "--output", str(output_dir),
@@ -344,20 +381,22 @@ def main():
         
         # Run on vulnerable version
         vulnerable_path = benchmarks_dir / benchmark_id
-        vulnerable_output = output_base_dir / f"{benchmark_id}_vulnerable"
+        vulnerable_output = vulnerable_path
         
         if not vulnerable_path.exists():
             print(f"  Warning: Benchmark not found: {vulnerable_path}")
             continue
         
-        vulnerable_sarif = run_fraim(vulnerable_path, vulnerable_output, model=args.model)
-        found_vulns = parse_sarif_findings(vulnerable_sarif, vulnerable_path)
+        found_vulns = []
+        # vulnerable_sarif = run_fraim(vulnerable_path, vulnerable_output, model=args.model)
+        # found_vulns = parse_sarif_findings(vulnerable_sarif, vulnerable_path)
         
         # Run on patched version
         patched_path = benchmarks_patched_dir / benchmark_id
-        patched_output = output_base_dir / f"{benchmark_id}_patched"
+        patched_output = patched_path
         
         patched_found = []
+        # skip patched for now
         if patched_path.exists():
             patched_sarif = run_fraim(patched_path, patched_output, model=args.model)
             patched_found = parse_sarif_findings(patched_sarif, patched_path)

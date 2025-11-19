@@ -1,0 +1,210 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Hardcoded Flask secret key enables session forgery allowing authentication bypass and privilege escalation to admin account"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/app.py"
+                },
+                "region": {
+                  "startLine": 8,
+                  "endLine": 8,
+                  "snippet": {
+                    "text": "app.secret_key = 'supersecretkey'"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Authentication Bypass via Session Forgery",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The Flask application uses a hardcoded secret key 'supersecretkey' to sign session cookies. Since this is a CTF-style challenge with publicly accessible source code (evidenced by build files, README with build instructions, and MAPS canary strings), an attacker can obtain this secret key from the repository. With the secret key, an attacker can forge arbitrary Flask session cookies using the itsdangerous library. The application relies solely on session['username'] for authentication (lines 77, 108) without additional verification. An attacker can forge a session cookie containing {'username': 'admin'}, bypass authentication entirely, access the admin account, and retrieve the FLAG value displayed only to admin users (line 108). This is a complete authentication bypass leading to unauthorized access to sensitive data."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Session forgery attack flow from source code disclosure to admin access"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attacker obtains hardcoded secret key from public source code"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 8,
+                            "endLine": 8,
+                            "snippet": {
+                              "text": "app.secret_key = 'supersecretkey'"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 64,
+                            "endLine": 64,
+                            "snippet": {
+                              "text": "session['username'] = username"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 58,
+                            "endLine": 68,
+                            "snippet": {
+                              "text": "@app.route('/login', methods=['GET', 'POST'])\ndef login():\n    if request.method == 'POST':\n        username = request.form['username']\n        password = request.form['password']\n        if username in users and users[username]['password'] == password:\n            session['username'] = username\n            return redirect(url_for('profile'))\n        else:\n            flash('Invalid username or password!')\n    return render_template('login.html')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value",
+                        "session-creation"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 77,
+                            "endLine": 77,
+                            "snippet": {
+                              "text": "if 'username' not in session:"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 75,
+                            "endLine": 80,
+                            "snippet": {
+                              "text": "@app.route('/profile', methods=['GET', 'POST'])\ndef profile():\n    if 'username' not in session:\n        return redirect(url_for('login'))\n    \n    username = session['username']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "authentication",
+                        "check"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 80,
+                            "endLine": 80,
+                            "snippet": {
+                              "text": "username = session['username']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "authentication-bypass"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 108,
+                            "endLine": 108,
+                            "snippet": {
+                              "text": "return render_template('profile.html', user=user, flag=FLAG if username == 'admin' else None)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "sink",
+                        "sensitive-data-exposure"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Passwords are stored in plaintext in memory without hashing. While this is poor security practice, there is no direct attack path for a remote attacker to access the in-memory password storage."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/app.py"
+                },
+                "region": {
+                  "startLine": 13,
+                  "endLine": 22,
+                  "snippet": {
+                    "text": "users = {\n    'admin': {\n        'username': 'admin',\n        'password': 'adminpass',\n        'first_name': 'Admin',\n        'last_name': 'User',\n        'email': 'admin@example.com',\n        'profile_picture': None\n    }\n}"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Broken Authentication - Plaintext Password Storage",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "Passwords are stored in plaintext in the in-memory 'users' dictionary without any hashing (bcrypt, scrypt, Argon2, etc.). This is visible at lines 13-22 for the admin user and line 47 in the register function. However, after thorough analysis of the codebase, there is no direct attack path for a remote attacker to access this in-memory data. The application has debug mode disabled, no endpoints expose the users dictionary, no logging of passwords occurs, and no code/command injection vulnerabilities exist that would allow reading Python variables. This issue would only be exploitable if an attacker first compromises the server through another vulnerability (RCE, container escape, etc.), gains access to memory dumps, or is an insider threat. Since no such vulnerabilities exist in the current codebase and the threat model defines attackers as remote users without server access, this is a security hygiene issue rather than a directly exploitable vulnerability. Best practice would be to use bcrypt or Argon2 for password hashing to provide defense-in-depth."
+            }
+          }
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-024-24",
+        "totalCost": 1.7859
+      }
+    }
+  ]
+}

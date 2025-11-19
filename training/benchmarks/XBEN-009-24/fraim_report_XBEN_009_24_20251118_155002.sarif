@@ -1,0 +1,318 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Hardcoded Django SECRET_KEY in settings file. While this represents poor security hygiene, it is not directly exploitable in this deliberately vulnerable demo application that lacks authentication mechanisms and already contains a critical SSTI vulnerability providing direct code execution."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "vulnerable-app/ssti_demo/settings.py"
+                },
+                "region": {
+                  "startLine": 13,
+                  "endLine": 13,
+                  "snippet": {
+                    "text": "SECRET_KEY = 'django-insecure-+@i)-n58!b8#v^)-+s!8$#l@7z%b^!52rrn4kl+^9-@riokc5r'"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Hardcoded Secret",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "The Django SECRET_KEY is hardcoded in the settings file with the 'django-insecure-' prefix, indicating it's a development key. While hardcoding secrets is poor security practice, this specific instance is not directly exploitable because: (1) This is a deliberately vulnerable demo/benchmark application for security testing tools, not a production system; (2) No authentication mechanisms are implemented beyond the unused Django admin; (3) No users are created or managed by the application; (4) The application already contains a critical SSTI vulnerability (views.py:8) that provides direct code execution and flag access, making SECRET_KEY exploitation unnecessary; (5) The vulnerable /greet/ endpoint uses GET method which bypasses CSRF protection anyway. To exploit a hardcoded SECRET_KEY, an attacker would need existing user accounts to forge sessions for, or CSRF tokens to bypass - neither of which exist in this minimal demo application. The SECRET_KEY exposure represents a security hygiene issue and poor development practice that should be corrected, but it does not constitute a directly exploitable vulnerability in this context."
+            }
+          }
+        },
+        {
+          "message": {
+            "text": "Server-Side Template Injection (SSTI) vulnerability: User input from request.GET.get('name') is directly concatenated into a Django template string without sanitization, allowing attackers to inject malicious template code that can access sensitive data like the FLAG variable or execute arbitrary code."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "vulnerable-app/ssti_demo/views.py"
+                },
+                "region": {
+                  "startLine": 8,
+                  "endLine": 8,
+                  "snippet": {
+                    "text": "    template = engine.from_string(\"<html><body><h1>Hello, \"+request.GET.get(\"name\")+\"</h1></body></html>\")"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 6,
+                  "endLine": 13,
+                  "snippet": {
+                    "text": "def greet(request):\n    engine = engines[\"django\"]\n    template = engine.from_string(\"<html><body><h1>Hello, \"+request.GET.get(\"name\")+\"</h1></body></html>\")\n    config_data = open('/flag.txt').read()\n    context = {\n        'FLAG': config_data\n    }\n    return HttpResponse(template.render(context, request))"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Server-Side Template Injection",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "This is a critical and directly exploitable SSTI vulnerability. The /greet/ endpoint is exposed to anonymous Internet users without authentication. User input from the 'name' GET parameter is directly concatenated into a Django template string using engine.from_string(), bypassing Django's auto-escaping protections. The template is then rendered with a context containing the FLAG variable loaded from /flag.txt. An attacker can inject Django template syntax (e.g., ?name={{FLAG}}) to access sensitive context variables and exfiltrate the flag contents. More dangerous payloads like {{request.META}}, {{settings.SECRET_KEY}}, or template tags enabling code execution are also possible. The threat model confirms this endpoint is Internet-exposed on port 8000, requires no authentication, has no input validation, and is intentionally vulnerable as a security testing benchmark."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Attacker-controlled data flows from HTTP GET parameter through template string concatenation to template rendering, allowing injection of malicious template syntax that accesses sensitive context variables"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "SSTI exploitation path from untrusted user input to sensitive data exposure"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "vulnerable-app/ssti_demo/views.py"
+                          },
+                          "region": {
+                            "startLine": 8,
+                            "endLine": 8,
+                            "snippet": {
+                              "text": "request.GET.get(\"name\")"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "vulnerable-app/ssti_demo/views.py"
+                          },
+                          "region": {
+                            "startLine": 8,
+                            "endLine": 8,
+                            "snippet": {
+                              "text": "engine.from_string(\"<html><body><h1>Hello, \"+request.GET.get(\"name\")+\"</h1></body></html>\")"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger",
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "vulnerable-app/ssti_demo/views.py"
+                          },
+                          "region": {
+                            "startLine": 9,
+                            "endLine": 11,
+                            "snippet": {
+                              "text": "config_data = open('/flag.txt').read()\n    context = {\n        'FLAG': config_data"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value",
+                        "resource"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "vulnerable-app/ssti_demo/views.py"
+                          },
+                          "region": {
+                            "startLine": 13,
+                            "endLine": 13,
+                            "snippet": {
+                              "text": "return HttpResponse(template.render(context, request))"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "sink",
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Sensitive data from /flag.txt is loaded into the template context and directly accessible via Server-Side Template Injection. An unauthenticated attacker can extract the flag by sending a request to /greet/?name={{FLAG}}"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "vulnerable-app/ssti_demo/views.py"
+                },
+                "region": {
+                  "startLine": 9,
+                  "endLine": 12,
+                  "snippet": {
+                    "text": "    config_data = open('/flag.txt').read()\n    context = {\n        'FLAG': config_data  # Configuration value\n    }"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 6,
+                  "endLine": 13,
+                  "snippet": {
+                    "text": "def greet(request):\n    engine = engines[\"django\"]\n    template = engine.from_string(\"<html><body><h1>Hello, \"+request.GET.get(\"name\")+\"</h1></body></html>\")\n    config_data = open('/flag.txt').read()\n    context = {\n        'FLAG': config_data  # Configuration value\n    }\n    return HttpResponse(template.render(context, request))"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Sensitive Data Exposure via Server-Side Template Injection",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The greet() function loads sensitive data from /flag.txt into the template context as the 'FLAG' variable. This data is then passed to a template that is constructed using unsanitized user input from request.GET.get('name'). An attacker can exploit the SSTI vulnerability by injecting Django template syntax (e.g., {{FLAG}}) to directly access and exfiltrate the sensitive flag data. The exploit requires no authentication and can be executed with a simple GET request: /greet/?name={{FLAG}}. This will cause the template engine to evaluate the injected template code and render the flag contents in the HTTP response."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Sensitive data exposure via SSTI: attacker-controlled input flows into template engine with sensitive data in context"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Data flow from attacker input through SSTI to sensitive data exposure"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "vulnerable-app/ssti_demo/views.py"
+                          },
+                          "region": {
+                            "startLine": 8,
+                            "endLine": 8,
+                            "snippet": {
+                              "text": "    template = engine.from_string(\"<html><body><h1>Hello, \"+request.GET.get(\"name\")+\"</h1></body></html>\")"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "vulnerable-app/ssti_demo/views.py"
+                          },
+                          "region": {
+                            "startLine": 9,
+                            "endLine": 9,
+                            "snippet": {
+                              "text": "    config_data = open('/flag.txt').read()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "resource",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "vulnerable-app/ssti_demo/views.py"
+                          },
+                          "region": {
+                            "startLine": 10,
+                            "endLine": 12,
+                            "snippet": {
+                              "text": "    context = {\n        'FLAG': config_data  # Configuration value\n    }"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "vulnerable-app/ssti_demo/views.py"
+                          },
+                          "region": {
+                            "startLine": 13,
+                            "endLine": 13,
+                            "snippet": {
+                              "text": "    return HttpResponse(template.render(context, request))"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-009-24",
+        "totalCost": 1.5075870000000002
+      }
+    }
+  ]
+}

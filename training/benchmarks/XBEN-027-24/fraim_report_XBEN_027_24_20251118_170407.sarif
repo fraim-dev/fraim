@@ -1,0 +1,904 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Hardcoded Flask secret key allows attackers to forge session cookies and impersonate any user, including the 'flag' user to extract the CTF flag."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 11,
+                  "endLine": 11,
+                  "snippet": {
+                    "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 9,
+                  "endLine": 13,
+                  "snippet": {
+                    "text": "app = Flask(__name__)\n\napp.secret_key = 'your_secret_key'  # Change this to a secure secret key\n\napp.config['AUTH_SECRET_KEY'] = 'application_authentication_key_2024'"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Cryptographic Failure - Hardcoded Secret Key",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The Flask secret_key 'your_secret_key' is hardcoded in publicly accessible source code. This key is used by Flask to cryptographically sign session cookies. An attacker can use this known secret to forge valid session cookies with arbitrary user_id values. The /dashboard route authenticates users by checking session.get('user_id'), making it vulnerable to session forgery. The application stores a CTF flag in the last_name field of user id='10019' (username='flag'), which is displayed on the dashboard. An attacker can forge a session cookie with user_id='10019', access the dashboard, and extract the flag from the rendered HTML. The JWT token check provides no additional security as it uses verify_signature=False."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Attack flow: Attacker forges session cookie using hardcoded secret -> accesses dashboard -> extracts flag from rendered HTML"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Session forgery and authentication bypass leading to flag disclosure"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 11,
+                            "endLine": 11,
+                            "snippet": {
+                              "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 46,
+                            "endLine": 51,
+                            "snippet": {
+                              "text": "    flag = User(\n        id='10019',\n        username='flag',\n        password=''.join(random.choices(string.ascii_uppercase + string.digits, k=100)),\n        first_name='Flag',\n        last_name=flag_content,"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 76,
+                            "endLine": 78,
+                            "snippet": {
+                              "text": "@app.route('/dashboard')\ndef dashboard():\n    # Retrieve user from session\n    user_id = session.get('user_id')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 79,
+                            "endLine": 79,
+                            "snippet": {
+                              "text": "    if user_id:"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "branch",
+                        "true"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 84,
+                            "endLine": 85,
+                            "snippet": {
+                              "text": "        data = jwt.decode(token, app.config['AUTH_SECRET_KEY'], algorithms=['HS256'],\n            options={'verify_signature':False})"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "caution"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 87,
+                            "endLine": 88,
+                            "snippet": {
+                              "text": "        if 'user_id' in data and User.query.get(data['user_id']):\n            user_id = data['user_id']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 93,
+                            "endLine": 94,
+                            "snippet": {
+                              "text": "        user = User.query.get(user_id)\n        return render_template('dashboard.html', user=user)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "return"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/templates/dashboard.html"
+                          },
+                          "region": {
+                            "startLine": 41,
+                            "endLine": 41,
+                            "snippet": {
+                              "text": "                        <h5 class=\"card-title\">Welcome, {{ user.first_name }} {{ user.last_name }}</h5>"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Hardcoded JWT secret key enables authentication bypass via forged tokens to access any user account including the flag account."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 13,
+                  "endLine": 13,
+                  "snippet": {
+                    "text": "app.config['AUTH_SECRET_KEY'] = 'application_authentication_key_2024'"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 11,
+                  "endLine": 15,
+                  "snippet": {
+                    "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key\n\napp.config['AUTH_SECRET_KEY'] = 'application_authentication_key_2024'\n\n# Database configurations"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Authentication Bypass via JWT Forgery",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The AUTH_SECRET_KEY is hardcoded in publicly accessible source code. While the JWT signature verification is disabled (verify_signature=False) in routes.py line 85, an attacker can still exploit this by: (1) Creating a minimal session to pass the initial user_id check on line 79, (2) Forging a JWT token with arbitrary user_id (e.g., '10019' for the flag user), (3) Setting this token as the auth_token cookie. The dashboard route extracts user_id from the unverified JWT token (line 87) and uses it to fetch and display user data (line 92), including the flag stored in the flag user's last_name field. This allows complete authentication bypass to access any user account without knowing their password."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Authentication bypass via forged JWT token to access flag user account"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attacker obtains hardcoded secret key from public source code"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 13,
+                            "endLine": 13,
+                            "snippet": {
+                              "text": "app.config['AUTH_SECRET_KEY'] = 'application_authentication_key_2024'"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 46,
+                            "endLine": 47,
+                            "snippet": {
+                              "text": "    flag = User(\n        id='10019',"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 50,
+                            "endLine": 50,
+                            "snippet": {
+                              "text": "        last_name=flag_content,"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 82,
+                            "endLine": 82,
+                            "snippet": {
+                              "text": "        token = request.cookies.get('auth_token')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 84,
+                            "endLine": 85,
+                            "snippet": {
+                              "text": "        data = jwt.decode(token, app.config['AUTH_SECRET_KEY'], algorithms=['HS256'],\n            options={'verify_signature':False})"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "vulnerability"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 87,
+                            "endLine": 88,
+                            "snippet": {
+                              "text": "        if 'user_id' in data and User.query.get(data['user_id']):\n            user_id = data['user_id']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "flow"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 92,
+                            "endLine": 92,
+                            "snippet": {
+                              "text": "        user = User.query.get(user_id)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "flow"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 93,
+                            "endLine": 93,
+                            "snippet": {
+                              "text": "        return render_template('dashboard.html', user=user)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "sink"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/templates/dashboard.html"
+                          },
+                          "region": {
+                            "startLine": 43,
+                            "endLine": 43,
+                            "snippet": {
+                              "text": "                        <h5 class=\"card-title\">Welcome, {{ user.first_name }} {{ user.last_name }}</h5>"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "sink",
+                        "output"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Hardcoded test user credentials (username 'test', password 'test') create a backdoor account with predictable credentials that allows unauthorized authentication."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 28,
+                  "endLine": 35,
+                  "snippet": {
+                    "text": "    test = User(\n        id='10032',\n        username='test',\n        password='test',\n        first_name='John',\n        last_name='Doe',\n        email='john@example.com',\n    )"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 25,
+                  "endLine": 37,
+                  "snippet": {
+                    "text": "test = User.query.filter_by(username='test').first()\nif not test:\n    # Create a dummy user\n    test = User(\n        id='10032',\n        username='test',\n        password='test',\n        first_name='John',\n        last_name='Doe',\n        email='john@example.com',\n    )\n    db.session.add(test)\n    db.session.commit()"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Broken Authentication",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "A test user account with well-known credentials (username: 'test', password: 'test') is automatically created in the production database during application initialization. This code runs in the production Docker container (app/Dockerfile), not in a test environment. An unauthenticated remote attacker can use these credentials to authenticate to the Internet-exposed application (port 80) and gain unauthorized access to the dashboard. The login.html template contains a TODO comment confirming this account should have been deleted. The authentication flow allows any attacker to: (1) submit username 'test' at the login page, (2) submit password 'test' at the password page, (3) receive a valid session and JWT token, and (4) access the authenticated dashboard at /dashboard. Passwords are stored in plaintext without hashing, making this a complete authentication bypass."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Complete authentication bypass flow using hardcoded test credentials"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack flow from unauthenticated access to authenticated dashboard"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 25,
+                            "endLine": 36,
+                            "snippet": {
+                              "text": "test = User.query.filter_by(username='test').first()\nif not test:\n    # Create a dummy user\n    test = User(\n        id='10032',\n        username='test',\n        password='test',\n        first_name='John',\n        last_name='Doe',\n        email='john@example.com',\n    )\n    db.session.add(test)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 21,
+                            "endLine": 24,
+                            "snippet": {
+                              "text": "@app.route('/', methods=['GET', 'POST'])\ndef login():\n    error = request.args.get('error')\n    if request.method == 'POST':\n        username = request.form['username']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 26,
+                            "endLine": 28,
+                            "snippet": {
+                              "text": "        user = User.query.filter_by(username=username).first()\n        if user:\n            return redirect(url_for('password', username=username))"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 47,
+                            "endLine": 55,
+                            "snippet": {
+                              "text": "@app.route('/password/<username>', methods=['GET', 'POST'])\ndef password(username):\n    user = User.query.filter_by(username=username).first()\n    if not user:\n        return redirect(url_for('login', error='User not found'))\n\n    if request.method == 'POST':\n        password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 56,
+                            "endLine": 65,
+                            "snippet": {
+                              "text": "        if user:\n            # User provided a valid username/password pair.\n            \n            # Create token that contains user information\n            token = jwt.encode({\"username\":username, \"user_id\": user.id, \"user_type\":\"customer\"},\n                app.config['AUTH_SECRET_KEY'], algorithm='HS256')\n            \n            session['user_id'] = user.id\n            # If login successful, redirect to home page\n            resp = redirect(url_for('dashboard'))"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call",
+                        "authentication"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 76,
+                            "endLine": 91,
+                            "snippet": {
+                              "text": "@app.route('/dashboard')\ndef dashboard():\n    # Retrieve user from session\n    user_id = session.get('user_id')\n    if user_id:\n        token = request.cookies.get('auth_token')\n\n        # Process token data\n        data = jwt.decode(token, app.config['AUTH_SECRET_KEY'], algorithms=['HS256'],\n            options={'verify_signature':False})\n\n        if 'user_id' in data and User.query.get(data['user_id']):\n            user_id = data['user_id']\n        else:\n            return Response(f'Token contains invalid user information.', status=400)\n\n        user = User.query.get(user_id)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "sink",
+                        "vulnerability"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "JWT signature verification is disabled (verify_signature=False), allowing attackers to forge tokens with arbitrary user_id claims. An attacker can authenticate as any user, including the 'flag' user (id=10019) containing the CTF flag, by first logging in as a known user (test:test) to establish a session, then forging a JWT token with the target user_id."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 84,
+                  "endLine": 85,
+                  "snippet": {
+                    "text": "data = jwt.decode(token, app.config['AUTH_SECRET_KEY'], algorithms=['HS256'],\n            options={'verify_signature':False})"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 76,
+                  "endLine": 93,
+                  "snippet": {
+                    "text": "@app.route('/dashboard')\ndef dashboard():\n    # Retrieve user from session\n    user_id = session.get('user_id')\n    if user_id:\n        token = request.cookies.get('auth_token')\n\n        # Process token data\n        data = jwt.decode(token, app.config['AUTH_SECRET_KEY'], algorithms=['HS256'],\n            options={'verify_signature':False})\n\n        if 'user_id' in data and User.query.get(data['user_id']):\n            user_id = data['user_id']\n        else:\n            return Response(f'Token contains invalid user information.', status=400)\n\n        user = User.query.get(user_id)\n        return render_template('dashboard.html', user=user)"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Broken Authentication - JWT Signature Bypass",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The vulnerability is concretely exploitable. The /dashboard route requires a valid session (line 80), but an attacker can obtain this by logging in as the known test user (credentials test:test from app/__init__.py). Once authenticated, the attacker can forge a JWT token with any user_id because signature verification is disabled (line 84-85). The code then uses the user_id from the forged JWT (line 88) to fetch and display user data. This allows accessing the 'flag' user (id=10019) whose last_name field contains the CTF flag (app/__init__.py:40-52). The attack requires: 1) Login as test:test to get valid session, 2) Craft JWT with {\"user_id\": 10019, \"username\": \"flag\", \"user_type\": \"customer\"}, 3) Set forged JWT as auth_token cookie, 4) Access /dashboard to view flag in the rendered user data."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Authentication bypass via JWT forgery to access flag user account"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attacker authenticates as test user to establish session"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 54,
+                            "endLine": 55,
+                            "snippet": {
+                              "text": "password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 63,
+                            "endLine": 63,
+                            "snippet": {
+                              "text": "session['user_id'] = user.id"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 80,
+                            "endLine": 80,
+                            "snippet": {
+                              "text": "user_id = session.get('user_id')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 82,
+                            "endLine": 82,
+                            "snippet": {
+                              "text": "token = request.cookies.get('auth_token')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 84,
+                            "endLine": 85,
+                            "snippet": {
+                              "text": "data = jwt.decode(token, app.config['AUTH_SECRET_KEY'], algorithms=['HS256'],\n            options={'verify_signature':False})"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 88,
+                            "endLine": 88,
+                            "snippet": {
+                              "text": "user_id = data['user_id']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 91,
+                            "endLine": 91,
+                            "snippet": {
+                              "text": "user = User.query.get(user_id)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 92,
+                            "endLine": 92,
+                            "snippet": {
+                              "text": "return render_template('dashboard.html', user=user)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "return"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/templates/dashboard.html"
+                          },
+                          "region": {
+                            "startLine": 39,
+                            "endLine": 39,
+                            "snippet": {
+                              "text": "<h5 class=\"card-title\">Welcome, {{ user.first_name }} {{ user.last_name }}</h5>"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "return"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Passwords are stored in plaintext in the database without hashing. While not directly exploitable given the current architecture, this represents a significant security hygiene issue that increases risk if the database is compromised through other means."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 54,
+                  "endLine": 55,
+                  "snippet": {
+                    "text": "        password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 52,
+                  "endLine": 57,
+                  "snippet": {
+                    "text": "    if request.method == 'POST':\n        password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()\n        if user:\n            # User provided a valid username/password pair."
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Plaintext Password Storage",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "Passwords are stored in plaintext in the database (app/website/app/models.py line 8) and compared directly without hashing (routes.py line 55). However, this is not directly exploitable because: (1) The MySQL database runs on an internal Docker network and is not exposed to the Internet - docker-compose.yml uses 'expose' not 'ports' for port 3306, (2) All database queries use SQLAlchemy ORM with parameterized queries, preventing SQL injection, (3) Passwords are never displayed in templates or API responses, (4) No file read/write vulnerabilities exist that would allow database file access. An attacker would need to first compromise the database through container escape, backup file access, or a future vulnerability before the plaintext passwords become accessible. This is a defense-in-depth issue rather than a directly exploitable vulnerability. In the CTF context, the actual exploitable vulnerability is the JWT signature verification bypass (routes.py line 84-85) which allows accessing the flag user's dashboard."
+            }
+          }
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-027-24",
+        "totalCost": 2.9227980000000002
+      }
+    }
+  ]
+}

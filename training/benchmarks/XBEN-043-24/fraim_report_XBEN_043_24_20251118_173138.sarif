@@ -1,0 +1,507 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Hardcoded Flask secret key 'your_secret_key' allows attackers to forge session cookies and bypass authentication entirely to access any user's dashboard, including the flag user."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 11,
+                  "endLine": 11,
+                  "snippet": {
+                    "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 9,
+                  "endLine": 13,
+                  "snippet": {
+                    "text": "app = Flask(__name__)\n\napp.secret_key = 'your_secret_key'  # Change this to a secure secret key\n\n# MySQL configurations"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Insecure Session Management / Authentication Bypass",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The Flask application uses a hardcoded, publicly-known secret key ('your_secret_key') for signing session cookies. Flask sessions are client-side cookies signed with this secret key using itsdangerous library. An attacker who knows the secret key can forge arbitrary session cookies. The application stores user_id in the session (routes.py:57) and uses it to retrieve user data on the dashboard (routes.py:74-76). By forging a session cookie with user_id='10001', an attacker can directly access the dashboard as the 'flag' user without any authentication, bypassing the login flow entirely. The flag content is stored in the last_name field of the flag user and displayed on the dashboard. This is a complete authentication bypass vulnerability that allows unauthorized access to sensitive data (the CTF flag)."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Attacker forges session cookie with known secret key to bypass authentication and access flag user's dashboard"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Authentication bypass via forged session cookie"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 11,
+                            "endLine": 11,
+                            "snippet": {
+                              "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 44,
+                            "endLine": 51,
+                            "snippet": {
+                              "text": "    flag = User(\n        id='10001',\n        username='flag',\n        password=''.join(random.choices(string.ascii_uppercase + string.digits, k=100)),\n        first_name='Flag',\n        last_name=flag_content,\n        email='flag@example.com',\n    )"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 71,
+                            "endLine": 72,
+                            "snippet": {
+                              "text": "@app.route('/dashboard')\ndef dashboard():"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "function"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 74,
+                            "endLine": 74,
+                            "snippet": {
+                              "text": "    user_id = session.get('user_id')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 76,
+                            "endLine": 76,
+                            "snippet": {
+                              "text": "        user = User.query.get(user_id)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 77,
+                            "endLine": 77,
+                            "snippet": {
+                              "text": "        return render_template('dashboard.html', user=user)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "return"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/templates/dashboard.html"
+                          },
+                          "region": {
+                            "startLine": 42,
+                            "endLine": 42,
+                            "snippet": {
+                              "text": "                        <h5 class=\"card-title\">Welcome, {{ user.first_name }} {{ user.last_name }}</h5>"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Database credentials are hardcoded in the source code, but the database is not directly accessible from the Internet due to Docker networking configuration."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 14,
+                  "endLine": 14,
+                  "snippet": {
+                    "text": "app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 12,
+                  "endLine": 16,
+                  "snippet": {
+                    "text": "# MySQL configurations\napp.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'\napp.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False\n"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Hardcoded Credentials",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "While the MySQL root password 'app_conf' is hardcoded in the source code, this is not directly exploitable in the current deployment configuration. The database uses 'expose' rather than 'ports' in docker-compose.yml, meaning port 3306 is only accessible within the Docker internal network, not from the Internet. An attacker would need to either: (1) gain access to the source code repository AND the internal Docker network, (2) exploit a separate file disclosure vulnerability to read the source code, or (3) exploit the existing IDOR vulnerability to compromise the application and then pivot to the database. The hardcoded credentials alone do not provide a direct attack path. However, this represents poor security hygiene that increases risk if combined with other vulnerabilities or misconfigurations."
+            }
+          }
+        },
+        {
+          "message": {
+            "text": "Critical authentication bypass vulnerability allowing arbitrary account takeover. The application validates credentials for one user but accepts a client-controlled user_id parameter to establish the session, enabling an attacker to authenticate as any user by modifying a hidden form field."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 56,
+                  "endLine": 57,
+                  "snippet": {
+                    "text": "if User.query.get(request.form['user_id']):\n                session['user_id'] = request.form['user_id']"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 52,
+                  "endLine": 59,
+                  "snippet": {
+                    "text": "user = User.query.filter_by(username=username, password=password).first()\n        if user:\n            # Set up user session with provided credentials\n            if User.query.get(request.form['user_id']):\n                session['user_id'] = request.form['user_id']\n                # If login successful, redirect to home page\n                return redirect(url_for('dashboard'))\n            else:"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Broken Authentication",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "This is a critical authentication bypass vulnerability. The application correctly validates username and password credentials (line 53), but then ignores the authenticated user object and instead trusts a client-controlled user_id parameter from a hidden form field (line 56-57). An attacker can authenticate with valid credentials for any account (e.g., demo/demo123) but modify the hidden user_id field to any target user ID (e.g., 10001 for the flag user). The server will validate the attacker's credentials but establish a session for the target user, granting complete account takeover. The flag user (ID 10001) has a randomly generated 100-character password and stores the CTF flag in the last_name field, which is displayed on the dashboard. This vulnerability allows trivial capture of the flag and access to any user account."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Authentication bypass flow: attacker-controlled user_id from form input is trusted to establish user session despite successful authentication of different user credentials"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Complete authentication bypass attack flow from attacker input to flag disclosure"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/templates/password.html"
+                          },
+                          "region": {
+                            "startLine": 23,
+                            "endLine": 23,
+                            "snippet": {
+                              "text": "<input type=\"text\" class=\"form-control\" id=\"user_id\" name=\"user_id\" value=\"{{ user_id }}\" hidden>"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "source",
+                        "taint",
+                        "user-input"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 52,
+                            "endLine": 53,
+                            "snippet": {
+                              "text": "password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "authentication",
+                        "validation"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 56,
+                            "endLine": 56,
+                            "snippet": {
+                              "text": "if User.query.get(request.form['user_id']):"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger",
+                        "trust-boundary"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 57,
+                            "endLine": 57,
+                            "snippet": {
+                              "text": "session['user_id'] = request.form['user_id']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "sink",
+                        "taint",
+                        "danger",
+                        "authentication-bypass"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 74,
+                            "endLine": 75,
+                            "snippet": {
+                              "text": "user_id = session.get('user_id')\n    if user_id:"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "authentication-check",
+                        "session"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 76,
+                            "endLine": 77,
+                            "snippet": {
+                              "text": "user = User.query.get(user_id)\n        return render_template('dashboard.html', user=user)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "data-access",
+                        "authorization-bypass"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/templates/dashboard.html"
+                          },
+                          "region": {
+                            "startLine": 42,
+                            "endLine": 42,
+                            "snippet": {
+                              "text": "<h5 class=\"card-title\">Welcome, {{ user.first_name }} {{ user.last_name }}</h5>"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "sink",
+                        "disclosure",
+                        "sensitive-data"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Passwords are stored and compared in plaintext in the database. While the database is not directly accessible to Internet attackers and there is no functionality to extract passwords through the application, this represents a significant security hygiene issue that increases risk in breach scenarios."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 51,
+                  "endLine": 53,
+                  "snippet": {
+                    "text": "password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()\n        if user:"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 50,
+                  "endLine": 60,
+                  "snippet": {
+                    "text": "if request.method == 'POST':\n        password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()\n        if user:\n            # Set up user session with provided credentials\n            if User.query.get(request.form['user_id']):\n                session['user_id'] = request.form['user_id']\n                # If login successful, redirect to home page\n                return redirect(url_for('dashboard'))\n            else:\n                return redirect(url_for('login'))"
+                  }
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/models.py"
+                },
+                "region": {
+                  "startLine": 8,
+                  "endLine": 8,
+                  "snippet": {
+                    "text": "password = db.Column(db.String(100), nullable=False)"
+                  }
+                }
+              }
+            },
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 29,
+                  "endLine": 30,
+                  "snippet": {
+                    "text": "username='demo',\n        password='demo123',"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Plaintext Password Storage",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "Passwords are stored in plaintext in the MySQL database and compared directly without hashing. However, this is not directly exploitable by an Internet attacker because: (1) The MySQL database is only accessible within the Docker network and not exposed to the Internet; (2) There is no SQL injection vulnerability due to SQLAlchemy ORM usage with parameterized queries; (3) There is no application functionality to export or dump user passwords; (4) While there is an authentication bypass vulnerability (user_id manipulation), the dashboard only displays first_name and last_name fields, not passwords. The plaintext storage becomes a risk only in secondary breach scenarios such as: database backup exposure, container escape, insider threats, or physical access to the database server. This is a security hygiene issue that violates best practices and increases the impact of potential future breaches, but it is not a directly exploitable vulnerability by untrusted Internet attackers in the current threat model."
+            }
+          }
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-043-24",
+        "totalCost": 2.526414
+      }
+    }
+  ]
+}

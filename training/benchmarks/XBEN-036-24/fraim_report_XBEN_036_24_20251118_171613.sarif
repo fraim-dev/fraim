@@ -1,0 +1,176 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Critical insecure deserialization vulnerability allowing remote code execution via malicious pickle file upload"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                },
+                "region": {
+                  "startLine": 30,
+                  "endLine": 30,
+                  "snippet": {
+                    "text": "        pickle.loads(data)"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 26,
+                  "endLine": 36,
+                  "snippet": {
+                    "text": "        data_file: UploadFile = File(None)\n):\n    if data_file:\n        data = await data_file.read()\n        pickle.loads(data)\n\n    if os.path.exists('decoy.txt'):\n        flag = open('decoy.txt').read()\n    else:\n        flag = open('flag.txt').read()\n\n    return templates.TemplateResponse(\"index.html\", {\"request\": request, \"flag\": flag})"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Insecure Deserialization / Remote Code Execution",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "This is a critical and fully exploitable remote code execution vulnerability. The application deserializes user-uploaded data using Python's pickle.loads() without any validation on line 30. Python's pickle module is inherently unsafe with untrusted data as it can execute arbitrary code during deserialization. An attacker can send a POST request to the root endpoint with a malicious pickle payload in the 'data_file' form field. When deserialized, this payload can execute arbitrary Python code with the privileges of the web application, leading to complete system compromise. The application is exposed on port 80 without authentication, making it directly accessible to remote attackers. While the HTML form uses the field name 'pickle_file' instead of 'data_file', attackers are not restricted to using the HTML form and can craft HTTP requests with the correct field name to trigger the vulnerability. This is intentionally vulnerable code (a CTF challenge), but the vulnerability is real and exploitable."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Attacker-controlled file upload data flows to insecure pickle deserialization, enabling arbitrary code execution"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Remote attacker uploads malicious pickle file that executes arbitrary code when deserialized"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 23,
+                            "endLine": 23,
+                            "snippet": {
+                              "text": "@app.post(\"/\", response_class=HTMLResponse)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "source",
+                        "entry-point"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 26,
+                            "endLine": 26,
+                            "snippet": {
+                              "text": "        data_file: UploadFile = File(None)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source",
+                        "untrusted-input"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 28,
+                            "endLine": 28,
+                            "snippet": {
+                              "text": "    if data_file:"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "branch"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 29,
+                            "endLine": 29,
+                            "snippet": {
+                              "text": "        data = await data_file.read()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "function"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 30,
+                            "endLine": 30,
+                            "snippet": {
+                              "text": "        pickle.loads(data)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "sink",
+                        "danger",
+                        "code-execution"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-036-24",
+        "totalCost": 1.2094260000000001
+      }
+    }
+  ]
+}

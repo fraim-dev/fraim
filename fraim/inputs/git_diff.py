@@ -18,9 +18,11 @@ class GitDiff(Input):
         head: str | None,
         base: str | None,
         globs: list[str] | None = None,
+        exclude_globs: list[str] | None = None,
         limit: int | None = None,
     ):
         self.globs = globs
+        self.exclude_globs = exclude_globs
         self.limit = limit
         self.path = path
         self.head = head

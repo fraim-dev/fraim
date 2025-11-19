@@ -1,0 +1,166 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Unauthorized access to sensitive flag data through insecure order archiving functionality"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 136,
+                  "endLine": 139,
+                  "snippet": {
+                    "text": "order = Order.query.filter(Order.id == order_id).first_or_404()\n        order.archiver = user\n        order.archived = True\n        db.session.commit()"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Authorization Bypass",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The application stores sensitive flag data in a database order (ID 300198) with no creator assigned. While the receipt access control properly checks if a user is the creator or archiver of an order, the archive functionality at /order/<order_id>/archive lacks access control validation. Any authenticated user can archive any order, including the flag order, by making a GET request to /order/300198/archive. Once archived, the user becomes the archiver and can then access the flag content via /order/300198/receipt or view it in the archived orders list."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Data flow from flag file to unauthorized access via archive bypass"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Flag data exposure through authorization bypass"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 87,
+                            "endLine": 88,
+                            "snippet": {
+                              "text": "with open('/flag') as flag_file:\n        flag_content = flag_file.read()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 89,
+                            "endLine": 99,
+                            "snippet": {
+                              "text": "order = Order(\n        id='300198',\n        date='05/16/2024',\n        ticker='DEMO',\n        operation_type='SELL',\n        quantity='1',\n        price='1.00',\n        archived=False,\n        receipt=flag_content\n    )"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "function"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 136,
+                            "endLine": 139,
+                            "snippet": {
+                              "text": "order = Order.query.filter(Order.id == order_id).first_or_404()\n        order.archiver = user\n        order.archived = True\n        db.session.commit()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "authorization-bypass"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 102,
+                            "endLine": 104,
+                            "snippet": {
+                              "text": "order = Order.query.filter(Order.id == order_id).filter(or_(Order.creator == user, Order.archiver == user)).first()\n        if order:\n            return render_template('receipt.html', order=order)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "sink"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/templates/receipt.html"
+                          },
+                          "region": {
+                            "startLine": 14,
+                            "endLine": 14,
+                            "snippet": {
+                              "text": "<code class=\"text-white\">{{ order.receipt }}</code>"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "output"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-002-24",
+        "totalCost": 2.455143
+      }
+    }
+  ]
+}

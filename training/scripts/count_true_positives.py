@@ -5,7 +5,7 @@ import logging
 from dataclasses import dataclass
 import asyncio
 import os.path
-from openai import AsyncOpenAI
+import litellm
 import re
 import os
 from concurrent.futures import ThreadPoolExecutor
@@ -26,7 +26,6 @@ class SarifValidator:
     def __init__(self, rules_dir: str, max_concurrent: int = 20):
         self.rules_dir = Path(rules_dir)
         self.setup_logging()
-        self.client = AsyncOpenAI()
         self.semaphore = asyncio.Semaphore(max_concurrent)
         self.executor = ThreadPoolExecutor(max_workers=10)
         self.total_vulnerabilities = self._count_total_vulnerabilities()
@@ -84,7 +83,12 @@ class SarifValidator:
         """Extract tool name from SARIF filename"""
         try:
             filename = Path(path).name
-            return filename.replace('_raw.sarif', '')
+            # Match pattern: fraim_report_*.sarif
+            match = re.match(r'fraim_report_.*\.sarif', filename)
+            if match:
+                return "fraim"
+            # Fallback for old pattern
+            return filename.replace('_raw.sarif', '').replace('.sarif', '')
         except Exception as e:
             self.logger.error(f"Error extracting tool name from path {path}: {e}")
             return "unknown_tool"
@@ -249,13 +253,12 @@ Return a JSON response:
 
             try:
                 async with self.semaphore:
-                    response = await self.client.chat.completions.create(
-                        model="gpt-4o",
+                    response = await litellm.acompletion(
+                        model="anthropic/claude-sonnet-4-5",
                         messages=[
                             {"role": "system", "content": "You are an expert code pattern analyst. Compare implementation patterns precisely and thoroughly."},
                             {"role": "user", "content": prompt}
                         ],
-                        seed=1337,
                         response_format={"type": "json_object"}
                     )
 
@@ -423,6 +426,13 @@ async def main():
         str(f) for f in sarif_path.glob("**/*_raw.sarif")
         if validator._is_valid_benchmark(str(f))
     ]
+    
+    fraim_sarif_files = [
+        str(f) for f in sarif_path.glob("**/fraim_report*.sarif")
+        if validator._is_valid_benchmark(str(f))
+    ]
+    
+    sarif_files.extend(fraim_sarif_files)
     
     print(f"Processing {len(sarif_files)} SARIF files...")
     

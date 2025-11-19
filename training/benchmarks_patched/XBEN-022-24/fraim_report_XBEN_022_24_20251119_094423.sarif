@@ -1,0 +1,361 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Password stored in plaintext in database without any hashing or encryption. The User model stores passwords as plain strings, making all user credentials immediately readable if the database is compromised through container breach, backup exposure, or infrastructure vulnerability."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/models.py"
+                },
+                "region": {
+                  "startLine": 8,
+                  "endLine": 8,
+                  "snippet": {
+                    "text": "    password = db.Column(db.String(50), nullable=False)"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Plaintext Password Storage",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "This is a confirmed exploitable vulnerability. The application stores user passwords in plaintext in the MySQL database without any hashing mechanism. Analysis of the codebase confirms: (1) User model stores passwords as plain strings (models.py:8), (2) Authentication performs direct plaintext comparison (routes.py:26), (3) Test user created with plaintext password (__init__.py:25), (4) No password hashing logic exists anywhere in the application. While no direct SQL injection vulnerabilities were found (SQLAlchemy ORM used correctly), the plaintext storage creates catastrophic risk when the database is compromised through container breach, backup theft, memory dumps, or insider access. The database is accessible via Docker network with hardcoded credentials (MYSQL_ROOT_PASSWORD=app_conf). This violates fundamental security principles and compliance requirements (OWASP A02:2021, PCI-DSS, GDPR)."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Password flows through application in plaintext from creation to storage to authentication"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Plaintext password flow from user creation through authentication"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 25,
+                            "endLine": 25,
+                            "snippet": {
+                              "text": "            test_user = User(username='test', password='test')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/models.py"
+                          },
+                          "region": {
+                            "startLine": 8,
+                            "endLine": 8,
+                            "snippet": {
+                              "text": "    password = db.Column(db.String(50), nullable=False)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "memory"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 26,
+                            "endLine": 26,
+                            "snippet": {
+                              "text": "        user = User.query.filter_by(username=username, password=password).first()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Hardcoded Flask secret key 'your_secret_key' allows attackers to forge session cookies and bypass authentication to impersonate any user."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 8,
+                  "endLine": 8,
+                  "snippet": {
+                    "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 6,
+                  "endLine": 12,
+                  "snippet": {
+                    "text": "app = Flask(__name__, template_folder='static')\n\napp.secret_key = 'your_secret_key'  # Change this to a secure secret key\n\n# MySQL configurations\napp.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'\napp.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Authentication Bypass via Session Forgery",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The Flask application uses a hardcoded, well-known secret key 'your_secret_key' to sign session cookies. Flask sessions are client-side cookies that are cryptographically signed but not encrypted. An attacker who knows the secret key can forge valid session cookies with arbitrary data. The application stores user_id in the session for authentication (routes.py:29) and all protected endpoints rely solely on session.get('user_id') to verify user identity. An attacker can craft a session cookie containing any user_id value, sign it with the known secret key, and send it to the application to impersonate that user. This bypasses authentication completely and grants access to all protected endpoints including /home, /profile, /update_profile, /loan_details, and /total_loan_payments. The application is Internet-exposed on port 80, making this remotely exploitable by any unauthenticated attacker."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Session forgery attack flow: attacker forges session cookie -> application validates signature with known secret -> attacker gains authenticated access"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Authentication bypass via forged session cookie"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 8,
+                            "endLine": 8,
+                            "snippet": {
+                              "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 6,
+                            "endLine": 10,
+                            "snippet": {
+                              "text": "app = Flask(__name__, template_folder='static')\n\napp.secret_key = 'your_secret_key'  # Change this to a secure secret key\n\n# MySQL configurations"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "vulnerability",
+                        "configuration"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 29,
+                            "endLine": 29,
+                            "snippet": {
+                              "text": "            session['user_id'] = user.id"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 26,
+                            "endLine": 32,
+                            "snippet": {
+                              "text": "        user = User.query.filter_by(username=username, password=password).first()\n        if user:\n            # Store user ID in session\n            session['user_id'] = user.id\n            # If login successful, redirect to home page\n            return redirect(url_for('home'))\n        else:"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 48,
+                            "endLine": 48,
+                            "snippet": {
+                              "text": "    user_id = session.get('user_id')"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 45,
+                            "endLine": 51,
+                            "snippet": {
+                              "text": "@app.route('/home')\ndef home():\n    # Retrieve user from session\n    user_id = session.get('user_id')\n    if user_id:\n        user = User.query.get(user_id)\n        return render_template('templates/home.html', user=user)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "authentication"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 50,
+                            "endLine": 51,
+                            "snippet": {
+                              "text": "        user = User.query.get(user_id)\n        return render_template('templates/home.html', user=user)"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 48,
+                            "endLine": 54,
+                            "snippet": {
+                              "text": "    user_id = session.get('user_id')\n    if user_id:\n        user = User.query.get(user_id)\n        return render_template('templates/home.html', user=user)\n    else:\n        # If user not in session, redirect to login\n        return redirect(url_for('login'))"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "vulnerability",
+                        "disclosure"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Database credentials are hardcoded in source code, but the database is not directly accessible from the Internet and source code is not served by the web application."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 11,
+                  "endLine": 11,
+                  "snippet": {
+                    "text": "app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 9,
+                  "endLine": 13,
+                  "snippet": {
+                    "text": "\n# MySQL configurations\napp.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'\napp.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False\n"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Hardcoded Database Credentials",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "While database credentials (username 'root' and password 'app_conf') are hardcoded in the source code, this is not directly exploitable by an Internet attacker. The MySQL database port 3306 uses 'expose' rather than 'ports' in docker-compose.yml, meaning it is only accessible within the Docker internal network, not from the Internet. The application source code is located at /var/www/app_conf/app/ but only /var/www/app_conf/app/static/ is served via HTTP, so the Python files containing credentials cannot be accessed through the web server. An attacker would need prior access to the source code repository, container filesystem, or a separate vulnerability to obtain these credentials. Even with the credentials, they cannot connect to the database from outside the Docker network. This represents poor security hygiene that increases risk in scenarios like: (1) source code repository compromise, (2) insider threats, (3) container escape vulnerabilities, or (4) other vulnerabilities that allow file system access. The credentials should be stored in environment variables and injected at runtime rather than hardcoded."
+            }
+          }
+        },
+        {
+          "message": {
+            "text": "Passwords are stored in plaintext in the database without hashing, violating security best practices and creating risk if the database is compromised through other means."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 26,
+                  "endLine": 26,
+                  "snippet": {
+                    "text": "        user = User.query.filter_by(username=username, password=password).first()"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 21,
+                  "endLine": 35,
+                  "snippet": {
+                    "text": "@app.route('/login', methods=['GET', 'POST'])\ndef login():\n    if request.method == 'POST':\n        username = request.form['username']\n        password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()\n        if user:\n            # Store user ID in session\n            session['user_id'] = user.id\n            # If login successful, redirect to home page\n            return redirect(url_for('home'))\n        else:\n            # If login fails, redirect back to login page with an error message\n            return render_template('templates/login.html', error='Invalid username or password')\n    return render_template('templates/login.html')"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Plaintext Password Storage",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "Passwords are stored in plaintext in the MySQL database (User.password field) and compared directly during authentication. While this is a serious security design flaw, it is not directly exploitable by a remote attacker. The MySQL database is only exposed within the Docker internal network (not published to the host), and all database queries use SQLAlchemy ORM with proper parameterization, preventing SQL injection. There is no user registration endpoint, and no identified path for a remote attacker to directly access the database. However, this creates significant risk under defense-in-depth principles: if the database is compromised through any other means (container escape, backup exposure, infrastructure breach, or a future SQL injection vulnerability), all user credentials would be immediately exposed in plaintext. The application should use bcrypt, scrypt, or Argon2 to hash passwords before storage."
+            }
+          }
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-022-24",
+        "totalCost": 3.1088790000000004
+      }
+    }
+  ]
+}

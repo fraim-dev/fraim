@@ -1,0 +1,394 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Hardcoded Flask secret key enables session forgery, allowing attackers to bypass authentication and access sensitive data including the FLAG stored in order receipts."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 11,
+                  "endLine": 11,
+                  "snippet": {
+                    "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 9,
+                  "endLine": 13,
+                  "snippet": {
+                    "text": "app = Flask(__name__)\n\napp.secret_key = 'your_secret_key'  # Change this to a secure secret key\n\n# MySQL configurations"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Cryptographic Failure - Hardcoded Secret Key",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The Flask application uses a hardcoded, weak secret key 'your_secret_key' for session management. An attacker who obtains this key (from source code, which appears to be accessible in this CTF-style challenge) can forge valid Flask session cookies. By crafting a session with a valid user_id (e.g., '10032' for the test user), the attacker can bypass authentication. Combined with the IDOR vulnerability in the /order/<order_id>/receipt endpoint (which checks authentication but not authorization), the attacker can access order 300401 containing the FLAG. The FLAG order has no user_id association, making it accessible to any authenticated session. This creates a complete attack chain: obtain secret key \u2192 forge session \u2192 access FLAG receipt."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Attack flow: Attacker obtains hardcoded secret key \u2192 forges Flask session \u2192 bypasses authentication \u2192 accesses FLAG via IDOR vulnerability"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Complete attack chain from secret key exposure to FLAG disclosure"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 11,
+                            "endLine": 11,
+                            "snippet": {
+                              "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 56,
+                            "endLine": 56,
+                            "snippet": {
+                              "text": "            session['user_id'] = user.id"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 97,
+                            "endLine": 97,
+                            "snippet": {
+                              "text": "    user_id = session.get('user_id')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 100,
+                            "endLine": 100,
+                            "snippet": {
+                              "text": "        order = Order.query.get(order_id)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 85,
+                            "endLine": 95,
+                            "snippet": {
+                              "text": "    with open('/flag') as flag_file:\n        sensitive_data = flag_file.read()\n    order = Order(\n        id='300401',\n        date='05/16/2024',\n        ticker='SENS',\n        operation_type='SELL',\n        quantity='1',\n        price='1.00',\n        receipt=sensitive_data\n    )"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 102,
+                            "endLine": 102,
+                            "snippet": {
+                              "text": "        return render_template('receipt.html', order=order)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Critical IDOR vulnerability allows any authenticated user to access sensitive flag data stored in order receipt. The flag file is read from '/flag' and stored in order ID 300401 without a user association, and the receipt endpoint fails to verify order ownership before displaying receipt contents."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 83,
+                  "endLine": 95,
+                  "snippet": {
+                    "text": "    with open('/flag') as flag_file:\n        sensitive_data = flag_file.read()\n    order = Order(\n        id='300401',\n        date='05/16/2024',\n        ticker='SENS',\n        operation_type='SELL',\n        quantity='1',\n        price='1.00',\n        receipt=sensitive_data\n    )\n    db.session.add(order)\n    db.session.commit()"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Insecure Direct Object Reference (IDOR) with Sensitive Data Exposure",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "This is a critical and directly exploitable vulnerability. The flag file contents are stored in the database as order ID 300401's receipt field WITHOUT an associated user_id (the order is created without the 'user=test' parameter that other orders have). The /order/<int:order_id>/receipt endpoint (routes.py:94-107) only checks if a user is authenticated but does NOT verify that the requested order belongs to that user. Any authenticated user can access ANY order's receipt by simply navigating to /order/300401/receipt. The exploit requires only: (1) Create an account or use test:test credentials to authenticate, (2) Navigate to /order/300401/receipt, (3) The flag is displayed in the receipt template. This is a textbook IDOR vulnerability combined with sensitive data exposure."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Sensitive flag data flows from file system to database without proper access controls, then is exposed via IDOR vulnerability"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Complete exploit path from flag file to unauthorized access"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 83,
+                            "endLine": 84,
+                            "snippet": {
+                              "text": "    with open('/flag') as flag_file:\n        sensitive_data = flag_file.read()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "source",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 85,
+                            "endLine": 93,
+                            "snippet": {
+                              "text": "    order = Order(\n        id='300401',\n        date='05/16/2024',\n        ticker='SENS',\n        operation_type='SELL',\n        quantity='1',\n        price='1.00',\n        receipt=sensitive_data\n    )"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 94,
+                            "endLine": 95,
+                            "snippet": {
+                              "text": "    db.session.add(order)\n    db.session.commit()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "sink"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 94,
+                            "endLine": 94,
+                            "snippet": {
+                              "text": "@app.route('/order/<int:order_id>/receipt')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "enter",
+                        "handler"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 97,
+                            "endLine": 98,
+                            "snippet": {
+                              "text": "    user_id = session.get('user_id')\n    if user_id:"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "branch",
+                        "caution"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 100,
+                            "endLine": 100,
+                            "snippet": {
+                              "text": "        order = Order.query.get(order_id)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 102,
+                            "endLine": 102,
+                            "snippet": {
+                              "text": "        return render_template('receipt.html', order=order)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "sink",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/templates/receipt.html"
+                          },
+                          "region": {
+                            "startLine": 14,
+                            "endLine": 14,
+                            "snippet": {
+                              "text": "                <code class=\"text-white\">{{ order.receipt }}</code>"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "sink",
+                        "taint"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-001-24",
+        "totalCost": 2.828106
+      }
+    }
+  ]
+}

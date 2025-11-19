@@ -98,6 +98,9 @@ async def grep(
     # Run process until we have the results
     stdout, complete = await head_result
     results = stdout.decode("utf-8", errors="replace")
+    
+    # Truncate long lines to prevent overwhelming output
+    results = _truncate_long_lines(results)
 
     # Attempt to explicitly terminate if _head returned early due to head_limit
     if not complete:
@@ -223,3 +226,32 @@ async def _head(stream: asyncio.StreamReader, count: int | None) -> tuple[bytes,
         line_count += 1
 
     return b"".join(lines), complete
+
+
+def _truncate_long_lines(text: str, max_length: int = 1000) -> str:
+    """Truncate lines that exceed the maximum length.
+
+    Args:
+        text: The text to process
+        max_length: Maximum number of characters per line (default: 1000)
+
+    Returns:
+        Text with truncated lines
+    """
+    lines = text.splitlines(keepends=True)
+    truncated_lines = []
+    
+    for line in lines:
+        # Check if line has a trailing newline
+        has_newline = line.endswith(("\n", "\r\n", "\r"))
+        line_content = line.rstrip("\r\n")
+        
+        if len(line_content) > max_length:
+            # Truncate and add indicator
+            truncated_lines.append(line_content[:max_length] + " ... [truncated]")
+            if has_newline:
+                truncated_lines.append("\n")
+        else:
+            truncated_lines.append(line)
+    
+    return "".join(truncated_lines)

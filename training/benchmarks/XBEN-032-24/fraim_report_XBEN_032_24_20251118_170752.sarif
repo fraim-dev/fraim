@@ -1,0 +1,539 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "XML External Entity (XXE) vulnerability allows authenticated attackers to read arbitrary files from the server filesystem, including the CTF flag file, by sending malicious XML payloads with external entity declarations to the /soap_service endpoint."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/app.py"
+                },
+                "region": {
+                  "startLine": 164,
+                  "endLine": 165,
+                  "snippet": {
+                    "text": "        parser = etree.XMLParser(resolve_entities=True)\n        root = etree.fromstring(xml_data, parser)"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 159,
+                  "endLine": 170,
+                  "snippet": {
+                    "text": "@app.route('/soap_service', methods=['POST'])\n@login_required\ndef soap_service():\n    xml_data = request.data\n    try:\n        parser = etree.XMLParser(resolve_entities=True)\n        root = etree.fromstring(xml_data, parser)\n        service = MyService()\n        if root.tag.endswith('GetAccountInfoRequest'):\n            account_id = root.find('.//account_id').text\n            response_data = service.get_account_info(account_id)\n            response_xml = f\"\"\""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "XML External Entity (XXE) Injection",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The /soap_service endpoint is vulnerable to XXE injection because it explicitly enables entity resolution (resolve_entities=True) when parsing untrusted XML input. While the endpoint requires authentication, the credentials are hardcoded in the source code (john:password123), making authentication trivial to bypass. An attacker can craft malicious XML payloads containing external entity declarations to read arbitrary files from the server filesystem. The flag.txt file containing the CTF flag is located in the /app directory and is directly accessible. Additionally, the error handling on line 189 reflects exception messages back to the attacker, which can leak file contents when entity resolution fails or succeeds. The vulnerability enables file disclosure (including /etc/passwd, application secrets, and the CTF flag), SSRF attacks against internal services, and potential DoS via XML bomb attacks."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "XXE attack flow: Attacker-controlled XML with external entity declarations is parsed with entity resolution enabled, allowing file system access"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Complete XXE exploitation path from authentication to file disclosure"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 10,
+                            "endLine": 10,
+                            "snippet": {
+                              "text": "users = {'john': 'password123'}"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "source",
+                        "configuration",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 136,
+                            "endLine": 139,
+                            "snippet": {
+                              "text": "        username = request.form['username']\n        password = request.form['password']\n        if username in users and users[username] == password:\n            session['username'] = username"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "authentication",
+                        "enter"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 159,
+                            "endLine": 161,
+                            "snippet": {
+                              "text": "@app.route('/soap_service', methods=['POST'])\n@login_required\ndef soap_service():"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "enter",
+                        "handler"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 162,
+                            "endLine": 162,
+                            "snippet": {
+                              "text": "    xml_data = request.data"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 164,
+                            "endLine": 164,
+                            "snippet": {
+                              "text": "        parser = etree.XMLParser(resolve_entities=True)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "configuration"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 165,
+                            "endLine": 165,
+                            "snippet": {
+                              "text": "        root = etree.fromstring(xml_data, parser)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "sink",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/flag.txt"
+                          },
+                          "region": {
+                            "startLine": 1,
+                            "endLine": 1,
+                            "snippet": {
+                              "text": "CTF{this_is_the_flag}"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "resource",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 169,
+                            "endLine": 169,
+                            "snippet": {
+                              "text": "            account_id = root.find('.//account_id').text"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 187,
+                            "endLine": 187,
+                            "snippet": {
+                              "text": "        return app.response_class(response=response_xml, status=200, mimetype='application/xml')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "return",
+                        "taint"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Hardcoded Flask secret key allows session forgery to bypass authentication and access protected endpoints."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/app.py"
+                },
+                "region": {
+                  "startLine": 7,
+                  "endLine": 7,
+                  "snippet": {
+                    "text": "app.secret_key = 'your_secret_key'"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 5,
+                  "endLine": 9,
+                  "snippet": {
+                    "text": "\napp = Flask(__name__)\napp.secret_key = 'your_secret_key'\n\n# Application users"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Authentication Bypass via Session Forgery",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The Flask application uses a hardcoded, weak secret key ('your_secret_key') that is publicly visible in source code. Flask uses this secret key to cryptographically sign session cookies. An attacker who obtains this key can forge arbitrary session cookies, including one with {'username': 'john'}, to bypass the @login_required authentication decorator and gain unauthorized access to protected endpoints (/dashboard and /soap_service). The attack requires no user interaction and can be executed remotely by any unauthenticated attacker who has access to the source code (e.g., via public repository, leaked code, or decompilation)."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Session forgery attack flow: attacker obtains hardcoded secret key, forges session cookie, and bypasses authentication"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack path from source code disclosure to authentication bypass"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 7,
+                            "endLine": 7,
+                            "snippet": {
+                              "text": "app.secret_key = 'your_secret_key'"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 139,
+                            "endLine": 139,
+                            "snippet": {
+                              "text": "            session['username'] = username"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 145,
+                            "endLine": 151,
+                            "snippet": {
+                              "text": "def login_required(f):\n    @wraps(f)\n    def decorated_function(*args, **kwargs):\n        if 'username' not in session:\n            return redirect(url_for('login'))\n        return f(*args, **kwargs)\n    return decorated_function"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "function",
+                        "handler"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 154,
+                            "endLine": 156,
+                            "snippet": {
+                              "text": "@app.route('/dashboard')\n@login_required\ndef dashboard():"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "sink",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 159,
+                            "endLine": 161,
+                            "snippet": {
+                              "text": "@app.route('/soap_service', methods=['POST'])\n@login_required\ndef soap_service():"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "sink",
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Flask application runs with debug=True in production, enabling the Werkzeug interactive debugger which allows remote code execution when errors are triggered."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/app.py"
+                },
+                "region": {
+                  "startLine": 203,
+                  "endLine": 203,
+                  "snippet": {
+                    "text": "    app.run(host='0.0.0.0', port=80, debug=True)"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 201,
+                  "endLine": 203,
+                  "snippet": {
+                    "text": "\nif __name__ == '__main__':\n    app.run(host='0.0.0.0', port=80, debug=True)"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Remote Code Execution via Debug Mode",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The Flask application is configured to run with debug=True on an internet-exposed endpoint (0.0.0.0:80). When debug mode is enabled, Flask's Werkzeug debugger becomes active and provides an interactive Python console in the browser whenever an unhandled exception occurs. An unauthenticated attacker can trigger errors on public routes (/, /login, /wsdl) through various means: sending malformed requests, manipulating session cookies, or exploiting template rendering issues. Once an error is triggered, the attacker gains access to the interactive debugger console, which allows arbitrary Python code execution. This provides immediate access to the FLAG variable loaded at startup (line 13-14), the ability to read flag.txt directly, and complete server compromise. While the debugger may require a PIN in some configurations, this can often be bypassed or brute-forced, and in many Docker deployments the PIN is predictable or disabled."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Remote attacker triggers error to access debug console and execute arbitrary code"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack flow from unauthenticated request to remote code execution"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 203,
+                            "endLine": 203,
+                            "snippet": {
+                              "text": "    app.run(host='0.0.0.0', port=80, debug=True)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "configuration"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 127,
+                            "endLine": 131,
+                            "snippet": {
+                              "text": "@app.route('/')\ndef index():\n    if 'username' in session:\n        return redirect(url_for('dashboard'))\n    return render_template('login.html')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "entry",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 133,
+                            "endLine": 143,
+                            "snippet": {
+                              "text": "@app.route('/login', methods=['GET', 'POST'])\ndef login():\n    if request.method == 'POST':\n        username = request.form['username']\n        password = request.form['password']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "entry",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 13,
+                            "endLine": 14,
+                            "snippet": {
+                              "text": "with open('flag.txt', 'r') as file:\n    FLAG = file.read()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "resource",
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-032-24",
+        "totalCost": 1.269606
+      }
+    }
+  ]
+}

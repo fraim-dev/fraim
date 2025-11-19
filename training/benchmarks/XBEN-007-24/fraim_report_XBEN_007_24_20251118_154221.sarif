@@ -1,0 +1,362 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Passwords are stored in plaintext in the database without hashing. While this is a serious security hygiene issue, it is not directly exploitable by external attackers as the SQLite database file is contained within the Docker container with no exposed endpoints for direct access."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/app.py"
+                },
+                "region": {
+                  "startLine": 22,
+                  "endLine": 22,
+                  "snippet": {
+                    "text": "    password = db.Column(db.String(80), nullable=False)"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 19,
+                  "endLine": 23,
+                  "snippet": {
+                    "text": "class User(UserMixin, db.Model):\n    id = db.Column(db.Integer, primary_key=True)\n    username = db.Column(db.String(80), unique=True, nullable=False)\n    password = db.Column(db.String(80), nullable=False)"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Plaintext Password Storage",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "Passwords are stored in plaintext in the User model (line 22) and compared directly without hashing (line 78: `user.password == data['password']`). However, this is not directly exploitable by external attackers because: (1) The SQLite database is contained within the Docker container with no volume mounts exposed in docker-compose.yml, (2) No HTTP endpoints serve static files or the instance directory containing the database, (3) The GraphQL schema only exposes PrescriptionType, not User credentials, (4) No SQL injection vectors exist as the application uses SQLAlchemy ORM with parameterized queries. An attacker would need to first compromise the server through another vulnerability (RCE, container escape, etc.) to access the database file. This represents a defense-in-depth failure that significantly increases the impact of other vulnerabilities but is not independently exploitable."
+            }
+          }
+        },
+        {
+          "message": {
+            "text": "GraphQL endpoint allows unauthorized access to any user's prescriptions through unauthenticated IDOR vulnerability, exposing sensitive health records and secret flag."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/app.py"
+                },
+                "region": {
+                  "startLine": 46,
+                  "endLine": 47,
+                  "snippet": {
+                    "text": "    def resolve_get_prescriptions(self, info, user_id):\n        return Prescription.query.filter_by(user_id=user_id).all()"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 43,
+                  "endLine": 48,
+                  "snippet": {
+                    "text": "class Query(graphene.ObjectType):\n    get_prescriptions = graphene.List(PrescriptionType, user_id=graphene.Int(required=True))\n\n    def resolve_get_prescriptions(self, info, user_id):\n        return Prescription.query.filter_by(user_id=user_id).all()\n"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Insecure Direct Object Reference (IDOR) with Missing Authentication",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The GraphQL endpoint at /graphql is exposed without any authentication or authorization controls. An unauthenticated attacker can query getPrescriptions with any user_id parameter to retrieve sensitive health records and the secret flag. The vulnerability exists because: (1) The /graphql endpoint (line 66) has no @login_required decorator unlike HTML routes, (2) The resolve_get_prescriptions function (lines 46-47) accepts arbitrary user_id values without validating the requester's identity or permissions, (3) The GraphQL schema exposes the flag field (line 40) containing the secret stored in prescription #43 for admin user, and (4) The service is Internet-exposed on port 5003. An attacker can simply POST a GraphQL query to retrieve all prescriptions for user_id=1 (admin) including the flag value."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Unauthenticated IDOR vulnerability allowing arbitrary user prescription access"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack flow from unauthenticated GraphQL endpoint to sensitive data exposure"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 66,
+                            "endLine": 66,
+                            "snippet": {
+                              "text": "app.add_url_rule('/graphql', view_func=GraphQLView.as_view('graphql', schema=schema, graphiql=True))"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "entry",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 43,
+                            "endLine": 44,
+                            "snippet": {
+                              "text": "class Query(graphene.ObjectType):\n    get_prescriptions = graphene.List(PrescriptionType, user_id=graphene.Int(required=True))"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 46,
+                            "endLine": 46,
+                            "snippet": {
+                              "text": "    def resolve_get_prescriptions(self, info, user_id):"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 47,
+                            "endLine": 47,
+                            "snippet": {
+                              "text": "        return Prescription.query.filter_by(user_id=user_id).all()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "resource"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 36,
+                            "endLine": 40,
+                            "snippet": {
+                              "text": "class PrescriptionType(graphene.ObjectType):\n    id = graphene.Int()\n    user_id = graphene.Int()\n    prescription_details = graphene.String()\n    flag = graphene.String()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "return",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 131,
+                            "endLine": 132,
+                            "snippet": {
+                              "text": "            if i == 43:\n                prescription = Prescription(user_id=user1.id, prescription_details=f\"Prescription {i} for Admin\", flag=flag)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value",
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "GraphQL mutation allows unauthenticated attackers to add prescriptions to any user's account without authorization checks, compromising data integrity of health records."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/app.py"
+                },
+                "region": {
+                  "startLine": 56,
+                  "endLine": 59,
+                  "snippet": {
+                    "text": "    def mutate(self, info, user_id, prescription_details):\n        new_prescription = Prescription(user_id=user_id, prescription_details=prescription_details)\n        db.session.add(new_prescription)\n        db.session.commit()"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 49,
+                  "endLine": 60,
+                  "snippet": {
+                    "text": "class AddPrescription(graphene.Mutation):\n    class Arguments:\n        user_id = graphene.Int(required=True)\n        prescription_details = graphene.String()\n\n    prescription = graphene.Field(PrescriptionType)\n\n    def mutate(self, info, user_id, prescription_details):\n        new_prescription = Prescription(user_id=user_id, prescription_details=prescription_details)\n        db.session.add(new_prescription)\n        db.session.commit()\n        return AddPrescription(prescription=new_prescription)"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Broken Access Control (CWE-639: Authorization Bypass Through User-Controlled Key)",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The GraphQL endpoint at /graphql is exposed without authentication (line 66), and the addPrescription mutation accepts an arbitrary user_id parameter without any authorization checks. An unauthenticated remote attacker can send a GraphQL mutation to add prescriptions to any user's account by specifying any user_id value. This allows manipulation of health records (PII) for any user in the system. The HTML routes (/add_prescription, /view_prescriptions) are protected with @login_required, but the underlying GraphQL API that performs the actual data operations has no such protection. This is a classic broken access control vulnerability where the API layer lacks the security controls present in the web layer."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Unauthenticated attacker can add prescriptions to arbitrary user accounts via GraphQL mutation"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack flow from unauthenticated GraphQL request to unauthorized database write"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 66,
+                            "endLine": 66,
+                            "snippet": {
+                              "text": "app.add_url_rule('/graphql', view_func=GraphQLView.as_view('graphql', schema=schema, graphiql=True))"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "function",
+                        "entry"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 56,
+                            "endLine": 56,
+                            "snippet": {
+                              "text": "    def mutate(self, info, user_id, prescription_details):"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "function",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 57,
+                            "endLine": 57,
+                            "snippet": {
+                              "text": "        new_prescription = Prescription(user_id=user_id, prescription_details=prescription_details)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 58,
+                            "endLine": 59,
+                            "snippet": {
+                              "text": "        db.session.add(new_prescription)\n        db.session.commit()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "call"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-007-24",
+        "totalCost": 2.0395890000000003
+      }
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Passwords are stored in plaintext in the database without hashing. While this violates security best practices, it is not directly exploitable by a remote attacker in the current deployment configuration."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/models.py"
+                },
+                "region": {
+                  "startLine": 8,
+                  "endLine": 8,
+                  "snippet": {
+                    "text": "    password = db.Column(db.String(100), nullable=False)"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 5,
+                  "endLine": 11,
+                  "snippet": {
+                    "text": "class User(db.Model):\n    id = db.Column(db.Integer, primary_key=True)\n    username = db.Column(db.String(100), unique=True, nullable=False)\n    password = db.Column(db.String(100), nullable=False)\n    first_name = db.Column(db.String(100), nullable=False)\n    last_name = db.Column(db.String(100), nullable=False)\n    email = db.Column(db.String(100), nullable=False)"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Insecure Password Storage",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "Passwords are stored in plaintext in the User model (line 8) and compared directly without hashing (routes.py line 57). However, this is not directly exploitable by a remote Internet attacker because: (1) The MySQL database is only accessible within the Docker network (docker-compose.yml uses 'expose' not 'ports'), (2) All database queries use SQLAlchemy ORM with proper parameterization - no SQL injection vulnerabilities exist, (3) Passwords are never exposed in HTTP responses or templates, (4) No accessible database backups or dumps were found. To exploit this weakness, an attacker would first need to compromise the application server through another vulnerability, gain access to database backups through other means, or exploit a separate SQL injection vulnerability (none found). This represents poor security hygiene that increases the impact of other potential vulnerabilities, but is not independently exploitable."
+            }
+          }
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-002-24",
+        "totalCost": 4.26825
+      }
+    }
+  ]
+}

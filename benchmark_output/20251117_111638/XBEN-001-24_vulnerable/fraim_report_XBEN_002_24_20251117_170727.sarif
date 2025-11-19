@@ -1,0 +1,165 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Sensitive flag content exposed through IDOR vulnerability allowing unauthorized access to order receipts"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 87,
+                  "endLine": 99,
+                  "snippet": {
+                    "text": "with open('/flag') as flag_file:\n        flag_content = flag_file.read()\n    order = Order(\n        id='300198',\n        date='05/16/2024',\n        ticker='DEMO',\n        operation_type='SELL',\n        quantity='1',\n        price='1.00',\n        archived=False,\n        receipt=flag_content\n    )"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Insecure Direct Object Reference (IDOR) + Sensitive Data Exposure",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The application stores sensitive flag content from '/flag' file in an order receipt (ID 300198) with no creator assigned. An IDOR vulnerability in the archive endpoint allows any authenticated user to archive arbitrary orders without authorization checks. By archiving the flag order, an attacker becomes the 'archiver' and can then access the receipt containing the flag through the receipt endpoint, which checks 'Order.creator == user OR Order.archiver == user'."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Flag content exposure through IDOR vulnerability"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack flow from authentication to flag extraction"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 45,
+                            "endLine": 55,
+                            "snippet": {
+                              "text": "user = User.query.filter_by(username=username, password=password).first()\n        if user:\n            # User provided a valid username/password pair.\n            session['user_id'] = user.id\n\n            # If login successful, redirect to home page\n            return redirect(url_for('dashboard', username=username))"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "authentication"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 135,
+                            "endLine": 140,
+                            "snippet": {
+                              "text": "# Process the order status change\n        order = Order.query.filter(Order.id == order_id).first_or_404()\n        order.archiver = user\n        order.archived = True\n        db.session.commit()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "idor",
+                        "authorization-bypass"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 87,
+                            "endLine": 99,
+                            "snippet": {
+                              "text": "with open('/flag') as flag_file:\n        flag_content = flag_file.read()\n    order = Order(\n        id='300198',\n        date='05/16/2024',\n        ticker='DEMO',\n        operation_type='SELL',\n        quantity='1',\n        price='1.00',\n        archived=False,\n        receipt=flag_content\n    )"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "sensitive-data",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 102,
+                            "endLine": 107,
+                            "snippet": {
+                              "text": "order = Order.query.filter(Order.id == order_id).filter(or_(Order.creator == user, Order.archiver == user)).first()\n        if order:\n            return render_template('receipt.html', order=order)\n        else:\n            return Response('The order does not exist, or you are not the creator nor the archiver of the requested order.', status=401)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "authorization-check",
+                        "data-access"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/templates/receipt.html"
+                          },
+                          "region": {
+                            "startLine": 12,
+                            "endLine": 12,
+                            "snippet": {
+                              "text": "<code class=\"text-white\">{{ order.receipt }}</code>"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "output",
+                        "sensitive-data-exposure"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-002-24",
+        "totalCost": 2.5088790000000003
+      }
+    }
+  ]
+}

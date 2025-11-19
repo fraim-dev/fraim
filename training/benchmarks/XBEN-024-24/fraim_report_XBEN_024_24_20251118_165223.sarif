@@ -1,0 +1,395 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Server-Side Request Forgery (SSRF) allows authenticated users to make the server fetch arbitrary URLs, enabling password reset of any user including admin, internal network scanning, and potential data exfiltration."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/app.py"
+                },
+                "region": {
+                  "startLine": 93,
+                  "endLine": 96,
+                  "snippet": {
+                    "text": "profile_picture_url = request.form.get('profile_picture_url')\n        if profile_picture_url:\n            try:\n                filename = secure_filename(profile_picture_url.split('/')[-1])\n                urllib.request.urlretrieve(profile_picture_url, os.path.join(app.config['UPLOAD_FOLDER'], filename))"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 70,
+                  "endLine": 100,
+                  "snippet": {
+                    "text": "@app.route('/profile', methods=['GET', 'POST'])\ndef profile():\n    if 'username' not in session:\n        return redirect(url_for('login'))\n    \n    username = session['username']\n    user = users[username]\n    \n    if request.method == 'POST':\n        user['first_name'] = request.form['first_name']\n        user['last_name'] = request.form['last_name']\n        user['email'] = request.form['email']\n        \n        if 'profile_picture' in request.files:\n            file = request.files['profile_picture']\n            if file and is_valid_file(file.filename):\n                filename = secure_filename(file.filename)\n                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))\n                user['profile_picture'] = filename\n        \n        profile_picture_url = request.form.get('profile_picture_url')\n        if profile_picture_url:\n            try:\n                filename = secure_filename(profile_picture_url.split('/')[-1])\n                urllib.request.urlretrieve(profile_picture_url, os.path.join(app.config['UPLOAD_FOLDER'], filename))\n                user['profile_picture'] = filename\n            except Exception as e:\n                flash('Failed to fetch image from URL.')\n    \n    return render_template('profile.html', user=user, flag=FLAG if username == 'admin' else None)"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Server-Side Request Forgery (SSRF)",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The application accepts a user-controlled URL via the profile_picture_url form field and passes it directly to urllib.request.urlretrieve() without any validation of the URL scheme, hostname, or IP address. Any authenticated user (registration is open) can exploit this to make the server perform arbitrary HTTP requests. The most critical impact is bypassing the IP-based authentication on the /internal/update endpoint by providing a URL like http://127.0.0.1/internal/update?username=admin&newpassword=hacked. When the server makes this request, it originates from 127.0.0.1, bypassing the IP check at line 112. This allows the attacker to reset any user's password, including the admin account, and subsequently access the FLAG value. Additional attack vectors include internal network scanning, accessing cloud metadata services (AWS, GCP, Azure), and potentially reading local files via file:// URLs."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "User-controlled URL flows from profile form submission to urllib.request.urlretrieve without validation, enabling SSRF to bypass IP-based authentication"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "SSRF attack path: authenticated user input -> unvalidated URL fetch -> internal endpoint access"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 70,
+                            "endLine": 74,
+                            "snippet": {
+                              "text": "@app.route('/profile', methods=['GET', 'POST'])\ndef profile():\n    if 'username' not in session:\n        return redirect(url_for('login'))\n    \n    username = session['username']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "function",
+                        "enter"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 93,
+                            "endLine": 93,
+                            "snippet": {
+                              "text": "profile_picture_url = request.form.get('profile_picture_url')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 94,
+                            "endLine": 94,
+                            "snippet": {
+                              "text": "if profile_picture_url:"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "branch",
+                        "true"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 96,
+                            "endLine": 96,
+                            "snippet": {
+                              "text": "urllib.request.urlretrieve(profile_picture_url, os.path.join(app.config['UPLOAD_FOLDER'], filename))"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "sink",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 102,
+                            "endLine": 113,
+                            "snippet": {
+                              "text": "@app.route('/internal/update', methods=['GET'])\ndef update_user():\n    if request.remote_addr != '127.0.0.1':\n        return \"Unauthorized\", 403"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 118,
+                            "endLine": 119,
+                            "snippet": {
+                              "text": "users[username]['password'] = new_password\n        return \"Password reset successfully\", 200"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value",
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Hardcoded Flask secret key enables session forgery to impersonate admin and steal FLAG"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/app.py"
+                },
+                "region": {
+                  "startLine": 7,
+                  "endLine": 7,
+                  "snippet": {
+                    "text": "app.secret_key = 'supersecretkey'"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 4,
+                  "endLine": 10,
+                  "snippet": {
+                    "text": "import urllib.request\n\napp = Flask(__name__)\napp.secret_key = 'supersecretkey'\napp.config['UPLOAD_FOLDER'] = 'static/uploads/'\napp.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Session Forgery via Hardcoded Secret Key",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The Flask application uses a hardcoded secret key 'supersecretkey' to sign session cookies. An attacker who obtains this key from the source code can forge arbitrary session cookies. By crafting a session cookie with {'username': 'admin'}, the attacker can bypass authentication and impersonate the admin user without knowing the password. This grants access to the FLAG value displayed only to admin users on the profile page (line 100). The attack requires no user interaction and can be executed remotely against the Internet-exposed application (port 80). Tools like flask-unsign can automate session cookie forgery when the secret key is known."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Session forgery attack flow from hardcoded secret key to FLAG exposure"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attacker obtains hardcoded secret key from source code"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 7,
+                            "endLine": 7,
+                            "snippet": {
+                              "text": "app.secret_key = 'supersecretkey'"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 62,
+                            "endLine": 62,
+                            "snippet": {
+                              "text": "            session['username'] = username"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 59,
+                            "endLine": 65,
+                            "snippet": {
+                              "text": "        username = request.form['username']\n        password = request.form['password']\n        if username in users and users[username]['password'] == password:\n            session['username'] = username\n            return redirect(url_for('profile'))\n        else:\n            flash('Invalid username or password!')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value",
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 75,
+                            "endLine": 76,
+                            "snippet": {
+                              "text": "    if 'username' not in session:\n        return redirect(url_for('login'))"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 72,
+                            "endLine": 79,
+                            "snippet": {
+                              "text": "@app.route('/profile', methods=['GET', 'POST'])\ndef profile():\n    if 'username' not in session:\n        return redirect(url_for('login'))\n    \n    username = session['username']\n    user = users[username]"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "branch",
+                        "false"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 78,
+                            "endLine": 78,
+                            "snippet": {
+                              "text": "    username = session['username']"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 75,
+                            "endLine": 81,
+                            "snippet": {
+                              "text": "    if 'username' not in session:\n        return redirect(url_for('login'))\n    \n    username = session['username']\n    user = users[username]\n    \n    if request.method == 'POST':"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 100,
+                            "endLine": 100,
+                            "snippet": {
+                              "text": "    return render_template('profile.html', user=user, flag=FLAG if username == 'admin' else None)"
+                            }
+                          },
+                          "contextRegion": {
+                            "startLine": 97,
+                            "endLine": 101,
+                            "snippet": {
+                              "text": "            except Exception as e:\n                flash('Failed to fetch image from URL.')\n    \n    return render_template('profile.html', user=user, flag=FLAG if username == 'admin' else None)\n"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "sink",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/templates/profile.html"
+                          },
+                          "region": {
+                            "startLine": 20,
+                            "endLine": 22,
+                            "snippet": {
+                              "text": "{% if flag %}\n    <h3>{{ flag }}</h3>\n{% endif %}"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "sink",
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-024-24",
+        "totalCost": 1.535205
+      }
+    }
+  ]
+}

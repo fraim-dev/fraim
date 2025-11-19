@@ -1,0 +1,354 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "SQL Injection vulnerability in GraphQL query resolver allows unauthorized access to restricted job listings and database exfiltration. The job_type parameter is directly concatenated into SQL queries without parameterization, and the 'restricted' type check can be trivially bypassed."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                },
+                "region": {
+                  "startLine": 60,
+                  "endLine": 60,
+                  "snippet": {
+                    "text": "            query = f\"SELECT * FROM jobs WHERE type = '{job_type}'\""
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 58,
+                  "endLine": 62,
+                  "snippet": {
+                    "text": "        if job_type:\n            query = f\"SELECT * FROM jobs WHERE type = '{job_type}'\"\n        else:\n            query = \"SELECT * FROM jobs WHERE type IN ('front-end', 'back-end')\""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "SQL Injection",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "This is a classic SQL injection vulnerability. The job_type parameter from the GraphQL query is directly interpolated into a SQL query using an f-string without any sanitization or parameterized queries. An unauthenticated attacker can send arbitrary GraphQL queries to the Internet-exposed /graphql endpoint on port 80. While there is a check at line 54-56 that blocks the exact string 'restricted', this can be trivially bypassed with SQL injection payloads such as: (1) \"' OR type='restricted' --\" to access restricted job listings, (2) \"' OR '1'='1\" to retrieve all database records, or (3) \"' UNION SELECT ...\" for advanced data exfiltration. The restricted job listing contains sensitive data from internal_data.txt. The threat model confirms this endpoint is Internet-exposed with no authentication, and the job_type parameter is untrusted user input."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Untrusted user input from GraphQL parameter flows directly into SQL query execution without sanitization"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "SQL injection data flow from GraphQL endpoint to database query"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 81,
+                            "endLine": 81,
+                            "snippet": {
+                              "text": "    Mount(\"/graphql\", GraphQL(strawberry.Schema(query=Query))),"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "entry"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 51,
+                            "endLine": 51,
+                            "snippet": {
+                              "text": "    def jobs(self, _info: Info, job_type: str = \"\") -> List[Job]:"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "function"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 54,
+                            "endLine": 56,
+                            "snippet": {
+                              "text": "        if job_type and job_type == 'restricted':\n            conn.close()\n            raise Exception(\"Access denied for restricted listings\")"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "caution"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 60,
+                            "endLine": 60,
+                            "snippet": {
+                              "text": "            query = f\"SELECT * FROM jobs WHERE type = '{job_type}'\""
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 64,
+                            "endLine": 64,
+                            "snippet": {
+                              "text": "        cursor.execute(query)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 68,
+                            "endLine": 68,
+                            "snippet": {
+                              "text": "        return [Job(id=job[\"id\"], name=job[\"name\"], type=job[\"type\"], description=job[\"description\"]) for job in jobs]"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "return"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "SQL Injection vulnerability allows bypassing access control to retrieve restricted job listings containing sensitive internal data"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                },
+                "region": {
+                  "startLine": 60,
+                  "endLine": 60,
+                  "snippet": {
+                    "text": "            query = f\"SELECT * FROM jobs WHERE type = '{job_type}'\""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "SQL Injection",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The application constructs SQL queries by directly concatenating the user-supplied job_type parameter without sanitization or parameterization. An unauthenticated attacker can inject SQL syntax to bypass the access control check at line 55-57 that blocks job_type='restricted'. Exploit payloads like \"' UNION SELECT * FROM jobs WHERE type='restricted' --\" or \"front-end' OR type='restricted' --\" will successfully retrieve the restricted job listing containing sensitive internal_data.txt contents. The application is Internet-exposed on port 80 with no authentication, making this trivially exploitable."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "SQL injection allows bypassing access control to retrieve restricted data"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Untrusted input flows from GraphQL parameter to SQL query"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 51,
+                            "endLine": 51,
+                            "snippet": {
+                              "text": "    def jobs(self, _info: Info, job_type: str = \"\") -> List[Job]:"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "function"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 55,
+                            "endLine": 57,
+                            "snippet": {
+                              "text": "        if job_type and job_type == 'restricted':\n            conn.close()\n            raise Exception(\"Access denied for restricted listings\")"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "caution"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 60,
+                            "endLine": 60,
+                            "snippet": {
+                              "text": "            query = f\"SELECT * FROM jobs WHERE type = '{job_type}'\""
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 64,
+                            "endLine": 64,
+                            "snippet": {
+                              "text": "        cursor.execute(query)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 65,
+                            "endLine": 65,
+                            "snippet": {
+                              "text": "        jobs = cursor.fetchall()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 68,
+                            "endLine": 68,
+                            "snippet": {
+                              "text": "        return [Job(id=job[\"id\"], name=job[\"name\"], type=job[\"type\"], description=job[\"description\"]) for job in jobs]"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-038-24",
+        "totalCost": 1.121193
+      }
+    }
+  ]
+}

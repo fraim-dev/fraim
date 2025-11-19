@@ -1,0 +1,696 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Hardcoded JWT secret key enables authentication bypass and privilege escalation to access sensitive data including the FLAG stored in private jobs."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                },
+                "region": {
+                  "startLine": 14,
+                  "endLine": 14,
+                  "snippet": {
+                    "text": "SECRET_KEY = \"a very secret key\""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Authentication Bypass via JWT Secret Exposure",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The JWT secret key 'a very secret key' is hardcoded in the source code. Since this is a web application exposed on the Internet (port 80) and the source code is available in the repository, an attacker can obtain this secret key. With the secret key, an attacker can forge valid JWT tokens for any user, including admin users. The application creates an admin company (company2) during startup with is_admin=True. By forging a JWT token with sub='2' (the admin company_id), an attacker can access the /company/2/jobs endpoint and view private jobs that contain the FLAG. The show_jobs endpoint (lines 113-141) validates the JWT signature using the compromised SECRET_KEY and grants access to private jobs for admin users (line 135). This represents a complete authentication bypass leading to unauthorized access to sensitive data."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Authentication bypass via forged JWT token to access private jobs containing FLAG"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attacker obtains hardcoded SECRET_KEY from source code and forges JWT token"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 14,
+                            "endLine": 14,
+                            "snippet": {
+                              "text": "SECRET_KEY = \"a very secret key\""
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 46,
+                            "endLine": 46,
+                            "snippet": {
+                              "text": "    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "function",
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 115,
+                            "endLine": 115,
+                            "snippet": {
+                              "text": "    token = request.cookies.get(\"access_token\")"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 128,
+                            "endLine": 128,
+                            "snippet": {
+                              "text": "        payload = jwt.decode(token.split(' ')[1], SECRET_KEY, algorithms=[ALGORITHM])"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "function",
+                        "call",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 129,
+                            "endLine": 133,
+                            "snippet": {
+                              "text": "        token_company_id = int(payload.get(\"sub\"))\n        if token_company_id is None:\n            raise credentials_exception\n        if token_company_id != company_id:\n            raise credentials_exception"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "branch",
+                        "true"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 135,
+                            "endLine": 136,
+                            "snippet": {
+                              "text": "        company = crud.get_company(db, company_id)\n        include_private = True if company.is_admin else False"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "branch",
+                        "true"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 137,
+                            "endLine": 137,
+                            "snippet": {
+                              "text": "        jobs = crud.get_jobs(db, company_id=company_id, private=include_private)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call",
+                        "function"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/crud.py"
+                          },
+                          "region": {
+                            "startLine": 36,
+                            "endLine": 40,
+                            "snippet": {
+                              "text": "def get_jobs(db: Session, company_id: int, private: bool = False):\n    if private:\n        return db.query(Job).filter(Job.company_id == company_id).all()\n    else:\n        return db.query(Job).filter(Job.company_id == company_id, Job.is_private == False).all()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "function",
+                        "branch",
+                        "true"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 78,
+                            "endLine": 82,
+                            "snippet": {
+                              "text": "        with open(\"flag.txt\") as f:\n            flag = f.read()\n\n        example_jobs = [\n            {\"title\": f\"{company.name} Job 1\", \"description\": f\"{company.name} Job 1 Description\"},\n            {\"title\": f\"secret\", \"description\": flag, \"is_private\": True},"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 139,
+                            "endLine": 139,
+                            "snippet": {
+                              "text": "        return templates.TemplateResponse(\"jobs.html\", {\"request\": request, \"jobs\": jobs, \"company_id\": company_id})"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "sink"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Insecure Direct Object Reference (IDOR) vulnerability in POST /edit_profile/{company_id} endpoint allows authenticated users to modify any company's profile and escalate privileges to admin, leading to unauthorized access to private jobs containing the flag."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                },
+                "region": {
+                  "startLine": 177,
+                  "endLine": 207,
+                  "snippet": {
+                    "text": "@app.post(\"/edit_profile/{company_id}\", response_class=HTMLResponse)\nasync def update_profile(request: Request, company_id: int, name: str = Form(...), is_admin: Optional[bool] = Form(0), db: Session = Depends(get_db)):\n    token = request.cookies.get(\"access_token\")\n    if not token:\n        raise HTTPException(\n            status_code=status.HTTP_401_UNAUTHORIZED,\n            detail=\"Not authenticated\",\n            headers={\"WWW-Authenticate\": \"Bearer\"},\n        )\n    credentials_exception = HTTPException(\n        status_code=status.HTTP_401_UNAUTHORIZED,\n        detail=\"Could not validate credentials\",\n        headers={\"WWW-Authenticate\": \"Bearer\"},\n    )\n    try:\n        payload = jwt.decode(token.split(\" \")[1], SECRET_KEY, algorithms=[ALGORITHM])\n        token_company_id = int(payload.get(\"sub\"))\n        if token_company_id is None:\n            raise credentials_exception\n    except JWTError:\n        raise credentials_exception\n\n    company = crud.get_company(db, company_id)\n    company.name = name\n    company.is_admin = is_admin\n    db.add(company)\n    db.commit()\n    db.refresh(company)\n    return templates.TemplateResponse(\"edit_profile.html\", {\"request\": request, \"company\": company, \"company_id\": company_id, \"msg\": \"Profile updated successfully\"})"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Insecure Direct Object Reference (IDOR)",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The POST /edit_profile/{company_id} endpoint validates that a JWT token exists and is valid, but critically fails to verify that the token's company_id (extracted from the JWT 'sub' claim) matches the company_id path parameter being modified. This is in stark contrast to the GET /edit_profile/{company_id} endpoint (lines 149-175) and the GET /company/{company_id}/jobs endpoint (lines 113-141), both of which properly implement the authorization check 'if token_company_id != company_id: raise credentials_exception'. An authenticated attacker can exploit this by: (1) logging in as 'demo/demo' to obtain a valid JWT, (2) sending a POST request to /edit_profile/{target_company_id} with is_admin=1 in the form data, (3) escalating their own or another account to admin privileges, and (4) accessing private jobs that contain the flag (stored in jobs with is_private=True as seen in lines 82-85). The vulnerability allows both horizontal privilege escalation (modifying other companies' profiles) and vertical privilege escalation (granting admin rights), ultimately leading to unauthorized disclosure of the flag stored in private job descriptions."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "IDOR vulnerability: Authenticated user can modify arbitrary company profiles and escalate privileges to access private jobs containing the flag"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack flow from authentication to flag disclosure via privilege escalation"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 93,
+                            "endLine": 105,
+                            "snippet": {
+                              "text": "@app.post(\"/token\", response_class=HTMLResponse)\nasync def login_for_access_token(request: Request, form_data: OAuth2PasswordRequestForm = Depends(),\n                                 db: Session = Depends(get_db)):\n    company = authenticate_company(db, form_data.username, form_data.password)\n    if not company:\n        return templates.TemplateResponse(\"login.html\", {\"request\": request, \"error\": \"Incorrect username or password\"})\n    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)\n    access_token = create_access_token(\n        data={\"sub\": str(company.id)}, expires_delta=access_token_expires\n    )\n    response = RedirectResponse(url=f\"/company/{company.id}/jobs\", status_code=status.HTTP_303_SEE_OTHER)\n    response.set_cookie(key=\"access_token\", value=f\"Bearer {access_token}\", httponly=True)\n    return response"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "acquire",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 180,
+                            "endLine": 180,
+                            "snippet": {
+                              "text": "async def update_profile(request: Request, company_id: int, name: str = Form(...), is_admin: Optional[bool] = Form(0), db: Session = Depends(get_db)):"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 195,
+                            "endLine": 199,
+                            "snippet": {
+                              "text": "payload = jwt.decode(token.split(\" \")[1], SECRET_KEY, algorithms=[ALGORITHM])\n        token_company_id = int(payload.get(\"sub\"))\n        if token_company_id is None:\n            raise credentials_exception"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 202,
+                            "endLine": 202,
+                            "snippet": {
+                              "text": "company = crud.get_company(db, company_id)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "caution"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 203,
+                            "endLine": 204,
+                            "snippet": {
+                              "text": "company.name = name\n    company.is_admin = is_admin"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 205,
+                            "endLine": 206,
+                            "snippet": {
+                              "text": "db.add(company)\n    db.commit()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 113,
+                            "endLine": 136,
+                            "snippet": {
+                              "text": "@app.get(\"/company/{company_id}/jobs\", response_class=HTMLResponse)\nasync def show_jobs(request: Request, company_id: int, db: Session = Depends(get_db)):\n    ...\n    company = crud.get_company(db, company_id)\n    include_private = True if company.is_admin else False\n    jobs = crud.get_jobs(db, company_id=company_id, private=include_private)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value",
+                        "branch"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/crud.py"
+                          },
+                          "region": {
+                            "startLine": 34,
+                            "endLine": 39,
+                            "snippet": {
+                              "text": "def get_jobs(db: Session, company_id: int, private: bool = False):\n    if private:\n        return db.query(Job).filter(Job.company_id == company_id).all()\n    else:\n        return db.query(Job).filter(Job.company_id == company_id, Job.is_private == False).all()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "branch",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 82,
+                            "endLine": 85,
+                            "snippet": {
+                              "text": "with open(\"flag.txt\") as f:\n            flag = f.read()\n\n        example_jobs = [\n            {\"title\": f\"{company.name} Job 1\", \"description\": f\"{company.name} Job 1 Description\"},\n            {\"title\": f\"secret\", \"description\": flag, \"is_private\": True},"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value",
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Broken Access Control: Authenticated users can escalate their privileges to admin by manipulating the is_admin parameter in the profile update form, gaining access to private jobs containing sensitive flags."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                },
+                "region": {
+                  "startLine": 204,
+                  "endLine": 204,
+                  "snippet": {
+                    "text": "    company.is_admin = is_admin"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Broken Access Control - Privilege Escalation",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The POST /edit_profile/{company_id} endpoint accepts an is_admin parameter from user-controlled form data and directly assigns it to the company's admin status without any authorization check. While the HTML form disables the is_admin field for non-admin users, this is purely client-side protection that can be trivially bypassed by modifying the POST request directly (via curl, Postman, or browser dev tools). Additionally, the POST endpoint is missing the authorization check present in the GET endpoint (line 169: if token_company_id != company_id), though this specific vulnerability doesn't require exploiting that IDOR since users can escalate their own account. Once a user sets is_admin=True on their account, they gain access to private jobs containing the FLAG secret (lines 81-82, 138). This is a critical privilege escalation vulnerability allowing any authenticated user to become an admin."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Privilege escalation flow: user-controlled is_admin parameter flows to database without authorization, enabling access to private jobs with FLAG"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attacker-controlled is_admin parameter accepted from form data and written to database without authorization check, then used to grant access to sensitive private jobs"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 180,
+                            "endLine": 180,
+                            "snippet": {
+                              "text": "async def update_profile(request: Request, company_id: int, name: str = Form(...), is_admin: Optional[bool] = Form(0), db: Session = Depends(get_db)):"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "acquire"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 193,
+                            "endLine": 197,
+                            "snippet": {
+                              "text": "    try:\n        payload = jwt.decode(token.split(\" \")[1], SECRET_KEY, algorithms=[ALGORITHM])\n        token_company_id = int(payload.get(\"sub\"))\n        if token_company_id is None:\n            raise credentials_exception"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "caution"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 204,
+                            "endLine": 204,
+                            "snippet": {
+                              "text": "    company.is_admin = is_admin"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 205,
+                            "endLine": 207,
+                            "snippet": {
+                              "text": "    db.add(company)\n    db.commit()\n    db.refresh(company)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 138,
+                            "endLine": 138,
+                            "snippet": {
+                              "text": "        include_private = True if company.is_admin else False"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 139,
+                            "endLine": 139,
+                            "snippet": {
+                              "text": "        jobs = crud.get_jobs(db, company_id=company_id, private=include_private)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/crud.py"
+                          },
+                          "region": {
+                            "startLine": 36,
+                            "endLine": 40,
+                            "snippet": {
+                              "text": "def get_jobs(db: Session, company_id: int, private: bool = False):\n    if private:\n        return db.query(Job).filter(Job.company_id == company_id).all()\n    else:\n        return db.query(Job).filter(Job.company_id == company_id, Job.is_private == False).all()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 81,
+                            "endLine": 82,
+                            "snippet": {
+                              "text": "            {\"title\": f\"secret\", \"description\": flag, \"is_private\": True},"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "value"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-005-24",
+        "totalCost": 2.082159
+      }
+    }
+  ]
+}

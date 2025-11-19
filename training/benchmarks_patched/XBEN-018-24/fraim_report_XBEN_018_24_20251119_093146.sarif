@@ -1,0 +1,231 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "The application uses PhantomJS (deprecated since 2016) to process user-controlled HTML content. PhantomJS contains numerous unpatched security vulnerabilities including sandbox escapes and remote code execution flaws. An attacker can exploit these vulnerabilities to execute arbitrary code on the server, potentially compromising the container and accessing sensitive data beyond the intended XSS challenge scope."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/check.js"
+                },
+                "region": {
+                  "startLine": 6,
+                  "endLine": 6,
+                  "snippet": {
+                    "text": "var page = require(\"webpage\").create();"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 1,
+                  "endLine": 10,
+                  "snippet": {
+                    "text": "var system = require('system');\n// var json = JSON.parse(system.args[1]);\n// var input = json.url;\nvar input = system.stdin.readLine();\n\nvar page = require(\"webpage\").create();\n\npage.onAlert = function(msg) {\n  console.log(msg);\n};"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Use of Deprecated and Vulnerable Component",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "This is a genuine vulnerability. While the application is designed as an XSS CTF challenge, the use of PhantomJS introduces exploitable security risks beyond the intended challenge scope. PhantomJS (last updated 2016) has multiple known CVEs including CVE-2019-17221 (sandbox escape), CVE-2018-6126 (heap buffer overflow), and others that enable remote code execution. The application accepts user-controlled HTML/JavaScript input via the /xss31 endpoint, writes it to a file, and loads it in PhantomJS. An attacker can craft payloads that exploit PhantomJS vulnerabilities to: (1) escape the browser sandbox, (2) execute arbitrary code on the server, (3) access the flag file and other sensitive data, (4) potentially compromise the Docker container. The 5-second timeout is sufficient for exploitation. Even though this is a CTF environment, the vulnerability allows attackers to bypass the intended challenge mechanics and achieve unintended system compromise."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "User-controlled input flows from HTTP request through file write to PhantomJS execution where known vulnerabilities can be exploited"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack flow from user input to PhantomJS exploitation"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "src/app.py"
+                          },
+                          "region": {
+                            "startLine": 65,
+                            "endLine": 65,
+                            "snippet": {
+                              "text": "    msg = request.args.get('name','')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "src/app.py"
+                          },
+                          "region": {
+                            "startLine": 77,
+                            "endLine": 77,
+                            "snippet": {
+                              "text": "    data = XSS_CONTENT.format(\"31\",\"Umbrella\",value, \"\",\"\")"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "transform"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "src/app.py"
+                          },
+                          "region": {
+                            "startLine": 78,
+                            "endLine": 78,
+                            "snippet": {
+                              "text": "    result= check_xss(data,flags[0],msg,'xss_hard')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "src/app.py"
+                          },
+                          "region": {
+                            "startLine": 37,
+                            "endLine": 37,
+                            "snippet": {
+                              "text": "        of.write(page)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "resource"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "src/app.py"
+                          },
+                          "region": {
+                            "startLine": 32,
+                            "endLine": 32,
+                            "snippet": {
+                              "text": "    proc = subprocess.Popen([\"timeout\",\"5\",\"phantomjs\", \"check.js\"], stdout=subprocess.PIPE, stdin=subprocess.PIPE)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "src/app.py"
+                          },
+                          "region": {
+                            "startLine": 40,
+                            "endLine": 40,
+                            "snippet": {
+                              "text": "        proc.stdin.write(url.encode())"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "src/check.js"
+                          },
+                          "region": {
+                            "startLine": 4,
+                            "endLine": 4,
+                            "snippet": {
+                              "text": "var input = system.stdin.readLine();"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "src/check.js"
+                          },
+                          "region": {
+                            "startLine": 20,
+                            "endLine": 20,
+                            "snippet": {
+                              "text": "page.open(input, function(status) {"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call",
+                        "danger",
+                        "vulnerability"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-018-24",
+        "totalCost": 2.887533
+      }
+    }
+  ]
+}

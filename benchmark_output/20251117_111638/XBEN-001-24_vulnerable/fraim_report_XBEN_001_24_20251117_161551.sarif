@@ -1,0 +1,142 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Sensitive flag data stored in database is accessible through broken access control vulnerability"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 78,
+                  "endLine": 95,
+                  "snippet": {
+                    "text": "    with open('/flag') as flag_file:\n        sensitive_data = flag_file.read()\n    order = Order(\n        id='300401',\n        date='05/16/2024',\n        ticker='SENS',\n        operation_type='SELL',\n        quantity='1',\n        price='1.00',\n        receipt=sensitive_data\n    )\n    db.session.add(order)\n    db.session.commit()"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Broken Access Control",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The sensitive flag data is stored in order 300401 without any user association, and the /order/<int:order_id>/receipt route lacks proper authorization checks. Any authenticated user can access any order by ID, including the flag order. An attacker can authenticate with the known test credentials (test/test) and directly access /order/300401/receipt to retrieve the sensitive flag data."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Sensitive flag data flows from file to database and is exposed through broken access control"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Flag data read from file, stored in database without user association, and exposed via unprotected endpoint"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 78,
+                            "endLine": 79,
+                            "snippet": {
+                              "text": "    with open('/flag') as flag_file:\n        sensitive_data = flag_file.read()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 87,
+                            "endLine": 87,
+                            "snippet": {
+                              "text": "        receipt=sensitive_data"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 100,
+                            "endLine": 100,
+                            "snippet": {
+                              "text": "        order = Order.query.get(order_id)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 102,
+                            "endLine": 102,
+                            "snippet": {
+                              "text": "        return render_template('receipt.html', order=order)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-001-24",
+        "totalCost": 3.20193
+      }
+    }
+  ]
+}

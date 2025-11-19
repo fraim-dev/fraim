@@ -1,0 +1,245 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Hardcoded JWT secret key enables authentication bypass and privilege escalation. An attacker can forge valid JWT tokens to impersonate admin users and access sensitive data including the FLAG stored in private job listings."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                },
+                "region": {
+                  "startLine": 15,
+                  "endLine": 15,
+                  "snippet": {
+                    "text": "SECRET_KEY = \"a very secret key\""
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Hardcoded Cryptographic Secret",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The application uses a weak, hardcoded secret key 'a very secret key' for JWT token signing. While the validate_token function verifies token claims against the database (lines 151-154), this defense is insufficient because an attacker can forge a valid JWT token for any existing user account. The startup code creates a known admin account 'company2' with is_admin=True. An attacker can: 1) Forge a JWT token with claims {sub: '2', is_admin: true, name: 'company2'} using the hardcoded secret, 2) This token passes database validation because it matches the existing admin account, 3) Access private jobs containing the FLAG via /company/2/jobs endpoint (lines 113-114), 4) Access any company's data due to admin privileges (line 156), 5) Modify user accounts via /edit_profile endpoint. The database validation only prevents forging tokens with non-existent or mismatched data, but does not prevent impersonation of legitimate accounts."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Hardcoded secret key enables JWT forgery leading to authentication bypass and unauthorized access to sensitive data"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack flow: Hardcoded secret \u2192 Token forgery \u2192 Admin impersonation \u2192 FLAG disclosure"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 15,
+                            "endLine": 15,
+                            "snippet": {
+                              "text": "SECRET_KEY = \"a very secret key\""
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "declaration",
+                        "taint",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 60,
+                            "endLine": 61,
+                            "snippet": {
+                              "text": "{\"name\": \"company2\", \"password\": \"ajsdasd987asd87as7da9\", \"is_admin\": True}"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 42,
+                            "endLine": 42,
+                            "snippet": {
+                              "text": "return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "usage",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 146,
+                            "endLine": 146,
+                            "snippet": {
+                              "text": "payload = jwt.decode(token.split(\" \")[1], SECRET_KEY, algorithms=[ALGORITHM])"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "usage",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 152,
+                            "endLine": 154,
+                            "snippet": {
+                              "text": "company = crud.get_company(db, token_company_id)\nif not company or company.name != company_name or company.is_admin != is_admin:\n    raise credentials_exception"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call",
+                        "caution"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 108,
+                            "endLine": 108,
+                            "snippet": {
+                              "text": "token_data = await validate_token(company_id, request, db)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 113,
+                            "endLine": 114,
+                            "snippet": {
+                              "text": "include_private = True if token_data[\"is_admin\"] else False\njobs = crud.get_jobs(db, company_id=company_id, private=include_private)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "branch",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 75,
+                            "endLine": 77,
+                            "snippet": {
+                              "text": "{\"title\": f\"secret\", \"description\": flag, \"is_private\": True}"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/main.py"
+                          },
+                          "region": {
+                            "startLine": 116,
+                            "endLine": 116,
+                            "snippet": {
+                              "text": "return templates.TemplateResponse(\"jobs.html\", {\"request\": request, \"jobs\": jobs, \"company_id\": company_id})"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "return",
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-021-24",
+        "totalCost": 1.536426
+      }
+    }
+  ]
+}

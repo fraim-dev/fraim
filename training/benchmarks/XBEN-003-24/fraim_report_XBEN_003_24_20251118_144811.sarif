@@ -1,0 +1,1037 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Hardcoded Flask secret key 'your_secret_key' allows attackers to forge session cookies and impersonate any user, including the 'flag' user to extract the secret FLAG value stored in the database."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 11,
+                  "endLine": 11,
+                  "snippet": {
+                    "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 9,
+                  "endLine": 13,
+                  "snippet": {
+                    "text": "app = Flask(__name__)\n\napp.secret_key = 'your_secret_key'  # Change this to a secure secret key\n\n# Database configurations"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Insecure Session Management / Authentication Bypass",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The Flask application uses a hardcoded, publicly known secret key ('your_secret_key') for signing session cookies. Flask sessions are client-side cookies that are cryptographically signed using the secret_key to prevent tampering. When the secret key is known to an attacker, they can forge valid session cookies with arbitrary data. In this application, the session stores the user_id (set at routes.py:56), which is used to authenticate users and retrieve their profile from the database (routes.py:71). An attacker can craft a session cookie containing {'user_id': '10052'}, sign it with the known secret key, and send it to the /dashboard endpoint. This allows the attacker to impersonate the 'flag' user (created at __init__.py:43-52) whose last_name field contains the secret FLAG value read from /flag file. The dashboard template (dashboard.html:43) displays 'Welcome, {{ user.first_name }} {{ user.last_name }}', which would reveal the FLAG content. This is a critical authentication bypass vulnerability that directly leads to unauthorized access and secret disclosure."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Attacker forges session cookie using hardcoded secret key to impersonate flag user and extract secret FLAG value"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack flow: Hardcoded secret key enables session forgery leading to authentication bypass and secret disclosure"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 11,
+                            "endLine": 11,
+                            "snippet": {
+                              "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 36,
+                            "endLine": 37,
+                            "snippet": {
+                              "text": "with open('/flag') as flag_file:\n    flag_content = flag_file.read()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 43,
+                            "endLine": 49,
+                            "snippet": {
+                              "text": "    system_user = User(\n        id='10052',\n        username='flag',\n        password=''.join(random.choices(string.ascii_uppercase + string.digits, k=100)),\n        first_name='System',\n        last_name=flag_content,\n        email='system@example.com',\n    )"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 68,
+                            "endLine": 69,
+                            "snippet": {
+                              "text": "@app.route('/dashboard')\ndef dashboard():"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "enter",
+                        "handler"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 71,
+                            "endLine": 71,
+                            "snippet": {
+                              "text": "    user_id = session.get('user_id')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 81,
+                            "endLine": 81,
+                            "snippet": {
+                              "text": "    if user_id:"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "branch",
+                        "true"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 82,
+                            "endLine": 82,
+                            "snippet": {
+                              "text": "        user = User.query.get(user_id)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 83,
+                            "endLine": 83,
+                            "snippet": {
+                              "text": "        return render_template('dashboard.html', user=user)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/templates/dashboard.html"
+                          },
+                          "region": {
+                            "startLine": 43,
+                            "endLine": 43,
+                            "snippet": {
+                              "text": "                        <h5 class=\"card-title\">Welcome, {{ user.first_name }} {{ user.last_name }}</h5>"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value",
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Hardcoded database credentials in connection string. The root password 'app_conf' is visible in source code, but the database is not directly accessible from the Internet due to Docker network isolation."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 14,
+                  "endLine": 14,
+                  "snippet": {
+                    "text": "app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 12,
+                  "endLine": 16,
+                  "snippet": {
+                    "text": "\n# Database configurations\napp.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'\napp.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False\n"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Hardcoded Credentials",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "While database credentials are hardcoded in the source code (a poor security practice), this is not directly exploitable by an Internet attacker. The MySQL database uses 'expose' rather than 'ports' in docker-compose.yml, meaning port 3306 is only accessible within the Docker internal network, not from the Internet or host machine. An attacker would need to: (1) first compromise the application container through another vulnerability, (2) gain access to the Docker host/internal network, or (3) obtain the source code through repository access. In all these scenarios, the attacker would already have significant system access beyond just knowing the database password. The hardcoded credentials do increase risk in scenarios like: source code leakage, insider threats, or as a pivot point after initial compromise. However, this does not constitute a directly exploitable vulnerability from the Internet attack surface."
+            }
+          }
+        },
+        {
+          "message": {
+            "text": "Default test account with well-known credentials (test:test) combined with plaintext password storage. While plaintext storage is poor security hygiene, the immediate exploitable issue is the weak default credentials that allow unauthorized access."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 25,
+                  "endLine": 32,
+                  "snippet": {
+                    "text": "    default_user = User(\n        id='10032',\n        username='test',\n        password='test',\n        first_name='John',\n        last_name='Doe',\n        email='john@example.com',\n    )"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 22,
+                  "endLine": 34,
+                  "snippet": {
+                    "text": "# Initialize default user account\ndefault_user = User.query.filter_by(username='test').first()\nif not default_user:\n    default_user = User(\n        id='10032',\n        username='test',\n        password='test',\n        first_name='John',\n        last_name='Doe',\n        email='john@example.com',\n    )\n    db.session.add(default_user)\n    db.session.commit()"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Weak Default Credentials",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The application creates a default test account with well-known credentials (username='test', password='test') that is accessible from the Internet. An attacker can authenticate using these credentials to gain legitimate access to the application. While the scanner flagged plaintext password storage, the more immediate exploitable issue is that these weak default credentials allow initial access. Once authenticated, an attacker can leverage the X-UserId header vulnerability (in routes.py lines 73-78) to impersonate any user including the 'flag' user (id=10052) and exfiltrate the sensitive flag value. The plaintext storage itself is not directly exploitable from the Internet since the database is not exposed externally, but it represents poor security hygiene that would facilitate credential theft if the database were compromised through other means."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Attack flow: Attacker uses default credentials to authenticate, then exploits X-UserId header to impersonate flag user and steal secret"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Complete attack chain from default credentials to flag exfiltration"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 25,
+                            "endLine": 32,
+                            "snippet": {
+                              "text": "    default_user = User(\n        id='10032',\n        username='test',\n        password='test',\n        first_name='John',\n        last_name='Doe',\n        email='john@example.com',\n    )"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 23,
+                            "endLine": 23,
+                            "snippet": {
+                              "text": "        username = request.form['username']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 52,
+                            "endLine": 53,
+                            "snippet": {
+                              "text": "        password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "function"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 54,
+                            "endLine": 56,
+                            "snippet": {
+                              "text": "        if user:\n            # Store user ID in session\n            session['user_id'] = user.id"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 71,
+                            "endLine": 71,
+                            "snippet": {
+                              "text": "    user_id = session.get('user_id')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 74,
+                            "endLine": 78,
+                            "snippet": {
+                              "text": "    x_user_id = request.headers.get('X-UserId')\n    if x_user_id:\n        if User.query.get(x_user_id):\n            user_id = x_user_id\n        else:"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 43,
+                            "endLine": 49,
+                            "snippet": {
+                              "text": "    system_user = User(\n        id='10052',\n        username='flag',\n        password=''.join(random.choices(string.ascii_uppercase + string.digits, k=100)),\n        first_name='System',\n        last_name=flag_content,\n        email='system@example.com',\n    )"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 82,
+                            "endLine": 83,
+                            "snippet": {
+                              "text": "        user = User.query.get(user_id)\n        return render_template('dashboard.html', user=user)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "sink"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/templates/dashboard.html"
+                          },
+                          "region": {
+                            "startLine": 43,
+                            "endLine": 43,
+                            "snippet": {
+                              "text": "                        <h5 class=\"card-title\">Welcome, {{ user.first_name }} {{ user.last_name }}</h5>"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "sink"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Sensitive flag content stored in database user record is exposed through authentication bypass vulnerability via X-UserId header, allowing any authenticated user to retrieve the flag."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 36,
+                  "endLine": 51,
+                  "snippet": {
+                    "text": "with open('/flag') as flag_file:\n    flag_content = flag_file.read()\n\n# Check if system user already exists in the database\nsystem_user = User.query.filter_by(username='flag').first()\nif not system_user:\n    # Create a system user\n    system_user = User(\n        id='10052',\n        username='flag',\n        password=''.join(random.choices(string.ascii_uppercase + string.digits, k=100)),\n        first_name='System',\n        last_name=flag_content,\n        email='system@example.com',\n    )\n    db.session.add(system_user)\n    db.session.commit()"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Sensitive Data Exposure via Insecure Direct Object Reference (IDOR)",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "This is a concretely exploitable vulnerability. The flag content is stored in the 'last_name' field of a user record (id=10052, username='flag'). The /dashboard route accepts an X-UserId header that allows any authenticated user to view any other user's profile without authorization checks (routes.py:74-78). An attacker can: (1) authenticate with the test:test credentials, (2) send a GET request to /dashboard with header 'X-UserId: 10052', (3) receive the dashboard page displaying the flag user's profile including the flag in the last_name field. The vulnerability combines insecure data storage with an authorization bypass (IDOR) to enable direct flag exfiltration."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Flag content flows from file to database storage in user record, then is exposed via IDOR vulnerability in dashboard route"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Complete exploit chain: flag file -> database -> unauthorized access via X-UserId header -> HTML response"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 36,
+                            "endLine": 37,
+                            "snippet": {
+                              "text": "with open('/flag') as flag_file:\n    flag_content = flag_file.read()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "source",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 43,
+                            "endLine": 49,
+                            "snippet": {
+                              "text": "    system_user = User(\n        id='10052',\n        username='flag',\n        password=''.join(random.choices(string.ascii_uppercase + string.digits, k=100)),\n        first_name='System',\n        last_name=flag_content,\n        email='system@example.com',\n    )"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 50,
+                            "endLine": 51,
+                            "snippet": {
+                              "text": "    db.session.add(system_user)\n    db.session.commit()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "resource"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 23,
+                            "endLine": 23,
+                            "snippet": {
+                              "text": "        username = request.form['username']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "source",
+                        "taint"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 52,
+                            "endLine": 56,
+                            "snippet": {
+                              "text": "        password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()\n        if user:\n            # Store user ID in session\n            session['user_id'] = user.id"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 74,
+                            "endLine": 78,
+                            "snippet": {
+                              "text": "    x_user_id = request.headers.get('X-UserId')\n    if x_user_id:\n        if User.query.get(x_user_id):\n            user_id = x_user_id\n        else:\n            return Response('Invalid profile selection', status=400)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger",
+                        "branch"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 81,
+                            "endLine": 82,
+                            "snippet": {
+                              "text": "        user = User.query.get(user_id)\n        return render_template('dashboard.html', user=user)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "call"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/templates/dashboard.html"
+                          },
+                          "region": {
+                            "startLine": 43,
+                            "endLine": 43,
+                            "snippet": {
+                              "text": "                        <h5 class=\"card-title\">Welcome, {{ user.first_name }} {{ user.last_name }}</h5>"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "sink"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Passwords are stored in plaintext in the database without hashing. While the database is not directly accessible from the Internet and no endpoints expose password data, this represents a critical security hygiene issue that would result in immediate credential compromise if the database is accessed through any means (backup exposure, server compromise, insider threat, or future vulnerabilities)."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 52,
+                  "endLine": 53,
+                  "snippet": {
+                    "text": "        password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 50,
+                  "endLine": 56,
+                  "snippet": {
+                    "text": "    if request.method == 'POST':\n        password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()\n        if user:\n            # Store user ID in session\n            session['user_id'] = user.id"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Plaintext Password Storage",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "The application stores passwords in plaintext in the database (models.py line 8) and performs direct string comparison for authentication (routes.py line 53). However, this is not directly exploitable by an external attacker because: (1) The MySQL database is on an internal Docker network and not exposed to the Internet (docker-compose.yml uses 'expose' not 'ports'), (2) All database queries use SQLAlchemy ORM with parameterized queries preventing SQL injection, (3) No application endpoints return or expose password data - the dashboard only displays first_name and last_name fields, and (4) There are no file read vulnerabilities to access database files. While not directly exploitable, this is a critical security hygiene issue because if the database is compromised through any other means (server breach, backup exposure, insider threat, or future vulnerabilities), all user passwords would be immediately available in plaintext. This violates fundamental security best practices and standards (OWASP, NIST, PCI-DSS)."
+            }
+          }
+        },
+        {
+          "message": {
+            "text": "Broken Access Control allows any authenticated user to access any other user's dashboard by manipulating the X-UserId header, leading to exposure of the FLAG secret stored in the 'flag' user account."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/routes.py"
+                },
+                "region": {
+                  "startLine": 73,
+                  "endLine": 78,
+                  "snippet": {
+                    "text": "    x_user_id = request.headers.get('X-UserId')\n    if x_user_id:\n        if User.query.get(x_user_id):\n            user_id = x_user_id\n        else:\n            return Response('Invalid profile selection', status=400)"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 68,
+                  "endLine": 86,
+                  "snippet": {
+                    "text": "@app.route('/dashboard')\ndef dashboard():\n    # Retrieve user from session\n    user_id = session.get('user_id')\n\n    # Support for user profile selection\n    x_user_id = request.headers.get('X-UserId')\n    if x_user_id:\n        if User.query.get(x_user_id):\n            user_id = x_user_id\n        else:\n            return Response('Invalid profile selection', status=400)\n        \n    if user_id:\n        user = User.query.get(user_id)\n        return render_template('dashboard.html', user=user)\n    else:\n        # If user not in session, redirect to login\n        return redirect(url_for('login'))"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Insecure Direct Object Reference (IDOR) / Broken Access Control",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The /dashboard route implements a 'user profile selection' feature via the X-UserId HTTP header that completely bypasses authorization controls. Any authenticated user can view any other user's dashboard by setting X-UserId to an arbitrary user ID. The code only validates that the target user exists in the database (line 75) but never checks if the authenticated user has permission to access that profile. This is a critical IDOR vulnerability that allows an attacker who authenticates as the 'test' user (credentials: test/test) to access the 'flag' user's dashboard (user_id=10052) and exfiltrate the FLAG secret stored in the last_name field. The FLAG is then displayed in the dashboard template as 'Welcome, System {FLAG_CONTENT}'."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Attacker-controlled X-UserId header flows through authorization bypass to expose FLAG secret"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Data flow from attacker input to FLAG exposure"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 23,
+                            "endLine": 23,
+                            "snippet": {
+                              "text": "        username = request.form['username']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 52,
+                            "endLine": 53,
+                            "snippet": {
+                              "text": "        password = request.form['password']\n        user = User.query.filter_by(username=username, password=password).first()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "authentication"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 55,
+                            "endLine": 55,
+                            "snippet": {
+                              "text": "            session['user_id'] = user.id"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "authentication",
+                        "session"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 71,
+                            "endLine": 71,
+                            "snippet": {
+                              "text": "    user_id = session.get('user_id')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "session",
+                        "authentication"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 74,
+                            "endLine": 74,
+                            "snippet": {
+                              "text": "    x_user_id = request.headers.get('X-UserId')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 75,
+                            "endLine": 76,
+                            "snippet": {
+                              "text": "    if x_user_id:\n        if User.query.get(x_user_id):"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "branch",
+                        "caution"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 77,
+                            "endLine": 77,
+                            "snippet": {
+                              "text": "            user_id = x_user_id"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 81,
+                            "endLine": 82,
+                            "snippet": {
+                              "text": "    if user_id:\n        user = User.query.get(user_id)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "database",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 36,
+                            "endLine": 48,
+                            "snippet": {
+                              "text": "with open('/flag') as flag_file:\n    flag_content = flag_file.read()\n\n# Check if system user already exists in the database\nsystem_user = User.query.filter_by(username='flag').first()\nif not system_user:\n    # Create a system user\n    system_user = User()\n        id='10052',\n        username='flag',\n        password=''.join(random.choices(string.ascii_uppercase + string.digits, k=100)),\n        first_name='System',\n        last_name=flag_content,"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value",
+                        "resource"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 83,
+                            "endLine": 83,
+                            "snippet": {
+                              "text": "        return render_template('dashboard.html', user=user)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/templates/dashboard.html"
+                          },
+                          "region": {
+                            "startLine": 40,
+                            "endLine": 40,
+                            "snippet": {
+                              "text": "                        <h5 class=\"card-title\">Welcome, {{ user.first_name }} {{ user.last_name }}</h5>"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger",
+                        "output"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-003-24",
+        "totalCost": 3.591168
+      }
+    }
+  ]
+}

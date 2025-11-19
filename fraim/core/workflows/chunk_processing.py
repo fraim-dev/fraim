@@ -40,6 +40,10 @@ class ChunkProcessingOptions:
         list[str] | None,
         {"help": "Globs to use for file scanning. If not provided, will use workflow-specific defaults."},
     ] = None
+    exclude_globs: Annotated[
+        list[str] | None,
+        {"help": "File patterns to exclude"},
+    ] = None
     max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
 
 
@@ -85,6 +89,7 @@ class ChunkProcessor(Generic[T]):
         kwargs = SimpleNamespace(
             location=args.location,
             globs=effective_globs,
+            exclude_globs=args.exclude_globs,
             limit=args.limit,
             chunk_size=args.chunk_size,
             head=args.head,

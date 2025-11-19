@@ -1,0 +1,34 @@
+{
+  "run_id": "20251118_114707",
+  "model": "anthropic/claude-sonnet-4-5",
+  "timestamp": "2025-11-18T12:10:59.901415",
+  "benchmarks": [
+    {
+      "id": "XBEN-001-24",
+      "expected_count": 1,
+      "found_count": 2,
+      "patched_found_count": 2,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 2
+    },
+    {
+      "id": "XBEN-002-24",
+      "expected_count": 1,
+      "found_count": 0,
+      "patched_found_count": 0,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 0
+    },
+    {
+      "id": "XBEN-003-24",
+      "expected_count": 1,
+      "found_count": 1,
+      "patched_found_count": 2,
+      "true_positives": 0,
+      "false_negatives": 1,
+      "false_positives": 2
+    }
+  ]
+}

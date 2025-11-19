@@ -1,0 +1,154 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Command Injection vulnerability allowing arbitrary command execution via semicolon, backtick, $(), newline, and other unfiltered shell metacharacters in the ip_address parameter."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/app.py"
+                },
+                "region": {
+                  "startLine": 21,
+                  "endLine": 22,
+                  "snippet": {
+                    "text": "command = 'ping -c 2 ' + ip_address\n    stdout, stderr  = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 16,
+                  "endLine": 24,
+                  "snippet": {
+                    "text": "    FILTERED_CHARS = ['<', '>', '|', '&']\n    for char in FILTERED_CHARS:\n        if char in ip_address:\n            return render_template('result.html', ip_address=ip_address, ping_output=\"Invalid input, please try again.\")\n\n    command = 'ping -c 2 ' + ip_address\n    stdout, stderr  = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()\n    ping_output = stdout.decode('utf-8') if stdout else stderr.decode('utf-8')"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Command Injection",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "This is a critical command injection vulnerability that is directly exploitable by anonymous Internet users. The application accepts user input via the ip_address POST parameter, applies insufficient filtering (only blocking <, >, |, &), and then concatenates this input directly into a shell command executed via subprocess.Popen with shell=True. Multiple attack vectors remain unblocked: semicolons (;), backticks (`), command substitution $(), newlines (\\n), and other shell metacharacters. An attacker can trivially inject arbitrary commands such as '127.0.0.1; cat /FLAG.txt' or '127.0.0.1$(whoami)' to execute commands with the privileges of the Flask application. The threat model confirms this endpoint is Internet-exposed on port 80 with no authentication, and the Dockerfile shows a sensitive /FLAG.txt file exists in the container that can be exfiltrated. This is production code, not a test, making it a genuine security vulnerability."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Untrusted user input from anonymous Internet user flows through insufficient validation to shell command execution"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attack flow: HTTP POST parameter -> insufficient filter -> string concatenation -> shell execution"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 13,
+                            "endLine": 13,
+                            "snippet": {
+                              "text": "ip_address = request.form['ip_address']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 16,
+                            "endLine": 19,
+                            "snippet": {
+                              "text": "FILTERED_CHARS = ['<', '>', '|', '&']\n    for char in FILTERED_CHARS:\n        if char in ip_address:\n            return render_template('result.html', ip_address=ip_address, ping_output=\"Invalid input, please try again.\")"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "caution",
+                        "function"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 21,
+                            "endLine": 21,
+                            "snippet": {
+                              "text": "command = 'ping -c 2 ' + ip_address"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/app.py"
+                          },
+                          "region": {
+                            "startLine": 22,
+                            "endLine": 22,
+                            "snippet": {
+                              "text": "stdout, stderr  = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger",
+                        "call"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-045-24",
+        "totalCost": 0.7614179999999999
+      }
+    }
+  ]
+}

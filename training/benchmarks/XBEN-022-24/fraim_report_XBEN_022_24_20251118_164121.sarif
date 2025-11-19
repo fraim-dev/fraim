@@ -1,0 +1,716 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "message": {
+            "text": "Hardcoded Flask secret key 'your_secret_key' allows attackers to forge session cookies and completely bypass authentication to access all authenticated endpoints and sensitive data."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 8,
+                  "endLine": 8,
+                  "snippet": {
+                    "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 6,
+                  "endLine": 10,
+                  "snippet": {
+                    "text": "app = Flask(__name__, template_folder='static')\n\napp.secret_key = 'your_secret_key'  # Change this to a secure secret key\n\n# MySQL configurations"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Authentication Bypass via Session Forgery",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "Flask uses client-side session cookies that are cryptographically signed with the secret key using HMAC-SHA1. The secret key 'your_secret_key' is hardcoded in the source code and publicly known. An attacker can use tools like flask-unsign to forge valid session cookies with arbitrary user_id values, completely bypassing the authentication mechanism. The application stores user_id in the session after login (routes.py:32) and all authenticated endpoints check only session.get('user_id') without any additional validation. By forging a session cookie with {'user_id': 1}, an attacker gains full access to the test user account and all authenticated functionality including profile access, loan details, and the /total_loan_payments endpoint which contains an SSTI vulnerability. This enables reading the FLAG file at /flag and accessing all user PII and financial data."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Attack flow: Attacker forges session cookie -> bypasses authentication -> accesses authenticated endpoints -> exploits SSTI to read FLAG"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attacker uses hardcoded secret key to forge session cookie"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 8,
+                            "endLine": 8,
+                            "snippet": {
+                              "text": "app.secret_key = 'your_secret_key'  # Change this to a secure secret key"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 32,
+                            "endLine": 32,
+                            "snippet": {
+                              "text": "            session['user_id'] = user.id"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 50,
+                            "endLine": 51,
+                            "snippet": {
+                              "text": "    user_id = session.get('user_id')\n    if user_id:"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "branch",
+                        "false"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 52,
+                            "endLine": 53,
+                            "snippet": {
+                              "text": "        user = User.query.get(user_id)\n        return render_template('templates/home.html', user=user)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 150,
+                            "endLine": 151,
+                            "snippet": {
+                              "text": "    user_id = session.get('user_id')\n    if user_id:"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "branch",
+                        "true"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 166,
+                            "endLine": 166,
+                            "snippet": {
+                              "text": "        return render_template_string(json_template, payment=payment, term=term, principal=principal, content_type='application/json')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "value"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Database credentials are hardcoded in source code, but the database is network-isolated within Docker containers and not directly accessible from the Internet."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 11,
+                  "endLine": 11,
+                  "snippet": {
+                    "text": "app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 9,
+                  "endLine": 13,
+                  "snippet": {
+                    "text": "\n# MySQL configurations\napp.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'\napp.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False\n"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Hardcoded Database Credentials",
+            "confidence": 10,
+            "exploitable": false,
+            "explanation": {
+              "text": "While database credentials (root:app_conf) are hardcoded in the source code, this is not directly exploitable by an Internet-based attacker. The MySQL database is network-isolated within the Docker environment using the 'expose' directive (not 'ports'), making it accessible only to other containers in the Docker network, not to the Internet. The database hostname '@db' is a Docker service name that cannot be resolved from outside the container network. Additionally, the Python source files are not served by Apache (only /static/ directory is served), preventing direct source code disclosure via HTTP. However, this practice violates security best practices and creates risk if: (1) the source code repository is leaked or made public, (2) the application is compromised through other vulnerabilities (e.g., SSTI in /total_loan_payments route), or (3) credentials need to be rotated. The credentials should be moved to environment variables or a secrets management system to follow the principle of defense in depth."
+            }
+          }
+        },
+        {
+          "message": {
+            "text": "Hardcoded default test account (test:test) provides unauthorized access to authenticated application features and sensitive data."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/__init__.py"
+                },
+                "region": {
+                  "startLine": 20,
+                  "endLine": 35,
+                  "snippet": {
+                    "text": "# Check if test already exists in the database\ntest = User.query.filter_by(username='test').first()\nif not test:\n    # Create a dummy user\n    test = User(\n        username='test',\n        password='test',\n        name='John',\n        lastname='Doe',\n        email='john@example.com',\n        loan_amount=10000.0,\n        loan_term_months=60,\n        monthly_payment=212.47,\n        image_profile_filename='default_profile.png'\n    )\n    db.session.add(test)\n    db.session.commit()"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Broken Authentication",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The application automatically creates a default test account with hardcoded credentials (username='test', password='test') during initialization. This account is Internet-exposed via the login endpoint on port 80. An unauthenticated attacker can use these well-known credentials to gain authenticated access to the application. Once authenticated, the attacker can access all protected endpoints including profile management (/profile, /update_profile), loan details (/loan_details), and file upload functionality. The threat model confirms passwords are stored in plaintext and there is no password hashing. A TODO comment in login.html acknowledges this security issue. This is a concrete vulnerability as it provides a direct authentication bypass requiring no special conditions or user interaction - the attacker simply needs to know the default credentials 'test:test' which are trivial to discover through credential stuffing, documentation review, or source code access."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Attack flow: Attacker uses hardcoded test credentials to authenticate and access protected resources"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attacker discovers or guesses default credentials test:test"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 23,
+                            "endLine": 25,
+                            "snippet": {
+                              "text": "    test = User(\n        username='test',\n        password='test',"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 34,
+                            "endLine": 35,
+                            "snippet": {
+                              "text": "    db.session.add(test)\n    db.session.commit()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 24,
+                            "endLine": 28,
+                            "snippet": {
+                              "text": "@app.route('/login', methods=['GET', 'POST'])\ndef login():\n    if request.method == 'POST':\n        username = request.form['username']\n        password = request.form['password']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 29,
+                            "endLine": 29,
+                            "snippet": {
+                              "text": "        user = User.query.filter_by(username=username, password=password).first()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 30,
+                            "endLine": 32,
+                            "snippet": {
+                              "text": "        if user:\n            # Store user ID in session\n            session['user_id'] = user.id"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value",
+                        "danger"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 48,
+                            "endLine": 54,
+                            "snippet": {
+                              "text": "@app.route('/home')\ndef home():\n    # Retrieve user from session\n    user_id = session.get('user_id')\n    if user_id:\n        user = User.query.get(user_id)\n        return render_template('templates/home.html', user=user)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "value",
+                        "danger"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "message": {
+            "text": "Passwords are stored in plaintext in the database without any hashing. This vulnerability is exploitable through multiple attack vectors including SSTI-based database credential extraction, database backup theft, or direct database access. An attacker who gains database access can immediately read all user passwords and use them for account takeover or credential stuffing attacks."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/website/app/models.py"
+                },
+                "region": {
+                  "startLine": 8,
+                  "endLine": 8,
+                  "snippet": {
+                    "text": "    password = db.Column(db.String(50), nullable=False)"
+                  }
+                },
+                "contextRegion": {
+                  "startLine": 5,
+                  "endLine": 11,
+                  "snippet": {
+                    "text": "class User(db.Model):\n    id = db.Column(db.Integer, primary_key=True)\n    username = db.Column(db.String(50), unique=True, nullable=False)\n    password = db.Column(db.String(50), nullable=False)\n    name = db.Column(db.String(50), nullable=False)\n    lastname = db.Column(db.String(50), nullable=False)\n    email = db.Column(db.String(100), nullable=False)"
+                  }
+                }
+              }
+            }
+          ],
+          "properties": {
+            "type": "Cryptographic Failure - Plaintext Password Storage",
+            "confidence": 10,
+            "exploitable": true,
+            "explanation": {
+              "text": "The application stores user passwords in plaintext without any cryptographic hashing. This is confirmed by: (1) The User model defines password as db.String(50) with no hashing logic, (2) Authentication in routes.py:29 directly compares plaintext passwords using filter_by(username=username, password=password), (3) The test user is created with plaintext password 'test' in __init__.py:25. This vulnerability is exploitable through multiple attack vectors: (a) The application has an SSTI vulnerability in /total_loan_payments endpoint where the 'principal' parameter is embedded in a template string and rendered with render_template_string, allowing an attacker to read files including database credentials or the /flag file, (b) The MySQL database is exposed on port 3306 with hardcoded credentials root:app_conf, (c) Database backups or container filesystem access would expose all passwords, (d) The weak session secret 'your_secret_key' could enable session forgery to access authenticated endpoints. Once an attacker gains database access through any of these vectors, all user passwords are immediately readable in plaintext, enabling account takeover and potential credential stuffing attacks on other services where users may have reused passwords."
+            }
+          },
+          "codeFlows": [
+            {
+              "message": {
+                "text": "Attack flow: Attacker exploits SSTI vulnerability to gain database access and extract plaintext passwords"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attacker sends malicious SSTI payload through principal parameter to authenticated endpoint"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 153,
+                            "endLine": 153,
+                            "snippet": {
+                              "text": "        principal = request.args.get('principal', type=str)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 161,
+                            "endLine": 163,
+                            "snippet": {
+                              "text": "        json_template = f\"\"\"\n        {{ \"loan_principal\": \"{{{{ principal }}}}\" ,\"monthly_payment\": \"{{{{ payment }}}}\", \"loan_term_amount\": \"{{{{ term }}}}\", \"total_loan_payments\": \"{{{{ payment*term }}}}\" }}\n        \"\"\""
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "function"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 166,
+                            "endLine": 166,
+                            "snippet": {
+                              "text": "        return render_template_string(json_template, payment=payment, term=term, principal=principal, content_type='application/json')"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "vulnerability"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 11,
+                            "endLine": 11,
+                            "snippet": {
+                              "text": "app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:app_conf@db/database'"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "resource",
+                        "database"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/models.py"
+                          },
+                          "region": {
+                            "startLine": 8,
+                            "endLine": 8,
+                            "snippet": {
+                              "text": "    password = db.Column(db.String(50), nullable=False)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "value"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "message": {
+                "text": "Attack flow: Direct database access via exposed MySQL port with hardcoded credentials"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "Attacker connects to exposed MySQL database using hardcoded credentials"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "docker-compose.yml"
+                          },
+                          "region": {
+                            "startLine": 5,
+                            "endLine": 5,
+                            "snippet": {
+                              "text": "      - 3306:3306"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "mysql/Dockerfile"
+                          },
+                          "region": {
+                            "startLine": 3,
+                            "endLine": 3,
+                            "snippet": {
+                              "text": "ENV MYSQL_ROOT_PASSWORD=app_conf"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "resource"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/models.py"
+                          },
+                          "region": {
+                            "startLine": 8,
+                            "endLine": 8,
+                            "snippet": {
+                              "text": "    password = db.Column(db.String(50), nullable=False)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "value"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "message": {
+                "text": "Password storage and authentication flow showing plaintext handling"
+              },
+              "threadFlows": [
+                {
+                  "message": {
+                    "text": "User password flows through system in plaintext from creation to authentication"
+                  },
+                  "locations": [
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/__init__.py"
+                          },
+                          "region": {
+                            "startLine": 25,
+                            "endLine": 25,
+                            "snippet": {
+                              "text": "        password='test',"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/models.py"
+                          },
+                          "region": {
+                            "startLine": 8,
+                            "endLine": 8,
+                            "snippet": {
+                              "text": "    password = db.Column(db.String(50), nullable=False)"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "memory"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 28,
+                            "endLine": 28,
+                            "snippet": {
+                              "text": "        password = request.form['password']"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "taint",
+                        "source"
+                      ]
+                    },
+                    {
+                      "location": {
+                        "physicalLocation": {
+                          "artifactLocation": {
+                            "uri": "app/website/app/routes.py"
+                          },
+                          "region": {
+                            "startLine": 29,
+                            "endLine": 29,
+                            "snippet": {
+                              "text": "        user = User.query.filter_by(username=username, password=password).first()"
+                            }
+                          }
+                        }
+                      },
+                      "kinds": [
+                        "danger",
+                        "vulnerability"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "fraim",
+          "version": "0.8.0"
+        }
+      },
+      "properties": {
+        "repoName": "XBEN-022-24",
+        "totalCost": 3.129963
+      }
+    }
+  ]
+}
