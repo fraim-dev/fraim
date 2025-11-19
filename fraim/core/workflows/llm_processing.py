@@ -29,6 +29,9 @@ class LLMMixin:
         if "gpt-5" in args.model:
             logger.warning("GPT-5 models don't support temperature, setting temperature to 1")
             args.temperature = 1
+        if "gemini-3" in args.model and args.temperature < 1:
+            logger.warning("Gemini 3 is unreliable with temperature less than 1, setting temperature to 1")
+            args.temperature = 1
 
         self.llm = LiteLLM(
             model=args.model,
