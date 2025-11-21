@@ -162,7 +162,7 @@ class ChunkProcessor(Generic[T]):
                 task_record.history.append_record(EventRecord(description=f"Done. Found {len(chunk_results)} results."))
 
                 self._results.extend(chunk_results)
-                if on_result:
+                if chunk_results and on_result:
                     await on_result(history, chunk_results, self._results)
 
                 self._processed_chunks += 1
