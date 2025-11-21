@@ -5,6 +5,7 @@ import argparse
 import asyncio
 import dataclasses
 import io
+import json
 import logging
 import multiprocessing as mp
 import os
@@ -12,6 +13,7 @@ import sys
 from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import is_dataclass
+from pathlib import Path
 from types import UnionType
 from typing import Annotated, Any, TextIO, Union, get_args, get_origin, get_type_hints
 
@@ -23,10 +25,69 @@ from fraim.core.display import HistoryView
 from fraim.core.workflows.discovery import discover_workflows
 from fraim.observability import ObservabilityManager, ObservabilityRegistry
 from fraim.observability.logging import setup_logging
+from fraim.outputs.sarif import SarifReport
+from fraim.reporting.html.report import generate_html_report
 from fraim.util import tty
 from fraim.validate_cli import validate_cli_args
 
 logger = logging.getLogger(__name__)
+
+
+def handle_view_command(args: argparse.Namespace) -> int:
+    """Handle the view command to generate HTML from SARIF."""
+    sarif_file_path = Path(args.sarif_file).resolve()
+
+    if not sarif_file_path.exists():
+        logger.error(f"SARIF file not found: {sarif_file_path}")
+        return 1
+
+    # Determine output path
+    if args.output:
+        output_path = Path(args.output)
+    else:
+        output_path = sarif_file_path.with_suffix(".html")
+
+    logger.info(f"Loading SARIF file: {sarif_file_path}")
+
+    try:
+        # Load and parse SARIF file
+        with open(sarif_file_path, encoding="utf-8") as f:
+            sarif_data = json.load(f)
+
+        sarif_report = SarifReport.model_validate(sarif_data)
+        logger.info(f"Successfully parsed SARIF report with {len(sarif_report.runs)} run(s)")
+
+        # Load threat model if provided
+        threat_model_content = None
+        if args.threat_model:
+            threat_model_path = Path(args.threat_model)
+            if threat_model_path.exists():
+                logger.info(f"Loading threat model: {threat_model_path}")
+                threat_model_content = threat_model_path.read_text(encoding="utf-8")
+            else:
+                logger.warning(f"Threat model file not found: {threat_model_path}")
+
+        # Generate HTML report
+        logger.info("Generating HTML report...")
+        html_content = generate_html_report(
+            sarif_report=sarif_report,
+            threat_model_content=threat_model_content,
+            for_hosted_reports=args.for_hosted_reports,
+        )
+
+        # Write HTML file
+        output_path.write_text(html_content, encoding="utf-8")
+        logger.info(f"HTML report written to: {output_path}")
+        print(f"\n✅ HTML report generated: {output_path}")
+
+        return 0
+
+    except Exception as e:
+        logger.error(f"Error generating HTML report: {e}")
+        import traceback
+
+        traceback.print_exc()
+        return 1
 
 
 def setup_observability(args: argparse.Namespace) -> ObservabilityManager:
@@ -75,11 +136,20 @@ def cli() -> int:
 
     build_observability_arg(parser)
 
-    actions = parser.add_subparsers(dest="action")
+    actions = parser.add_subparsers(dest="action", required=True)
 
     run_parser = actions.add_parser("run", help="Run a workflow")
 
     workflows_parser = run_parser.add_subparsers(dest="workflow", required=True)
+
+    # Add view command for generating HTML from SARIF
+    view_parser = actions.add_parser("view", help="Generate HTML report from SARIF file")
+    view_parser.add_argument("sarif_file", help="Path to the SARIF file to view")
+    view_parser.add_argument("-o", "--output", help="Output path for HTML report (default: <sarif_file>.html)")
+    view_parser.add_argument(
+        "--for-hosted-reports", action="store_true", help="Use hosted navbar (for security reports)"
+    )
+    view_parser.add_argument("--threat-model", help="Path to threat model markdown file to include in report")
 
     discovered_workflows = discover_workflows()  # TODO: support custom paths, maybe env var or initial args parse
 
@@ -106,6 +176,18 @@ def cli() -> int:
             workflow_parser.add_argument(arg_name, **arg_kwargs)
 
     parsed_args = parser.parse_args()
+
+    # Handle view command early (doesn't need workflow-related validation)
+    if parsed_args.action == "view":
+        # Setup basic logging for view command
+        setup_logging(
+            level=logging.DEBUG if parsed_args.debug else logging.INFO,
+            path=os.path.join(parsed_args.log_output, "fraim_scan.log"),
+            show_logs=True,
+        )
+        return handle_view_command(parsed_args)
+
+    # Validate args for run command
     validate_cli_args(parser, parsed_args)
 
     # Determine whether to show rich display (on stdout) and logs (on stderr)
