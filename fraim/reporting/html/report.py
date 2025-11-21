@@ -49,11 +49,7 @@ def generate_html_report(
         js_content = f.read()
 
     # Read navbar template based on generation type
-    navbar_template_path = (
-        navbar_security_reports_template
-        if for_hosted_reports
-        else navbar_local_template
-    )
+    navbar_template_path = navbar_security_reports_template if for_hosted_reports else navbar_local_template
     with open(navbar_template_path, encoding="utf-8") as f:
         navbar_content = f.read()
 

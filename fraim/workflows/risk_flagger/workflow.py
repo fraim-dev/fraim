@@ -22,6 +22,7 @@ from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
 from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor, Workflow
+from fraim.core.workflows.confidence import ConfidenceFilterOptions, filter_results_by_confidence
 from fraim.outputs import sarif
 from fraim.tools.filesystem import FilesystemTools
 from fraim.util.pydantic import merge_models
@@ -31,7 +32,6 @@ from fraim.workflows.risk_flagger.risk_list import build_risks_list, format_risk
 from ...core.workflows.format_pr_comment import format_pr_comment
 from ...core.workflows.format_slack_message import format_slack_message
 from ...core.workflows.llm_processing import LLMMixin, LLMOptions
-from ...core.workflows.sarif import ConfidenceFilterOptions, filter_results_by_confidence
 from ...core.workflows.status_checks import StatusCheckOptions
 
 logger = logging.getLogger(__name__)

@@ -11,7 +11,7 @@ import asyncio
 import logging
 import os
 from dataclasses import dataclass
-from datetime import datetime
+from pathlib import Path
 from typing import Annotated, cast
 
 from fraim.core.contextuals import CodeChunk
@@ -24,8 +24,9 @@ from fraim.outputs import sarif
 from fraim.tools import FilesystemTools
 from fraim.util.pydantic import merge_models
 
+from ...core.workflows.confidence import ConfidenceFilterOptions, filter_results_by_confidence
 from ...core.workflows.llm_processing import LLMMixin, LLMOptions
-from ...core.workflows.sarif import ConfidenceFilterOptions, filter_results_by_confidence, write_sarif_and_html_report
+from ...reporting import SarifReporting
 from . import triage_sarif_overlay
 from .triage_sarif_overlay import ResultProperties as TriageResultProperties
 
@@ -198,66 +199,50 @@ class SASTWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[SASTWorkflow
 
         print(f"Scanning {self.project.repo_name} for security vulnerabilities...")
 
-        # Generate threat model for the entire repository
-        task_record = HistoryRecord(description="Generating threat model for the entire project")
-        self.history.append_record(task_record)
-        self.threat_model = await self.threat_model_step.run(task_record.history, {})
+        # Create reporting context manager for this run
+        with SarifReporting.create_run(
+            project_name=self.project.repo_name, output_dir=Path(self.args.output), auto_print_summary=True
+        ) as reporting:
+            # Generate threat model for the entire repository
+            task_record = HistoryRecord(description="Generating threat model for the entire project")
+            self.history.append_record(task_record)
+            self.threat_model = await self.threat_model_step.run(task_record.history, {})
+            reporting.write("threat_model.md", self.threat_model)
 
-        # Write threat model to file
-        current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_repo_name = "".join(c if c.isalnum() else "_" for c in self.project.repo_name).strip("_")
-        threat_model_filename = f"fraim_threat_model_{safe_repo_name}_{current_time}.md"
-        threat_model_file = os.path.join(self.args.output, threat_model_filename)
-        with open(threat_model_file, "w") as f:
-            f.write(self.threat_model)
-        print(f"Wrote threat model to {threat_model_filename}")
+            # Process chunks concurrently
+            async def chunk_processor(history: History, chunk: CodeChunk) -> list[sarif.Result]:
+                return await self._process_single_chunk(history, chunk, self.args.max_concurrent_triagers)
 
-        # Create a closure that captures max_concurrent_triagers
-        async def chunk_processor(history: History, chunk: CodeChunk) -> list[sarif.Result]:
-            return await self._process_single_chunk(history, chunk, self.args.max_concurrent_triagers)
+            async def on_results(
+                _history: History, new_results: list[sarif.Result], all_results: list[sarif.Result]
+            ) -> None:
+                logger.info(f"Writing {len(new_results)} additional results to reports")
+                total_cost = await self.history.get_total_cost()
 
-        async def on_results(
-            history: History, new_results: list[sarif.Result], all_results: list[sarif.Result]
-        ) -> None:
-            logger.info(f"Writing {len(new_results)} additional results to SARIF and HTML reports")
-            total_cost = await self.history.get_total_cost()
-            write_sarif_and_html_report(
-                results=all_results,
-                repo_name=self.project.repo_name,
-                output_dir=self.args.output,
-                threat_model_content=self.threat_model,
-                total_cost=total_cost,
-            )
+                reporting.write_sarif(
+                    results=all_results,
+                    project_name=self.project.repo_name,
+                    total_cost=total_cost,
+                    threat_model_content=self.threat_model,
+                    write_html=True,
+                )
 
-        results: list[sarif.Result] = []
-        try:
-            # Process chunks concurrently using utility
-            results = await self.process_chunks_concurrently(
-                history=self.history,
-                project=self.project,
-                chunk_processor=chunk_processor,
-                on_result=on_results,
-                max_concurrent_chunks=self.args.max_concurrent_chunks,
-            )
-            print("Finished.")
-        except Exception as e:
-            print(f"Stopping due to error: {e!s}")
-        finally:
-            print(f"Found {len(results)} results.")
+            results: list[sarif.Result] = []
+            try:
+                results = await self.process_chunks_concurrently(
+                    history=self.history,
+                    project=self.project,
+                    chunk_processor=chunk_processor,
+                    on_result=on_results,
+                    max_concurrent_chunks=self.args.max_concurrent_chunks,
+                )
+                print("Finished.")
+            except Exception as e:
+                print(f"Stopping due to error: {e!s}")
+            finally:
+                print(f"Total results: {len(results)}")
 
-            # Get total cost from history
-            total_cost = await self.history.get_total_cost()
-            print(f"Total cost: ${total_cost:.6f}")
-
-            # Generate reports
-            report_paths = write_sarif_and_html_report(
-                results=results,
-                repo_name=self.project.repo_name,
-                output_dir=self.args.output,
-                threat_model_content=self.threat_model,
-                total_cost=total_cost,
-            )
-            print(f"Wrote HTML report to {report_paths.html_path}")
-            print(f"Wrote SARIF report to {report_paths.sarif_path}")
+                total_cost = await self.history.get_total_cost()
+                print(f"Total cost: ${total_cost:.6f}")
 
         return results

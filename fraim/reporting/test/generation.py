@@ -1,30 +1,49 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2025 Resourcely Inc.
 
+"""
+DEPRECATED: Use `fraim view` command instead.
+
+This script is maintained for backwards compatibility only.
+Please use the new CLI command:
+
+    fraim view <sarif_file> [options]
+
+Examples:
+    fraim view path/to/report.sarif
+    fraim view path/to/report.sarif -o output.html
+    fraim view path/to/report.sarif --threat-model threat_model.md
+    fraim view path/to/report.sarif --for-hosted-reports
+
+See `fraim view --help` for more information.
+"""
+
 import argparse
 import json
-import os
 import sys
 from datetime import datetime
+from pathlib import Path
 
 from fraim.outputs.sarif import SarifReport
-from fraim.reporting.reporting import Reporting
+from fraim.reporting.html.report import generate_html_report
 
 
 def main() -> int:
     # Parse command line arguments
     parser = argparse.ArgumentParser(
-        description="Generate HTML report from SARIF file",
+        description="[DEPRECATED] Generate HTML report from SARIF file. Use `fraim view` instead.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Examples:
-  python fraim/reporting/test/generation.py path/to/report.sarif
-  python fraim/reporting/test/generation.py path/to/report.sarif --repo-name "My Project"
-  python fraim/reporting/test/generation.py path/to/report.sarif --for-security-reports
+DEPRECATED: Use `fraim view` command instead.
+
+Examples (new command):
+  fraim view path/to/report.sarif
+  fraim view path/to/report.sarif -o output.html
+  fraim view path/to/report.sarif --for-hosted-reports
         """,
     )
     parser.add_argument("sarif_file", help="Path to the SARIF file to process")
-    parser.add_argument("--repo-name", default="", help="Repository name", metavar="")
+    parser.add_argument("--repo-name", default="", help="Repository name (deprecated)", metavar="")
     parser.add_argument(
         "--for-security-reports",
         action="store_true",
@@ -34,34 +53,29 @@ Examples:
 
     args = parser.parse_args()
 
+    print("⚠️  DEPRECATED: This script is deprecated. Please use `fraim view` command instead.")
+    print(f"   Example: fraim view {args.sarif_file}\n")
+
     # Resolve the SARIF file path
-    sarif_file_path = os.path.abspath(args.sarif_file)
-    if not os.path.exists(sarif_file_path):
+    sarif_file_path = Path(args.sarif_file).resolve()
+    if not sarif_file_path.exists():
         print(f"❌ Error: SARIF file not found: {sarif_file_path}")
         return 1
 
     # Output path for the HTML report (in test outputs directory)
-    test_outputs_dir = os.path.join(os.path.dirname(__file__), "outputs")
-    os.makedirs(test_outputs_dir, exist_ok=True)  # Create outputs directory if it doesn't exist
+    test_outputs_dir = Path(__file__).parent / "outputs"
+    test_outputs_dir.mkdir(exist_ok=True)
 
-    # Create filename with repo name if provided
+    # Create filename
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    if args.repo_name:
-        # Sanitize repo name for filename (replace spaces and special chars with underscores)
-        safe_repo_name = "".join(c if c.isalnum() else "_" for c in args.repo_name).strip("_")
-        filename = f"test_security_report_{safe_repo_name}_{timestamp}.html"
-    else:
-        filename = f"test_security_report_{timestamp}.html"
-
-    output_file = os.path.join(test_outputs_dir, filename)
+    filename = f"test_security_report_{timestamp}.html"
+    output_file = test_outputs_dir / filename
 
     print(f"Loading SARIF file: {sarif_file_path}")
 
     # Load and parse the SARIF file
     try:
-        with open(sarif_file_path, encoding="utf-8") as f:
-            sarif_data = json.load(f)
-
+        sarif_data = json.loads(sarif_file_path.read_text(encoding="utf-8"))
         print(f"Loaded SARIF data with {len(sarif_data.get('runs', []))} runs")
 
         # Parse into Pydantic model
@@ -73,27 +87,26 @@ Examples:
         print(f"Total results: {total_results}")
 
     except Exception as e:
-        print(f"Error loading SARIF file: {e}")
+        print(f"❌ Error loading SARIF file: {e}")
         return 1
 
     # Check for threat model file
     threat_model_content = None
-    threat_model_path = os.path.dirname(sarif_file_path) + "/threat_model.md"
-    if os.path.exists(threat_model_path):
+    threat_model_path = sarif_file_path.parent / "threat_model.md"
+    if threat_model_path.exists():
         print(f"Loading threat model file: {threat_model_path}")
-        with open(threat_model_path, encoding="utf-8") as f:
-            threat_model_content = f.read()
+        threat_model_content = threat_model_path.read_text(encoding="utf-8")
         print(f"Loaded threat model content ({len(threat_model_content)} characters)")
 
     # Generate HTML report
     try:
-        Reporting.generate_html_report(
+        html_content = generate_html_report(
             sarif_report=sarif_report,
-            repo_name=args.repo_name,
-            output_path=output_file,
             threat_model_content=threat_model_content,
-            generation_for_security_reports=args.for_security_reports,
+            for_hosted_reports=args.for_security_reports,
         )
+        output_file.write_text(html_content, encoding="utf-8")
+        print(f"✅ HTML report written to: {output_file}")
         return 0
 
     except Exception as e:
