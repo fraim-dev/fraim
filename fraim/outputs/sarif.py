@@ -11,6 +11,8 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
+from fraim import __version__
+
 
 class BaseSchema(BaseModel):
     model_config = ConfigDict(
@@ -180,7 +182,7 @@ class SarifReport(BaseSchema):
 
 
 def create_sarif_report(
-    results: list[Result], tool_version: str, repo_name: str, total_cost: float | None = None
+    results: list[Result], repo_name: str, total_cost: float | None = None, tool_version: str = __version__
 ) -> SarifReport:
     """
     Create a complete SARIF report from a list of results.

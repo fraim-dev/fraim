@@ -20,13 +20,10 @@ from fraim.core.parsers import PydanticOutputParser
 from fraim.core.prompts.template import PromptTemplate
 from fraim.core.steps.llm import LLMStep
 from fraim.core.workflows import ChunkProcessingOptions, ChunkProcessor, Workflow
+from fraim.core.workflows.confidence import ConfidenceFilterOptions, filter_results_by_confidence
 from fraim.core.workflows.llm_processing import LLMMixin, LLMOptions
-from fraim.core.workflows.sarif import (
-    ConfidenceFilterOptions,
-    filter_results_by_confidence,
-    write_sarif_and_html_report,
-)
 from fraim.outputs import sarif
+from fraim.reporting import SarifReporting
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +80,11 @@ class IaCWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[IaCWorkflowOp
 
     def __init__(self, args: IaCWorkflowOptions) -> None:
         super().__init__(args)
+
+        # Configure the project
+        self.project = self.setup_project_input(self.args)
+
+        # Configure the scanner step
         scanner_parser = PydanticOutputParser(sarif.RunResults)
         self.scanner_step: LLMStep[IaCCodeChunkOptions, sarif.RunResults] = LLMStep(
             self.llm, SCANNER_PROMPTS["system"], SCANNER_PROMPTS["user"], scanner_parser
@@ -114,32 +116,47 @@ class IaCWorkflow(ChunkProcessor[sarif.Result], LLMMixin, Workflow[IaCWorkflowOp
             return []
 
     async def run(self) -> list[sarif.Result]:
-        """Main IaC workflow - full control over execution."""
-        # 1. Setup project input using utility
-        project = self.setup_project_input(self.args)
+        """Main IaC workflow - full control over execution with incremental reporting."""
 
-        # 2. Process chunks concurrently using utility
-        results = await self.process_chunks_concurrently(
-            history=self.history,
-            project=project,
-            chunk_processor=self._process_single_chunk,
-            max_concurrent_chunks=self.args.max_concurrent_chunks,
-        )
+        print(f"Scanning {self.project.repo_name} for IaC security issues...")
 
-        # Get total cost from history
-        total_cost = await self.history.get_total_cost()
+        # Create reporting context manager for this run
+        with SarifReporting.create_run(
+            project_name=self.project.repo_name, output_dir=Path(self.args.output), auto_print_summary=True
+        ) as reporting:
+            # Process chunks concurrently with incremental reporting
+            async def chunk_processor(history: History, chunk: CodeChunk) -> list[sarif.Result]:
+                return await self._process_single_chunk(history, chunk)
 
-        # 3. Generate reports (IaC workflow chooses to do this)
-        report_paths = write_sarif_and_html_report(
-            results=results,
-            repo_name=project.repo_name,
-            output_dir=self.args.output,
-            total_cost=total_cost,
-        )
+            async def on_results(
+                _history: History, new_results: list[sarif.Result], all_results: list[sarif.Result]
+            ) -> None:
+                logger.info(f"Writing {len(new_results)} additional results to reports")
+                total_cost = await self.history.get_total_cost()
 
-        print(f"Found {len(results)} results.")
-        print(f"Wrote SARIF report to {report_paths.sarif_path}")
-        print(f"Wrote HTML report to {report_paths.html_path}")
-        print(f"Total cost: ${total_cost:.6f}")
+                reporting.write_sarif(
+                    results=all_results,
+                    project_name=self.project.repo_name,
+                    total_cost=total_cost,
+                    write_html=True,
+                )
+
+            results: list[sarif.Result] = []
+            try:
+                results = await self.process_chunks_concurrently(
+                    history=self.history,
+                    project=self.project,
+                    chunk_processor=chunk_processor,
+                    on_result=on_results,
+                    max_concurrent_chunks=self.args.max_concurrent_chunks,
+                )
+                print("Finished.")
+            except Exception as e:
+                print(f"Stopping due to error: {e!s}")
+            finally:
+                print(f"Total results: {len(results)}")
+
+                total_cost = await self.history.get_total_cost()
+                print(f"Total cost: ${total_cost:.6f}")
 
         return results
