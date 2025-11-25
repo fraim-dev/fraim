@@ -4,7 +4,6 @@
 """Main Typer application for fraim CLI."""
 
 import logging
-import multiprocessing as mp
 import os
 from dataclasses import dataclass, field
 from typing import Annotated
@@ -16,7 +15,6 @@ from fraim.cli.commands.run import app as run_app
 from fraim.cli.commands.view import app as view_app
 from fraim.cli.utils.display import should_show_logs, should_show_rich_display
 from fraim.cli.utils.observability import setup_observability
-from fraim.observability import ObservabilityRegistry
 from fraim.observability.logging import setup_logging
 
 # Create the main Typer app
@@ -96,10 +94,7 @@ def main(
 
 
 # Add command sub-apps
-# view_app has no name, so its commands go to the top level (there's just one: "view")
 app.add_typer(view_app)
-
-# run_app has a name "run", so it creates a subcommand group
 app.add_typer(run_app, name="run")
 
 
@@ -108,9 +103,6 @@ def cli() -> int:
 
     This function is called when the user runs the fraim command.
     """
-    # Set start method for multiprocessing
-    mp.set_start_method("spawn", force=True)
-
     # Run the main app
     try:
         app()
