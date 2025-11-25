@@ -24,7 +24,7 @@ classifiers = [
 ]
 dependencies = [
     "gitpython>=3.1,<4.0",
-    "litellm>=1.72.7",
+    "litellm>=1.80.0",
     "mcp-server-tree-sitter>=0.5.1",
     "openai==1.99.9",
     "packaging>=21.0",

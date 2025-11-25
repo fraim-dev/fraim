@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from fraim.core.history import History
 from fraim.core.llms.litellm import LiteLLM
 from fraim.core.messages import AssistantMessage, Function, Message, SystemMessage, ToolCall, ToolMessage, UserMessage
+from fraim.core.messages.message import ThinkingBlock
 from fraim.core.tools.base import BaseTool, ToolError
 
 
@@ -37,12 +38,17 @@ class ErrorTool(BaseTool):
         return "Success"
 
 
-def create_mock_response(content: str = "Test response", tool_calls: list[ToolCall] | None = None) -> ModelResponse:
+def create_mock_response(
+    content: str = "Test response",
+    tool_calls: list[ToolCall] | None = None,
+    thinking_blocks: list[ThinkingBlock] | None = None,
+) -> ModelResponse:
     """Helper to create mock ModelResponse objects"""
     mock_response = Mock(spec=ModelResponse)
     mock_message = Mock()
     mock_message.content = content
     mock_message.tool_calls = tool_calls or []
+    mock_message.thinking_blocks = thinking_blocks or []
     mock_choice = Mock()
     mock_choice.message = mock_message
     mock_response.choices = [mock_choice]
@@ -299,6 +305,139 @@ class TestLiteLLMRunOnce:
             tool_msg = updated_messages[2]
             assert isinstance(tool_msg, ToolMessage)
             assert "Error: Mock tool error" in tool_msg.content
+
+    @pytest.mark.asyncio
+    async def test_run_once_with_thinking_blocks(self) -> None:
+        """Test _run_once when LLM returns thinking blocks without tool calls"""
+        llm = LiteLLM(model="gpt-3.5-turbo")
+        messages: list[Message] = [UserMessage(content="What is 2+2?")]
+
+        # Raw thinking blocks as they come from LiteLLM (as dictionaries)
+        raw_thinking_blocks = [
+            {"type": "thinking", "thinking": "Let me calculate 2+2...", "signature": ""},
+            {"type": "thinking", "thinking": "2+2 equals 4", "signature": ""},
+        ]
+
+        # Create mock response with raw thinking blocks
+        mock_response = Mock(spec=ModelResponse)
+        mock_message = Mock()
+        mock_message.content = "The answer is 4"
+        mock_message.tool_calls = []
+        mock_message.thinking_blocks = raw_thinking_blocks
+        mock_choice = Mock()
+        mock_choice.message = mock_message
+        mock_response.choices = [mock_choice]
+
+        with patch("litellm.acompletion", return_value=mock_response):
+            response, updated_messages, tools_executed = await llm._run_once(History(), messages, use_tools=False)
+
+            assert response == mock_response
+            assert updated_messages == messages  # No new messages for non-tool responses
+            assert tools_executed is False
+
+    @pytest.mark.asyncio
+    async def test_run_once_with_thinking_blocks_and_tool_calls(self) -> None:
+        """Test _run_once when LLM returns both thinking blocks and tool calls"""
+        mock_tool = MockTool(name="mock_tool", description="A mock tool for testing", args_schema=MockArgs)
+        llm = LiteLLM(model="gpt-3.5-turbo", tools=[mock_tool])
+        messages: list[Message] = [UserMessage(content="Use the tool")]
+
+        # Raw thinking blocks as they come from LiteLLM (as dictionaries)
+        raw_thinking_blocks = [
+            {"type": "thinking", "thinking": "I need to use the mock tool with value 42", "signature": ""}
+        ]
+        tool_call = ToolCall(
+            id="call_123", function=Function(name="mock_tool", arguments='{"value": 42}'), type="function"
+        )
+
+        # Create mock response with both thinking blocks and tool calls
+        mock_response = Mock(spec=ModelResponse)
+        mock_message = Mock()
+        mock_message.content = "Let me use the tool"
+        mock_message.tool_calls = [tool_call]
+        mock_message.thinking_blocks = raw_thinking_blocks
+        mock_choice = Mock()
+        mock_choice.message = mock_message
+        mock_response.choices = [mock_choice]
+
+        with patch("litellm.acompletion", return_value=mock_response):
+            response, updated_messages, tools_executed = await llm._run_once(History(), messages, use_tools=True)
+
+            assert response == mock_response
+            assert tools_executed is True
+            assert len(updated_messages) == 3  # original + assistant + tool response
+
+            # Check assistant message has both thinking blocks and tool calls
+            assistant_msg = updated_messages[1]
+            assert isinstance(assistant_msg, AssistantMessage)
+            assert assistant_msg.content == "Let me use the tool"
+            assert assistant_msg.tool_calls == [tool_call]
+            assert assistant_msg.thinking_blocks is not None
+            assert len(assistant_msg.thinking_blocks) == 1
+            assert assistant_msg.thinking_blocks[0].type == "thinking"
+            assert assistant_msg.thinking_blocks[0].thinking == "I need to use the mock tool with value 42"
+            assert assistant_msg.thinking_blocks[0].signature == ""
+
+    @pytest.mark.asyncio
+    async def test_run_once_with_empty_thinking_blocks(self) -> None:
+        """Test _run_once when LLM returns empty thinking blocks list"""
+        llm = LiteLLM(model="gpt-3.5-turbo")
+        messages: list[Message] = [UserMessage(content="Hello")]
+        mock_response = create_mock_response("Hello there!", thinking_blocks=[])
+
+        with patch("litellm.acompletion", return_value=mock_response):
+            response, updated_messages, tools_executed = await llm._run_once(History(), messages, use_tools=False)
+
+            assert response == mock_response
+            assert updated_messages == messages
+            assert tools_executed is False
+
+    @pytest.mark.asyncio
+    async def test_run_once_with_multiple_thinking_blocks(self) -> None:
+        """Test _run_once when LLM returns multiple thinking blocks with tool calls"""
+        mock_tool = MockTool(name="mock_tool", description="A mock tool for testing", args_schema=MockArgs)
+        llm = LiteLLM(model="gpt-3.5-turbo", tools=[mock_tool])
+        messages: list[Message] = [UserMessage(content="Calculate something")]
+
+        # Raw thinking blocks as they come from LiteLLM (as dictionaries)
+        raw_thinking_blocks = [
+            {"type": "thinking", "thinking": "First, let me analyze the request", "signature": "step1"},
+            {"type": "thinking", "thinking": "Now I'll determine the right value", "signature": "step2"},
+            {"type": "thinking", "thinking": "Finally, I'll call the tool", "signature": "step3"},
+        ]
+        tool_call = ToolCall(
+            id="call_456", function=Function(name="mock_tool", arguments='{"value": 100}'), type="function"
+        )
+
+        # Create mock response with multiple thinking blocks and tool calls
+        mock_response = Mock(spec=ModelResponse)
+        mock_message = Mock()
+        mock_message.content = "Processing your request"
+        mock_message.tool_calls = [tool_call]
+        mock_message.thinking_blocks = raw_thinking_blocks
+        mock_choice = Mock()
+        mock_choice.message = mock_message
+        mock_response.choices = [mock_choice]
+
+        with patch("litellm.acompletion", return_value=mock_response):
+            response, updated_messages, tools_executed = await llm._run_once(History(), messages, use_tools=True)
+
+            assert tools_executed is True
+
+            # Check assistant message contains all thinking blocks
+            assistant_msg = updated_messages[1]
+            assert isinstance(assistant_msg, AssistantMessage)
+            assert assistant_msg.thinking_blocks is not None
+            assert len(assistant_msg.thinking_blocks) == 3
+            assert assistant_msg.thinking_blocks[0].type == "thinking"
+            assert assistant_msg.thinking_blocks[0].thinking == "First, let me analyze the request"
+            assert assistant_msg.thinking_blocks[0].signature == "step1"
+            assert assistant_msg.thinking_blocks[1].type == "thinking"
+            assert assistant_msg.thinking_blocks[1].thinking == "Now I'll determine the right value"
+            assert assistant_msg.thinking_blocks[1].signature == "step2"
+            assert assistant_msg.thinking_blocks[2].type == "thinking"
+            assert assistant_msg.thinking_blocks[2].thinking == "Finally, I'll call the tool"
+            assert assistant_msg.thinking_blocks[2].signature == "step3"
 
 
 class TestLiteLLMRun:
