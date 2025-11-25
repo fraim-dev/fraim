@@ -6,7 +6,7 @@ import json
 import logging
 import os
 
-from fraim.outputs.sarif import SarifReport
+from fraim.outputs.sarif import SarifReport, SecurityScoreProperties
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,7 @@ class Reporting:
         output_path: str,
         threat_model_content: str | None = None,
         generation_for_security_reports: bool = False,
+        security_score_properties: SecurityScoreProperties | None = None,
     ) -> None:
         """
         Generate a self-contained HTML report with embedded data and separate files.
@@ -91,6 +92,9 @@ class Reporting:
 
         # Prepare minimized SARIF data
         sarif_dict = sarif_report.model_dump(by_alias=True, exclude_none=True)
+        sarif_dict["repoName"] = repo_name or "Unknown Repository"
+        # TODO: Calculate actual score based on findings, for now hardcode
+        sarif_dict["securityScore"] = security_score_properties.securityScore if security_score_properties is not None else None
 
         # Minimize SARIF JSON by removing whitespace
         minimized_sarif = json.dumps(sarif_dict, separators=(",", ":"))

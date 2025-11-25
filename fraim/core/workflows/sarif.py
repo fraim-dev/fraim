@@ -15,7 +15,7 @@ from typing import Annotated
 
 from fraim import __version__
 from fraim.outputs import sarif
-from fraim.outputs.sarif import Result, create_sarif_report
+from fraim.outputs.sarif import Result, create_sarif_report, SecurityScoreProperties
 from fraim.reporting.reporting import Reporting
 
 logger = logging.getLogger(__name__)
@@ -57,6 +57,7 @@ def write_sarif_and_html_report(
     output_dir: str,
     threat_model_content: str | None = None,
     total_cost: float | None = None,
+    security_score_properties: SecurityScoreProperties | None = None,
 ) -> ReportPaths:
     """
     Write security scan results to both SARIF (JSON) and HTML report files.
@@ -79,7 +80,7 @@ def write_sarif_and_html_report(
         >>> print(reports.html_path)
         '/output/fraim_report_my_repo_20250917_143022.html'
     """
-    report = create_sarif_report(results, __version__, repo_name, total_cost)
+    report = create_sarif_report(results, __version__, repo_name, total_cost, security_score_properties)
 
     # Create filename with sanitized repo name
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -102,12 +103,7 @@ def write_sarif_and_html_report(
         logger.error(f"Failed to write SARIF report to {sarif_output_file}: {e!s}")
     # Write HTML report file (independent of SARIF write)
     try:
-        Reporting.generate_html_report(
-            sarif_report=report,
-            repo_name=repo_name,
-            output_path=html_output_file,
-            threat_model_content=threat_model_content,
-        )
+        Reporting.generate_html_report(sarif_report=report, repo_name=repo_name, output_path=html_output_file, threat_model_content=threat_model_content, security_score_properties=security_score_properties)
         logger.info(f"Wrote HTML report ({total_results} results) to {html_output_file}")
     except Exception as e:
         logger.error(f"Failed to write HTML report to {html_output_file}: {e!s}")

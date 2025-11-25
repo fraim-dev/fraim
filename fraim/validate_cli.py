@@ -19,9 +19,9 @@ def validate_cli_args(parser: argparse.ArgumentParser, args: argparse.Namespace)
 
 
 def validate_git_diff(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
-    if args.head and not args.diff:
+    if 'head' in args._get_args() and args.head and not args.diff:
         parser.error("--head requires --diff")
-    if args.base and not args.diff:
+    if 'base' in args._get_args() and args.base and not args.diff:
         parser.error("--base requires --diff")
 
 
