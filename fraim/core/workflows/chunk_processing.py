@@ -42,6 +42,16 @@ class ChunkProcessingOptions:
     ] = None
     max_concurrent_chunks: Annotated[int, {"help": "Maximum number of chunks to process concurrently"}] = 5
 
+    def __post_init__(self) -> None:
+        """Validate chunk processing options after initialization."""
+        if hasattr(super(), "__post_init__"):
+            super().__post_init__()  # type: ignore
+
+        if self.head and not self.diff:
+            raise ValueError("--head requires --diff")
+        if self.base and not self.diff:
+            raise ValueError("--base requires --diff")
+
 
 class ChunkProcessor(Generic[T]):
     """

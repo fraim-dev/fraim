@@ -36,6 +36,7 @@ dependencies = [
     "rich>=13.0.0",
     "slack-sdk>=3.21.0",
     "tenacity==9.1.2",
+    "typer>=0.12.0",
     "types-unidiff>=0.7.0.20240505",
     "unidiff>=0.7,<1.0",
 ]
@@ -60,7 +61,7 @@ langfuse = [
 ]
 
 [project.scripts]
-fraim = "fraim.cli:cli"
+fraim = "fraim.cli:app"
 
 [tool.uv]
 dev-dependencies = [
